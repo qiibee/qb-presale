@@ -28,11 +28,16 @@ contract RefundableOnTokenCrowdsale is FinalizableCrowdsale {
     goal = _goal;
   }
 
-  // We're overriding the fund forwarding from Crowdsale.
   // In addition to sending the funds, we want to call
   // the RefundVault deposit function
-  function forwardFunds() internal {
-    vault.deposit.value(msg.value)(msg.sender);
+  function forwardFunds2(uint256 amount, address beneficiary) internal {
+    if (beneficiary == 0x0) {
+        beneficiary = msg.sender;
+        amount = msg.value;
+    }
+    require (amount > 0);
+    require (beneficiary != 0x0);
+    vault.deposit.value(amount)(beneficiary);
   }
 
   // if crowdsale is unsuccessful, investors can claim refunds here

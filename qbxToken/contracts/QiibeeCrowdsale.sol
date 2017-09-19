@@ -1,6 +1,5 @@
 pragma solidity ^0.4.11;
 
-import "./CappedOnTokenCrowdsale.sol";
 import "./RefundableOnTokenCrowdsale.sol";
 import "zeppelin-solidity/contracts/crowdsale/Crowdsale.sol";
 import "./WhitelistedCrowdsale.sol";
@@ -9,28 +8,20 @@ import "./QiibeeToken.sol";
 /**
    @title Crowdsale for the QBX Token Generation Event
 
-   Implementation of the QBX Token Generation Event (TGE) Crowdsale: A 4-week
-   fixed price (RE WRITE), capped token sale, with a discounted rate for contributions
-   ìn the private presale and (THIS? a Market Validation Mechanism that will receive
-   the funds over the USD 10M soft cap).
-   The crowdsale has a minimum cap of USD XM which in case of not being reached
-   by purchases made during the 4-week period the token will not start operating
-   and all funds sent during that period will be made available to be claimed by
-   the originating addresses.
+   Implementation of the QBX Token Generation Event (TGE) Crowdsale: A 4-week, fixed token supply,
+   dynamic token rate, capped on token, refundable crowdsale. Pre-ICO for whitelisted investors with
+   a preferential rate.
+   The crowdsale has a minimum cap (goal) of X tokens which in case of not being reached by
+   purchases made during the 4-week period the token will not start operating and all funds sent
+   during that period will be made available to be claimed by the originating addresses. Moreover,
+   it will have a maximum cap of Y tokens.
  */
 
- /*
-  * TODO: Whitelist guys
-  *
-  * We have to change MAYBE the validPurchase() so as the whitelisted guys can only buy before the ICO.
-  * We also have to define a block (time period) when they can start buying in preferential rate and when it's over
-  * Actually, it's over at the same time the ICO starts.
-  *
-  */
+//TODO: Check about multisig wallet
+//TODO: Use uint64?
+//TODO: Change start and end blocks to timestamps (https://github.com/OpenZeppelin/zeppelin-solidity/pull/353)
 
-  //TODO: Check about multisig wallet
-
-contract QiibeeCrowdsale is WhitelistedCrowdsale, CappedOnTokenCrowdsale, RefundableOnTokenCrowdsale {
+contract QiibeeCrowdsale is WhitelistedCrowdsale, RefundableOnTokenCrowdsale {
 
     uint256 public constant TOTAL_SHARE = 100; //in %
     uint256 public constant CROWDSALE_SHARE = 24; //in %
@@ -39,14 +30,15 @@ contract QiibeeCrowdsale is WhitelistedCrowdsale, CappedOnTokenCrowdsale, Refund
     // price at which whitelisted buyers will be able to buy tokens
     uint256 public preferentialRate;
 
-    // customize the rate for each whitelisted buyer
-    mapping (address => uint256) public buyerRate; //TOOD: do we need it?
-
     // initial rate at which tokens are offered
     uint256 public initialRate;
 
-    // end rate at which tokens are offered
-    uint256 public endRate;
+    // amount of qbx minted and transferred during the TGE
+    uint256 public tokensSold;
+
+    // maximum amount of tokens that can be minted
+    uint256 public cap;
+
 
     event WalletChange(address wallet);
 
@@ -54,31 +46,27 @@ contract QiibeeCrowdsale is WhitelistedCrowdsale, CappedOnTokenCrowdsale, Refund
 
     event InitialRateChange(uint256 rate);
 
-    event EndRateChange(uint256 rate);
-
     function QiibeeCrowdsale(
         uint256 _startBlock,
         uint256 _endBlock,
         uint256 _initialRate,
-        uint256 _endRate,
         uint256 _preferentialRate,
         uint256 _goal,
         uint256 _cap,
-        address _wallet //TODO: multisig wallet? Escrow?? YES! Gnosis (from Consensys)
+        address _wallet
     )
         WhitelistedCrowdsale()
-        CappedOnTokenCrowdsale(_cap)
         RefundableOnTokenCrowdsale(_goal)
         Crowdsale(_startBlock, _endBlock, _initialRate, _wallet)
     {
         require(_initialRate > 0);
-        require(_endRate > 0);
         require(_preferentialRate > 0);
+        require(_cap > 0);
         require(_goal <= _cap);
 
         initialRate = _initialRate;
-        endRate = _endRate;
         preferentialRate = _preferentialRate;
+        cap = _preferentialRate;
 
         QiibeeToken(token).pause();
     }
@@ -87,90 +75,57 @@ contract QiibeeCrowdsale is WhitelistedCrowdsale, CappedOnTokenCrowdsale, Refund
         return new QiibeeToken();
     }
 
-    function setBuyerRate(address buyer, uint256 rate) onlyOwner public {
-        require(rate != 0);
-        require(isWhitelisted(buyer));
-        require(block.number < startBlock);
-
-        buyerRate[buyer] = rate;
-
-        PreferentialRateChange(buyer, rate);
-    }
-
-    function setInitialRate(uint256 rate) onlyOwner public {
-        require(rate != 0);
-        require(block.number < startBlock);
-
-        initialRate = rate;
-
-        InitialRateChange(rate);
-    }
-
-    function setEndRate(uint256 rate) onlyOwner public {
-        assert(rate != 0);
-        require(block.number < startBlock);
-
-        endRate = rate;
-
-        EndRateChange(rate);
-    }
-
     function getRate() internal returns(uint256) {
-        // some early buyers are offered a discount on the crowdsale price
-        if (buyerRate[msg.sender] != 0) {
-            return buyerRate[msg.sender];
+        // what about rate < initialRate
+        if (tokensSold > goal) {
+            return initialRate / (tokensSold / goal);
         }
+        return initialRate;
+    }
 
-        // whitelisted buyers can purchase at preferential price before crowdsale ends
-        if (isWhitelisted(msg.sender)) {
-            return preferentialRate;
-        }
-
-        //TODO: implement our strategy for making the rate dynamic
-
+    function convertWeiToToken(uint256 weiAmount) internal returns(uint256) {
+        uint256 rate = getRate();
+        // calculate tokens amount
+        return weiAmount.mul(rate);
     }
 
     // low level token purchase function
     function buyTokens(address beneficiary) payable {
         require(beneficiary != 0x0);
         require(validPurchase());
-
-        uint256 weiAmount = msg.value;
-        uint256 updatedWeiRaised = weiRaised.add(weiAmount);
-
-        uint256 rate = getRate();
-        // calculate token amount to be created
-        uint256 tokens = weiAmount.mul(rate);
-        require(tokensSold.add(tokens) <= cap); //TODO: How to move it to validPurchase(). Or there is no need? OKAY
+        uint256 tokens = convertWeiToToken(msg.value);
+        require(tokensSold.add(tokens) <= cap);
 
         // update state
-        weiRaised = updatedWeiRaised;
+        weiRaised = weiRaised.add(msg.value);
         tokensSold = tokensSold.add(tokens);
 
         token.mint(beneficiary, tokens);
 
-        TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
+        TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
 
         forwardFunds();
     }
 
-    //TODO: This function will be used in the case people send us other currency (FIAT, BTC, DASH, etc). So,
-    // the idea is the directly mint the tokens without having to call the buyTokens() and send a wei amount.
-    // function mint(address _to, uint256 _amount) onlyOwner canMint returns (bool) {
-    //     require(validPurchase());
+    // directly mint tokens (used when people want to invest in a different currency than ETH)
+    function mintTokens(address beneficiary) onlyOwner payable returns (bool) { //is it correct to add payable there?
+        require(validPurchase());
+        require(tokensSold.add(msg.value) <= cap);
 
-    //     uint256 weiAmount = msg.value;
-    //     uint256 updatedWeiRaised = weiRaised.add(weiAmount);
+        uint256 rate = getRate();
+        // calculate wei price for the amount of tokens
+        uint256 weiAmount = msg.value.mul(rate);
 
-    //     uint256 rate = getRate();
-    //     // calculate token amount to be created
-    //     uint256 weiAmount = _amount.div(rate);
+        //update state
+        weiRaised = weiRaised.add(weiAmount);
+        tokensSold = tokensSold.add(msg.value);
 
-    //     tokensSold = tokensSold.add(_amount);
-    //     super.mint();
+        token.mint(beneficiary, msg.value);
 
-    //     forwardFunds(weiAmount)();
-    // }
+        TokenPurchase(msg.sender, beneficiary, weiAmount, msg.value); //change event? or use this one?
+
+        forwardFunds2(weiAmount, beneficiary); //check this call
+    }
 
     function setWallet(address _wallet) onlyOwner public {
         require(_wallet != 0x0);
@@ -196,7 +151,7 @@ contract QiibeeCrowdsale is WhitelistedCrowdsale, CappedOnTokenCrowdsale, Refund
         token.mint(wallet, FOUNDATION_SHARE.mul(finalSupply).div(TOTAL_SHARE)); //6.3bn
     }
 
-    function finalize() onlyOwner {
+    function finalize() onlyOwner { //make it public? redistribute tokens to other pools?
         require(!isFinalized);
         require(hasEnded());
 
@@ -211,13 +166,10 @@ contract QiibeeCrowdsale is WhitelistedCrowdsale, CappedOnTokenCrowdsale, Refund
         token.transferOwnership(owner);
     }
 
-    //TODO: Do we need an emergency stop? Is it important?
-    // function emergencyStopSale() onlyOwner {
-    //     isFinalized = true;
-    // }
-
-    // function restartSale() onlyOwner {
-    //     isFinalized = false;
-    // }
+    // overriding Crowdsale#hasEnded to add cap logic
+    function hasEnded() public constant returns (bool) {
+        bool capReached = tokensSold >= cap;
+        return super.hasEnded() || capReached;
+    }
 
 }

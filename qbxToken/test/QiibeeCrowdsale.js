@@ -10,6 +10,9 @@ const QiibeeToken = artifacts.require('./QiibeeToken.sol')
 
 const BigNumber = web3.BigNumber
 
+
+// TEST THAT WHITELISTED BUYERS IN THE NORMAL CROWDSALE GET THE NORMAL RATE AND NOT THE PREFERENTIAL ONE
+
 contract('QiibeeCrowdsale', function ([_, wallet, wallet2, buyer, purchaser, buyer2, purchaser2]) {
 
   const initialRate = new BigNumber(1000)

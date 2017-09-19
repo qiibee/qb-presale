@@ -2,7 +2,7 @@ pragma solidity ^0.4.11;
 
 import "zeppelin-solidity/contracts/token/PausableToken.sol";
 import "zeppelin-solidity/contracts/token/MintableToken.sol";
-import "zeppelin-solidity/contracts/token/VestedToken.sol";
+// import "zeppelin-solidity/contracts/token/VestedToken.sol";
 import "./BurnableToken.sol";
 
 /**
@@ -13,9 +13,7 @@ import "./BurnableToken.sol";
    it has a BurnableToken responsible token burning.
  */
 
-  //TODO: VestedToken? How it works?
-
-contract QiibeeToken is VestedToken, BurnableToken, PausableToken, MintableToken {
+contract QiibeeToken is BurnableToken, PausableToken, MintableToken {
 
     string public constant symbol = "QBX";
 
