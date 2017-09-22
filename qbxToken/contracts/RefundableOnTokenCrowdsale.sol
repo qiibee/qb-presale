@@ -13,7 +13,9 @@ import "zeppelin-solidity/contracts/crowdsale/RefundVault.sol";
 contract RefundableOnTokenCrowdsale is FinalizableCrowdsale {
   using SafeMath for uint256;
 
-  // minimum amount of tokens to be sold
+  enum State { Active, Refunding, Closed }
+
+  // minimum amount of qbx (in sqbx) to be sold
   uint256 public goal;
 
   // refund vault used to hold funds while crowdsale is running
@@ -38,6 +40,10 @@ contract RefundableOnTokenCrowdsale is FinalizableCrowdsale {
     require (amount > 0);
     require (beneficiary != 0x0);
     vault.deposit.value(amount)(beneficiary);
+  }
+
+  function getVaultState() public returns (bool) {
+    return true;
   }
 
   // if crowdsale is unsuccessful, investors can claim refunds here

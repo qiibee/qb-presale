@@ -2,7 +2,7 @@ pragma solidity ^0.4.11;
 
 import "./RefundableOnTokenCrowdsale.sol";
 import "zeppelin-solidity/contracts/crowdsale/Crowdsale.sol";
-import "./WhitelistedCrowdsale.sol";
+import "./WhitelistedPreCrowdsale.sol";
 import "./QiibeeToken.sol";
 
 /**
@@ -17,56 +17,51 @@ import "./QiibeeToken.sol";
    it will have a maximum cap of Y tokens.
  */
 
+ //TODO: explain that goal is soft cap and cap is hard cap
+
 //TODO: Check about multisig wallet
 //TODO: Use uint64?
 //TODO: Change start and end blocks to timestamps (https://github.com/OpenZeppelin/zeppelin-solidity/pull/353)
 
-contract QiibeeCrowdsale is WhitelistedCrowdsale, RefundableOnTokenCrowdsale {
+contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale {
 
-    uint256 public constant TOTAL_SHARE = 100; //in %
-    uint256 public constant CROWDSALE_SHARE = 24; //in %
-    uint256 public constant FOUNDATION_SHARE = 76; //in % TODO: maybe create more wallets for diff pools
+    uint256 public constant TOTAL_SUPPLY = 10000000000000000000000000000; //in sqbx
+    uint256 public constant FOUNDATION_SUPPLY = 7600000000000000000000000000; //in sqbx
+    uint256 public constant CROWDSALE_SUPPLY = 2400000000000000000000000000; //in sqbx
 
-    // price at which whitelisted buyers will be able to buy tokens
-    uint256 public preferentialRate;
-
-    // initial rate at which tokens are offered
+    // initial rate of ether to QBX
     uint256 public initialRate;
 
-    // amount of qbx minted and transferred during the TGE
+    // amount of qbx (in sqbx) minted and transferred during the TGE
     uint256 public tokensSold;
 
-    // maximum amount of tokens that can be minted
+    // maximum amount of qbx (in sqbx) that can be minted
     uint256 public cap;
 
 
     event WalletChange(address wallet);
 
-    event PreferentialRateChange(address indexed buyer, uint256 rate);
-
     event InitialRateChange(uint256 rate);
 
     function QiibeeCrowdsale(
-        uint256 _startBlock,
-        uint256 _endBlock,
+        uint256 _startTime,
+        uint256 _endTime,
         uint256 _initialRate,
         uint256 _preferentialRate,
         uint256 _goal,
         uint256 _cap,
         address _wallet
     )
-        WhitelistedCrowdsale()
+        WhitelistedPreCrowdsale(_preferentialRate)
         RefundableOnTokenCrowdsale(_goal)
-        Crowdsale(_startBlock, _endBlock, _initialRate, _wallet)
+        Crowdsale(_startTime, _endTime, _initialRate, _wallet)
     {
         require(_initialRate > 0);
-        require(_preferentialRate > 0);
         require(_cap > 0);
         require(_goal <= _cap);
 
         initialRate = _initialRate;
-        preferentialRate = _preferentialRate;
-        cap = _preferentialRate;
+        cap = _cap;
 
         QiibeeToken(token).pause();
     }
@@ -77,7 +72,7 @@ contract QiibeeCrowdsale is WhitelistedCrowdsale, RefundableOnTokenCrowdsale {
 
     function getRate() internal returns(uint256) {
         // what about rate < initialRate
-        if (tokensSold > goal) {
+        if (tokensSold > goal) { //TODO: add this condition as well || (tokensSold + weiAmount.mul(initialRate)) > goal
             return initialRate / (tokensSold / goal);
         }
         return initialRate;
@@ -143,12 +138,13 @@ contract QiibeeCrowdsale is WhitelistedCrowdsale, RefundableOnTokenCrowdsale {
         QiibeeToken(token).pause();
     }
 
-    function finalization() internal {
-        uint256 totalSupply = token.totalSupply(); //2bn
-        uint256 finalSupply = TOTAL_SHARE.mul(totalSupply).div(CROWDSALE_SHARE); //10bn
+    function finalization() internal { //TODO: what do we do with the difference of tokens? Shall they go to the foundation wallet?
+        uint256 crowdsaleSupply = token.totalSupply();
+        uint256 restSupply = CROWDSALE_SUPPLY - crowdsaleSupply; //TODO: do they go to the foundation? Is it okay to use '-' instead of minus(), cause it does not work the minus function.
+        uint256 foundationSupply = FOUNDATION_SUPPLY + restSupply; //TODO: this is the 7.6bn PLUS
 
         // emit tokens for the foundation
-        token.mint(wallet, FOUNDATION_SHARE.mul(finalSupply).div(TOTAL_SHARE)); //6.3bn
+        token.mint(wallet, foundationSupply);
     }
 
     function finalize() onlyOwner { //make it public? redistribute tokens to other pools?

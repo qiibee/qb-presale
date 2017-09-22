@@ -1,32 +1,25 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Executes cleanup function at script exit.
 trap cleanup EXIT
 
 cleanup() {
-  # Kill the testrpc instance that we started (if we started one and if it's still running).
-  if [ -n "$testrpc_pid" ] && ps -p $testrpc_pid > /dev/null; then
+  # Kill the testrpc instance that we started (if we started one).
+  if [ -n "$testrpc_pid" ]; then
     kill -9 $testrpc_pid
   fi
 }
 
 testrpc_running() {
-  nc -z localhost 8545
+  nc -z localhost 8555
 }
 
-TESTRPC_REDIRECT=/dev/null
-
-# when in CI (travis), enable --mem so we can debug testrpc memory usage
-# we also need to send testrpc output to stdout instead of /dev/null so we can see it
-[ "$CI" = "true" ] && TESTRPC_MEM="--mem" && TESTRPC_REDIRECT=/dev/stdout
-
 if testrpc_running; then
-  echo "Using existing testrpc instance"
+  echo "Using existing testrpc-sc instance"
 else
-  echo "Starting our own testrpc node instance"
-
-  testrpc \
-    $TESTRPC_MEM \
+  echo "Starting testrpc-sc to generate coverage"
+  # We define 10 accounts with balance 1M ether, needed for high-value tests.
+  ./node_modules/ethereumjs-testrpc-sc/build/cli.node.js --gasLimit 0xfffffffffff --port 8555 \
     --account="0xe8280389ca1303a2712a874707fdd5d8ae0437fab9918f845d26fd9919af5a92,10000000000000000000000000000000000000000000000000000000000000000000000000000000" \
     --account="0xed095a912033d26dc444d2675b33414f0561af170d58c33f394db8812c87a764,10000000000000000000000000000000000000000000000000000000000000000000000000000000" \
     --account="0xf5556ca108835f04cd7d29b4ac66f139dc12b61396b147674631ce25e6e80b9b,10000000000000000000000000000000000000000000000000000000000000000000000000000000" \
@@ -38,10 +31,8 @@ else
     --account="0xf809d1a2969bec37e7c14628717092befa82156fb2ebf935ac5420bc522f0d29,10000000000000000000000000000000000000000000000000000000000000000000000000000000" \
     --account="0x38062255973f02f1b320d8c7762dd286946b3e366f73076995dc859a6346c2ec,10000000000000000000000000000000000000000000000000000000000000000000000000000000" \
     --account="0x35b5042e809eab0db3252bad02b67436f64453072128ee91c1d4605de70b27c1,10000000000000000000000000000000000000000000000000000000000000000000000000000000" \
-    --gasLimit 6000000 \
-    > $TESTRPC_REDIRECT &
+  > /dev/null &
   testrpc_pid=$!
 fi
 
-./node_modules/.bin/truffle compile
-./node_modules/.bin/truffle test $@
+SOLIDITY_COVERAGE=true GEN_TESTS_QTY=20 GAS_PRICE=1 ./node_modules/.bin/solidity-coverage
