@@ -28,7 +28,6 @@ module.exports = {
     rate2: jsc.nat,
     privatePresaleRate: jsc.nat,
     foundationWallet: accountGen,
-    setWeiLockSeconds: jsc.nat(600,3600),
     owner: accountGen
   }),
 
@@ -44,12 +43,6 @@ module.exports = {
 
   checkRateCommandGen: jsc.record({
     type: jsc.constant('checkRate')
-  }),
-
-  setWeiPerUSDinTGECommandGen: jsc.record({
-    type: jsc.constant('setWeiPerUSDinTGE'),
-    wei: jsc.nat(0,10000000000000000), // between 0-0.01 ETH
-    fromAccount: accountGen
   }),
 
   buyTokensCommandGen: jsc.record({
@@ -124,24 +117,18 @@ module.exports = {
     toAccount: accountGen
   }),
 
-  MVMSendTokensCommandGen: jsc.record({
-    type: jsc.constant('MVMSendTokens'),
-    tokens: jsc.nat,
-    from: accountGen
-  }),
-
   fundCrowdsaleBelowSoftCap: jsc.record({
     type: jsc.constant('fundCrowdsaleBelowGoal'),
     account: knownAccountGen, // we don't want this one to fail with 0x0 addresses
     finalize: jsc.bool
   }),
 
-  fundCrowdsaleOverSoftCap: jsc.record({
-    type: jsc.constant('fundCrowdsaleOverSoftCap'),
-    account: knownAccountGen, // we don't want this one to fail with 0x0 addresses
-    softCapExcessWei: jsc.nat,
-    finalize: jsc.bool
-  }),
+  addToWhitelistGen: jsc.record({
+    type: jsc.constant('addToWhitelist'),
+    senderAccount: accountGen,
+    fromAccount: accountGen,
+    toAccount: accountGen
+  })
 
 };
 

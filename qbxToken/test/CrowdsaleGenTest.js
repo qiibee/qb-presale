@@ -48,46 +48,44 @@ contract('QiibeeCrowdsale Property-based test', function() {
 
     // Check presale tokens sold
     // state.totalPresaleWei.should.be.bignumber.equal(await crowdsale.totalPresaleWei.call());
-    assert.equal(state.crowdsaleFinalized, await crowdsale.isFinalized.call());
+    assert.equal(state.crowdsaleFinalized, await crowdsale.isFinalized());
     if (state.crowdsaleFinalized) {
       assert.equal(state.goalReached, await crowdsale.goalReached());
-      // assert.equal(state.capReached, await crowdsale.capReached()); //TODO: test this!
-      //TODO: check revault state is active
-      let vault = RefundVault.at(await crowdsale.vault());
-      console.log("VAULT: ", await crowdsale.getVaultState());
-      console.log("ACOUNT INVESTOR:", gen.getAccount(3))
-      // console.log("REVAULT STATE: ", await crowdsale.vault.call());
-      await vault.refund.call(gen.getAccount(3)).should.be.rejectedWith(EVMThrow)
-      // console.log("REVAULT STATE: ", await crowdsale.vault.call().state());
-      // console.log("REVAULT STATE: ", await crowdsale.vault().state());
-      // assert.equal(state.revaultState, vault().state());
 
+      //TODO: check revault state
+      let vaultState = parseInt((await crowdsale.getVaultState()).toString());
+      assert.equal(state.revaultState, vaultState);
+
+      state.crowdsaleData.TOTAL_SUPPLY.
+        should.be.bignumber.equal(await state.token.totalSupply());
+    } else {
+      state.crowdsaleSupply.
+        should.be.bignumber.equal(await state.token.totalSupply());
     }
-
-    //Check that the total supply is equal to TOTAL_SUPPLY tokens
-    state.crowdsaleData.TOTAL_SUPPLY.
-      should.be.bignumber.equal(await state.token.totalSupply.call());
   };
 
   let runGeneratedCrowdsaleAndCommands = async function(input) {
 
     await increaseTimeTestRPC(60);
-    let startTimestamp = latestTime() + duration.days(1);
-    let endTimestamp = startTimestamp + duration.days(1);
-    help.debug('crowdsaleTestInput data:\n', input, startTimestamp, endTimestamp);
+    let startPreTime = latestTime() + duration.days(1);
+    let endPreTime = startPreTime + duration.days(1);
+    let startTime = endPreTime + duration.days(1);
+    let endTime = startTime + duration.days(1);
+    help.debug('crowdsaleTestInput data:\n', input, startTime, endTime);
 
     let {initialRate, goal, cap, preferentialRate, owner} = input.crowdsale,
       ownerAddress = gen.getAccount(input.crowdsale.owner),
       foundationWallet = gen.getAccount(input.crowdsale.foundationWallet);
 
     let shouldThrow = (initialRate == 0) ||
-      (latestTime() >= startTimestamp) ||
-      (startTimestamp >= endTimestamp) ||
+      (latestTime() >= startPreTime) ||
+      (startPreTime >= endTime) ||
+      (startTime < endPreTime) ||
+      (startTime >= endTime) ||
       (preferentialRate == 0) ||
       (goal == 0) ||
       (cap == 0) ||
       (goal >= cap) ||
-      (startTimestamp >= endTimestamp) ||
       (ownerAddress == 0) ||
       (foundationWallet == 0);
 
@@ -95,8 +93,10 @@ contract('QiibeeCrowdsale Property-based test', function() {
 
     try {
       let crowdsaleData = {
-        startTimestamp: startTimestamp,
-        endTimestamp: endTimestamp,
+        startPreTime: startPreTime,
+        endPreTime: endPreTime,
+        startTime: startTime,
+        endTime: endTime,
         initialRate: input.crowdsale.initialRate,
         preferentialRate: input.crowdsale.preferentialRate,
         goal: help.qbx2sqbx(input.crowdsale.goal),
@@ -106,9 +106,12 @@ contract('QiibeeCrowdsale Property-based test', function() {
         FOUNDATION_SUPPLY: 7600000000000000000000000000,
         CROWDSALE_SUPPLY: 2400000000000000000000000000
       };
+
       let crowdsale = await QiibeeCrowdsale.new(
-        crowdsaleData.startTimestamp,
-        crowdsaleData.endTimestamp,
+        crowdsaleData.startPreTime,
+        crowdsaleData.endPreTime,
+        crowdsaleData.startTime,
+        crowdsaleData.endTime,
         crowdsaleData.initialRate,
         crowdsaleData.preferentialRate,
         crowdsaleData.goal,
@@ -154,9 +157,10 @@ contract('QiibeeCrowdsale Property-based test', function() {
         // MVMBurnedTokens: new BigNumber(0),
         burnedTokens: zero,
         returnedWeiForBurnedTokens: new BigNumber(0),
-        // revaultState:
+        revaultState: 0,
+        buyerRate: [],
+        whitelist: []
       };
-
       for (let commandParams of input.commands) {
         let command = commands.findCommand(commandParams.type);
         try {
@@ -239,87 +243,66 @@ contract('QiibeeCrowdsale Property-based test', function() {
   //   await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
   // });
 
-  it('Execute a normal TGE', async function() {
-    let crowdsaleAndCommands = {
-      commands: [
-        { type: 'checkRate' },
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 40000 },
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 23000 },
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'finalizeCrowdsale', fromAccount: 0 }
-      ],
-      crowdsale: {
-        initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-      }
-    };
-
-    await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
-  });
-
-  // it('should handle the exception correctly when trying to pause the token during and after the crowdsale', async function() {
+  // it('Execute a normal TGE', async function() {
   //   let crowdsaleAndCommands = {
   //     commands: [
   //       { type: 'checkRate' },
   //       { type: 'waitTime','seconds':duration.days(1)},
-  //       { type: 'waitTime','seconds':duration.days(0.8)},
-  //       { type: 'pauseToken', 'pause':true, 'fromAccount':1 },
-  //       { type: 'setWeiPerUSDinTGE', wei: 1500000000000000, fromAccount: 3 },
-  //       { type: 'waitTime','seconds':duration.days(1.1)},
-  //       { type: 'buyTokens', beneficiary: 3, account: 4, eth: 60000 },
-  //       { type: 'waitTime','seconds':duration.days(2)},
-  //       { type: 'finalizeCrowdsale', fromAccount: 5 },
-  //       { type: 'pauseToken', 'pause':true, 'fromAccount':1 }
+  //       { type: 'buyTokens', beneficiary: 3, account: 4, eth: 40000 },
+  //       { type: 'buyTokens', beneficiary: 3, account: 4, eth: 23000 },
+  //       { type: 'waitTime','seconds':duration.days(1)},
+  //       { type: 'buyTokens', beneficiary: 3, account: 4, eth: 50000 },
+  //       { type: 'finalizeCrowdsale', fromAccount: 0 }
   //     ],
   //     crowdsale: {
-  //       rate1: 10,
-  //       rate2: 9,
-  //       privatePresaleRate: 13,
-  //       setWeiLockSeconds: 5,
-  //       foundationWallet: 2,
-  //       owner: 3
+  //       initialRate: 6000, preferentialRate: 8000,
+  //       foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
   //     }
   //   };
 
   //   await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
   // });
 
-  // it('should not fail when setting wei for tge before each stage starts', async function() {
-  //   // trying multiple commands with different reasons to fail: wrong owner or wei==0
-
-  //   await runGeneratedCrowdsaleAndCommands({
+  // it('should handle the exception correctly when trying to pause the token during and after the crowdsale', async function() {
+  //   let crowdsaleAndCommands = {
   //     commands: [
-  //       { type:'setWeiPerUSDinTGE','wei':0,'fromAccount':10},
-  //       { type:'setWeiPerUSDinTGE','wei':0,'fromAccount':6},
-  //       { type:'setWeiPerUSDinTGE','wei':3,'fromAccount':6}
+  //       { type: 'checkRate' },
+  //       { type: 'waitTime','seconds':duration.days(1)},
+  //       { type: 'pauseToken', 'pause':true, 'fromAccount':1 },
+  //       { type: 'pauseToken', 'pause':false, 'fromAccount':1 },
+  //       { type: 'buyTokens', beneficiary: 3, account: 4, eth: 60000 },
+  //       { type: 'waitTime','seconds':duration.days(1)},
+  //       { type: 'finalizeCrowdsale', fromAccount: 0 },
+  //       { type: 'pauseToken', 'pause':true, 'fromAccount':1 }
   //     ],
   //     crowdsale: {
-  //       rate1: 10, rate2: 31, privatePresaleRate: 35,
-  //       foundationWallet: 10, setWeiLockSeconds: 1, owner: 6
+  //       initialRate: 6000, preferentialRate: 8000,
+  //       foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
   //     }
-  //   });
+  //   };
+
+  //   await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
   // });
 
-  // it('should handle the thrown exc. when trying to approve on the paused token', async function() {
-  //   await runGeneratedCrowdsaleAndCommands({
-  //     commands: [{ type:'approve','lif':0,'fromAccount':3,'spenderAccount':5}],
-  //     crowdsale: {
-  //       rate1: 24, rate2: 15, privatePresaleRate: 15,
-  //       foundationWallet: 2, setWeiLockSeconds: 1, owner: 5
-  //     }
-  //   });
-  // });
+  // // TODO: do we need to do a Psauble crowdsale??
+  // // it('should handle the thrown exc. when trying to approve on the paused token', async function() {
+  // //   await runGeneratedCrowdsaleAndCommands({
+  // //     commands: [{ type:'approve','lif':0,'fromAccount':3,'spenderAccount':5}],
+  // //     crowdsale: {
+  // //       initialRate: 6000, preferentialRate: 8000,
+  // //       foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+  // //     }
+  // //   });
+  // // });
 
   // it('should run the fund and finalize crowdsale command fine', async function() {
   //   await runGeneratedCrowdsaleAndCommands({
   //     commands: [
-  //       {'type':'fundCrowdsaleBelowSoftCap','account':3,'finalize':true}
+  //       {'type':'fundCrowdsaleBelowSoftCap','account':0,'finalize':true}
   //     ],
   //     crowdsale: {
-  //       rate1: 20, rate2: 46, privatePresaleRate: 0,
-  //       foundationWallet: 4, setWeiLockSeconds: 521, owner: 0
+  //       initialRate: 6000, preferentialRate: 8000,
+  //       foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
   //     }
   //   });
   // });
@@ -327,50 +310,45 @@ contract('QiibeeCrowdsale Property-based test', function() {
   // it('should run the fund crowdsale below cap without finalize command fine', async function() {
   //   await runGeneratedCrowdsaleAndCommands({
   //     commands: [
-  //       {'type':'fundCrowdsaleBelowSoftCap','account':3,'finalize':false}
+  //       {'type':'fundCrowdsaleBelowSoftCap','account':0,'finalize':false}
   //     ],
   //     crowdsale: {
-  //       rate1: 20, rate2: 46, privatePresaleRate: 0,
-  //       foundationWallet: 4, setWeiLockSeconds: 521, owner: 0
+  //       initialRate: 6000, preferentialRate: 8000,
+  //       foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
   //     }
   //   });
   // });
 
-  // it('should be able to transfer tokens in unpaused token after crowdsale funded over cap', async function() {
-  //   await runGeneratedCrowdsaleAndCommands({
-  //     commands: [
-  //       {'type':'fundCrowdsaleOverSoftCap','account':10,'softCapExcessWei':4,'finalize':true},
-  //       {'type':'transfer','lif':0,'fromAccount':4,'toAccount':2}
-  //     ],
-  //     crowdsale: {
-  //       rate1: 14, rate2: 20, privatePresaleRate: 7,
-  //       foundationWallet: 6, setWeiLockSeconds: 83, owner: 5
-  //     }
-  //   });
-  // });
+  // //TODO: FIX!
+  // // it('distributes tokens correctly on any combination of bids', async function() {
+  // //   // stateful prob based tests can take a long time to finish when shrinking...
+  // //   this.timeout(GEN_TESTS_TIMEOUT * 1000);
 
-  // it('should run the fund over soft cap and finalize crowdsale command fine', async function() {
-  //   await runGeneratedCrowdsaleAndCommands({
-  //     commands: [
-  //       {'type':'fundCrowdsaleOverSoftCap','account':3,'softCapExcessWei':10,'finalize':true}
-  //     ],
-  //     crowdsale: {
-  //       rate1: 20, rate2: 46, privatePresaleRate: 0,
-  //       foundationWallet: 4, setWeiLockSeconds: 521, owner: 0
-  //     }
-  //   });
-  // });
+  // //   let property = jsc.forall(crowdsaleTestInputGen, async function(crowdsaleAndCommands) {
+  // //     return await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
+  // //   });
 
-  // it('distributes tokens correctly on any combination of bids', async function() {
-  //   // stateful prob based tests can take a long time to finish when shrinking...
-  //   this.timeout(GEN_TESTS_TIMEOUT * 1000);
+  // //   console.log('Generative tests to run:', GEN_TESTS_QTY);
+  // //   return jsc.assert(property, {tests: GEN_TESTS_QTY});
+  // // });
 
-  //   let property = jsc.forall(crowdsaleTestInputGen, async function(crowdsaleAndCommands) {
-  //     return await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
-  //   });
-
-  //   console.log('Generative tests to run:', GEN_TESTS_QTY);
-  //   return jsc.assert(property, {tests: GEN_TESTS_QTY});
-  // });
+  it('should allow whitelisted investors to buy tokens at reduced price until start of crowdsale', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'addToWhitelist', whitelistedAccount: 3, fromAccount: 0 },
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 60000 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'finalizeCrowdsale', fromAccount: 0 },
+        { type: 'pauseToken', 'pause':true, 'fromAccount':1 }
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
 
 });

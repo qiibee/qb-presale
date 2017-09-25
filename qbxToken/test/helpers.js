@@ -122,10 +122,21 @@ module.exports = {
   },
 
   //TODO: get rate for presale?
-  getCrowdsaleExpectedRate: function(crowdsale) {
-    let { initialRate, tokensSold, goal } = crowdsale;
+  getCrowdsaleExpectedRate: function(state, sender) {
+    let { initialRate, preferentialRate, goal } = state.crowdsaleData,
+        { tokensSold, buyerRate, whitelist } = state;
+    // some early buyers are offered a different rate rather than the preferential rate
+    if (buyerRate.length > 0 && buyerRate[sender] != 0) { //TODO: check if that of the .length has to be in the contract
+        return buyerRate[sender];
+    }
 
-    if (tokensSold > goal) {
+    // whitelisted buyers can purchase at preferential price during pre-ico event
+    if (whitelist[sender] == true) {
+        return preferentialRate;
+    }
+
+    // what about rate < initialRate
+    if (tokensSold > goal) { //TODO: add this condition as well || (tokensSold + weiAmount.mul(initialRate)) > goal
         return initialRate / (tokensSold / goal);
     }
     return initialRate;

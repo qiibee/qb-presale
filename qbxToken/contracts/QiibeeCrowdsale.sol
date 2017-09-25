@@ -32,8 +32,8 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
     // initial rate of ether to QBX
     uint256 public initialRate;
 
-    // amount of qbx (in sqbx) minted and transferred during the TGE
-    uint256 public tokensSold;
+    // // amount of qbx (in sqbx) minted and transferred during the TGE
+    // uint256 public tokensSold;
 
     // maximum amount of qbx (in sqbx) that can be minted
     uint256 public cap;
@@ -44,6 +44,8 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
     event InitialRateChange(uint256 rate);
 
     function QiibeeCrowdsale(
+        uint256 _startPreTime,
+        uint256 _endPreTime,
         uint256 _startTime,
         uint256 _endTime,
         uint256 _initialRate,
@@ -52,13 +54,14 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         uint256 _cap,
         address _wallet
     )
-        WhitelistedPreCrowdsale(_preferentialRate)
+        WhitelistedPreCrowdsale(_preferentialRate, _startPreTime, _endPreTime)
         RefundableOnTokenCrowdsale(_goal)
         Crowdsale(_startTime, _endTime, _initialRate, _wallet)
     {
         require(_initialRate > 0);
         require(_cap > 0);
         require(_goal <= _cap);
+        require(_endPreTime < _startTime);
 
         initialRate = _initialRate;
         cap = _cap;
@@ -71,6 +74,16 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
     }
 
     function getRate() internal returns(uint256) {
+        // some early buyers are offered a different rate rather than the preferential rate
+        if (buyerRate[msg.sender] != 0) {
+            return buyerRate[msg.sender];
+        }
+
+        // whitelisted buyers can purchase at preferential price during pre-ico event
+        if (isWhitelisted(msg.sender)) {
+            return preferentialRate;
+        }
+
         // what about rate < initialRate
         if (tokensSold > goal) { //TODO: add this condition as well || (tokensSold + weiAmount.mul(initialRate)) > goal
             return initialRate / (tokensSold / goal);
@@ -165,7 +178,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
     // overriding Crowdsale#hasEnded to add cap logic
     function hasEnded() public constant returns (bool) {
         bool capReached = tokensSold >= cap;
-        return super.hasEnded() || capReached;
+        return hasPreWhitelistCrowdsaleEnded() && (super.hasEnded() || capReached);
     }
 
 }

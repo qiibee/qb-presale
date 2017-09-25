@@ -42,8 +42,8 @@ contract RefundableOnTokenCrowdsale is FinalizableCrowdsale {
     vault.deposit.value(amount)(beneficiary);
   }
 
-  function getVaultState() public returns (bool) {
-    return true;
+  function getVaultState() public constant returns (RefundVault.State) {
+    return vault.state();
   }
 
   // if crowdsale is unsuccessful, investors can claim refunds here
@@ -66,7 +66,7 @@ contract RefundableOnTokenCrowdsale is FinalizableCrowdsale {
   }
 
   function goalReached() public constant returns (bool) {
-    return tokensSold >= goal;
+    return tokensSold >= goal; //TODO: is it okay >= or i have to use .gt()
   }
 
 }
