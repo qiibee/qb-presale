@@ -32,9 +32,6 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
     // initial rate of ether to QBX
     uint256 public initialRate;
 
-    // // amount of qbx (in sqbx) minted and transferred during the TGE
-    // uint256 public tokensSold;
-
     // maximum amount of qbx (in sqbx) that can be minted
     uint256 public cap;
 
@@ -73,20 +70,21 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         return new QiibeeToken();
     }
 
-    function getRate() internal returns(uint256) {
+    function getRate() public constant returns(uint256) {
         // some early buyers are offered a different rate rather than the preferential rate
         if (buyerRate[msg.sender] != 0) {
             return buyerRate[msg.sender];
         }
 
         // whitelisted buyers can purchase at preferential price during pre-ico event
-        if (isWhitelisted(msg.sender)) {
+        bool withinPeriod = now >= startPreTime && now <= endPreTime;
+        if (isWhitelisted(msg.sender) && withinPeriod) {
             return preferentialRate;
         }
 
         // what about rate < initialRate
         if (tokensSold > goal) { //TODO: add this condition as well || (tokensSold + weiAmount.mul(initialRate)) > goal
-            return initialRate / (tokensSold / goal);
+            return initialRate.div(tokensSold.div(goal));
         }
         return initialRate;
     }
@@ -101,8 +99,10 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
     function buyTokens(address beneficiary) payable {
         require(beneficiary != 0x0);
         require(validPurchase());
-        uint256 tokens = convertWeiToToken(msg.value);
-        require(tokensSold.add(tokens) <= cap);
+
+        uint256 rate = getRate();
+        uint256 tokens = msg.value.mul(rate);
+        assert(tokensSold.add(tokens) <= cap);
 
         // update state
         weiRaised = weiRaised.add(msg.value);
@@ -117,6 +117,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
 
     // directly mint tokens (used when people want to invest in a different currency than ETH)
     function mintTokens(address beneficiary) onlyOwner payable returns (bool) { //is it correct to add payable there?
+        require(beneficiary != 0x0);
         require(validPurchase());
         require(tokensSold.add(msg.value) <= cap);
 
@@ -151,12 +152,11 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         QiibeeToken(token).pause();
     }
 
-    function finalization() internal { //TODO: what do we do with the difference of tokens? Shall they go to the foundation wallet?
+    function finalization() internal {
         uint256 crowdsaleSupply = token.totalSupply();
-        uint256 restSupply = CROWDSALE_SUPPLY - crowdsaleSupply; //TODO: do they go to the foundation? Is it okay to use '-' instead of minus(), cause it does not work the minus function.
-        uint256 foundationSupply = FOUNDATION_SUPPLY + restSupply; //TODO: this is the 7.6bn PLUS
-
-        // emit tokens for the foundation
+        uint256 restSupply = CROWDSALE_SUPPLY.sub(crowdsaleSupply);
+        //TODO: do the restSupply go to the foundation? If they go, just simplify the calculation with TOTAL_SUPPLY.sub(crowdsaleSupply).
+        uint256 foundationSupply = FOUNDATION_SUPPLY.add(restSupply); //TODO: this is the 7.6bn PLUS
         token.mint(wallet, foundationSupply);
     }
 
@@ -178,7 +178,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
     // overriding Crowdsale#hasEnded to add cap logic
     function hasEnded() public constant returns (bool) {
         bool capReached = tokensSold >= cap;
-        return hasPreWhitelistCrowdsaleEnded() && (super.hasEnded() || capReached);
+        return super.hasEnded() || capReached;
     }
 
 }

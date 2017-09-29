@@ -38,7 +38,6 @@ contract WhitelistedPreCrowdsale is Crowdsale, Ownable {
 
     function addToWhitelist(address buyer) public onlyOwner {
         require(buyer != 0x0);
-        require(now >= startPreTime && now <= endPreTime);
 
         whitelist[buyer] = true;
     }
@@ -54,11 +53,9 @@ contract WhitelistedPreCrowdsale is Crowdsale, Ownable {
 
     // @return true if whitelisted buyers can buy at the moment
     function validPurchase() internal constant returns (bool) {
-        return super.validPurchase() || (!hasPreWhitelistCrowdsaleEnded() && isWhitelisted(msg.sender));
-    }
-
-    function hasPreWhitelistCrowdsaleEnded() public constant returns (bool) {
-        return now > endPreTime;
+        bool withinPeriod = now >= startPreTime && now <= endPreTime;
+        bool nonZeroPurchase = msg.value != 0;
+        return super.validPurchase() || (withinPeriod && isWhitelisted(msg.sender) && nonZeroPurchase);
     }
 
     function setBuyerRate(address buyer, uint256 rate) onlyOwner public {

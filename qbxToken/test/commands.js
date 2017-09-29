@@ -45,14 +45,11 @@ ExceptionRunningCommand.prototype.constructor = ExceptionRunningCommand;
 async function runCheckRateCommand(command, state) {
   let from = gen.getAccount(command.fromAccount);
   let expectedRate = help.getCrowdsaleExpectedRate(state, from);
-  console.log("expectedRate", expectedRate);
-  let rate = parseFloat(await state.crowdsaleContract.rate());
-  console.log("rate", rate);
-
+  let rate = await state.crowdsaleContract.getRate({from: from});
 
   assert.equal(expectedRate, rate,
     'expected rate is different! Expected: ' + expectedRate + ', actual: ' + rate + '. blocks: ' + web3.eth.blockTimestamp +
-    ', start/initialRate/preferentialRate: ' + state.crowdsaleData.startTimestamp + '/' + state.crowdsaleData.initialRate + '/' + state.crowdsaleData.preferentialRate);
+    ', start/initialRate/preferentialRate: ' + state.crowdsaleData.startTime + '/' + state.crowdsaleData.initialRate + '/' + state.crowdsaleData.preferentialRate);
 
   return state;
 }
@@ -63,17 +60,21 @@ function getBalance(state, account) {
 
 async function runBuyTokensCommand(command, state) {
   let crowdsale = state.crowdsaleData,
-    { startTimestamp, endTimestamp} = crowdsale,
+    { startPreTime, endPreTime, startTime, endTime} = crowdsale,
     weiCost = web3.toWei(command.eth, 'ether'),
-    nextTimestamp = latestTime(),
-    rate = help.getCrowdsaleExpectedRate(crowdsale),
-    tokens = new BigNumber(command.eth).mul(rate),
+    nextTime = latestTime(),
     account = gen.getAccount(command.account),
     beneficiaryAccount = gen.getAccount(command.beneficiary),
+    rate = help.getCrowdsaleExpectedRate(state, account),
+    tokens = new BigNumber(command.eth).mul(rate),
     hasZeroAddress = _.some([account, beneficiaryAccount], isZeroAddress);
 
-  let shouldThrow = (nextTimestamp < startTimestamp) ||
-    (nextTimestamp > endTimestamp) ||
+  let inPreTGE = nextTime >= startPreTime && nextTime <= endPreTime;
+
+  let shouldThrow = (inPreTGE && !state.whitelist[account]) ||
+    (nextTime < startPreTime) ||
+    (nextTime > endPreTime && nextTime < startTime) ||
+    (nextTime > endTime) ||
     // (state.crowdsalePaused) || //TODO: remove this if we dont have a Pausable crowdsale
     //TODO: add reuqirements for TOTAL SUPPLY, FOUNDATION, etc
     (state.initialRate == 0) ||
@@ -84,12 +85,9 @@ async function runBuyTokensCommand(command, state) {
     (command.eth == 0);
 
   try {
-    help.debug('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.endTimestamp, 'blockTimestamp:', nextTimestamp);
-    console.log("RATE: ",await state.crowdsaleContract.rate());
-
+    help.debug('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.endTime, 'blockTimestamp:', nextTime);
     await state.crowdsaleContract.buyTokens(beneficiaryAccount, {value: weiCost, from: account});
     assert.equal(false, shouldThrow, 'buyTokens should have thrown but it didn\'t');
-
     state.purchases = _.concat(state.purchases,
       {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
     );
@@ -106,21 +104,20 @@ async function runBuyTokensCommand(command, state) {
 async function runSendTransactionCommand(command, state) {
 
   let crowdsale = state.crowdsaleData,
-    { startTimestamp, endTimestamp } = crowdsale,
+    { startTime, endTime } = crowdsale,
     weiCost = parseInt(web3.toWei(command.eth, 'ether')),
     nextTimestamp = latestTime(),
-    rate = help.getCrowdsaleExpectedRate(crowdsale),
+    rate = help.getCrowdsaleExpectedRate(state),
     tokens = new BigNumber(command.eth).mul(rate),
     account = gen.getAccount(command.account);
 
-  let inTGE = nextTimestamp >= startTimestamp && nextTimestamp <= endTimestamp,
+  let inTGE = nextTimestamp >= startTime && nextTimestamp <= endTime,
     hasZeroAddress = isZeroAddress(account);
 
   let shouldThrow = (!inTGE) ||
     (inTGE && state.initialRate == 0) || //TODO: below
     // (inTGE && state.weiPerUSDinTGE == 0) || //TODO
     // (state.crowdsalePaused) || //TODO: remove this if we dont have a Pausable crowdsale
-    (state.initialRate == 0) ||
     (state.goal == 0) ||
     (state.cap == 0) ||
     (state.crowdsaleFinalized) ||
@@ -158,10 +155,9 @@ async function runAddToWhitelistCommand(command, state) {
     account = gen.getAccount(command.fromAccount),
     whitelistedAccount = gen.getAccount(command.whitelistedAccount);
 
-  let inPreTGE = nextTimestamp >= startPreTime && nextTimestamp <= endPreTime && endPreTime < startTime,
-    hasZeroAddress = _.some([account, whitelistedAccount], isZeroAddress);
+  let hasZeroAddress = _.some([account, whitelistedAccount], isZeroAddress);
 
-  let shouldThrow = (!inPreTGE) ||hasZeroAddress;
+  let shouldThrow = hasZeroAddress;
 
   try {
     await state.crowdsaleContract.addToWhitelist(whitelistedAccount, {from: account});
@@ -231,11 +227,11 @@ async function runFinalizeCrowdsaleCommand(command, state) {
   let preTGEDone = nextTimestamp >= endPreTime;
 
   let shouldThrow = state.crowdsaleFinalized ||
-    state.crowdsalePaused ||
-    preTGEDone ||
+    // state.crowdsalePaused ||
+    !preTGEDone ||
     // state.crowdsalePaused || (state.initialRate == 0) || //TODO: check
     hasZeroAddress ||
-    (nextTimestamp <= state.crowdsaleData.endTimestamp);
+    (nextTimestamp <= state.crowdsaleData.endTime);
 
   try {
 
@@ -255,14 +251,16 @@ async function runFinalizeCrowdsaleCommand(command, state) {
       console.log("foundation wallet", state.crowdsaleData.foundationWallet);
       console.log("owner", await state.crowdsaleContract.owner());
       console.log("totalSupplyBeforeFinalize", totalSupplyBeforeFinalize);
-      console.log("totalSupplyBeforeFinalize", totalSupplyBeforeFinalize);
 
+      //TODO: CHECK CHANGE OF OWNERSHIP
       // assert.equal(state.crowdsaleData.foundationWallet, await state.crowdsaleContract.owner());
       // assert.equal(state.crowdsaleData.foundationWallet, await vestedPaymentFoundation.owner());
 
+      //TODO: CHECK TOKENS IN FOUNDATION WALLET ARE THE CORRESPONDING ONES
       // totalSupplyBeforeFinalize.mul(0.128).floor().should.be.bignumber.equal(
       //   await state.token.balanceOf(vestedPaymentFounders.address)
       // );
+
       // totalSupplyBeforeFinalize.mul(0.05).floor().should.be.bignumber.equal(
       //   await state.token.balanceOf(vestedPaymentFoundation.address)
       // );
@@ -273,27 +271,10 @@ async function runFinalizeCrowdsaleCommand(command, state) {
       //   longTermReserve = state.totalSupply.mul(0.05).floor(),
       //   teamTokens = state.totalSupply.mul(0.072).floor();
 
+      //TODO: SET NEW TOTAL SUPPLY
       // state.totalSupply = state.totalSupply.plus(foundersVestingTokens).
       //   plus(longTermReserve).plus(teamTokens);
-
-      // if (fundsRaised.gt(minimumForMVM)) {
-
-      //   let MVMInitialBalance = state.weiRaised.minus(state.crowdsaleData.minCapUSD * state.weiPerUSDinTGE);
-      //   let MVMPeriods = (MVMInitialBalance > (state.crowdsaleData.MVM24PeriodsCapUSD*state.weiPerUSDinTGE)) ? 48 : 24;
-      //   let mmAddress = await state.crowdsaleContract.MVM();
-      //   help.debug('MVM contract address', mmAddress);
-
-      //   let MVM = LifMarketValidationMechanism.at(mmAddress);
-
-      //   assert.equal(MVMPeriods, parseInt(await MVM.totalPeriods()));
-      //   assert.equal(state.crowdsaleData.foundationWallet, await MVM.foundationAddr());
-      //   assert.equal(state.crowdsaleData.foundationWallet, await MVM.owner());
-
-      //   state.MVM = MVM;
-      // }
-
     }
-
     assert.equal(false, shouldThrow);
     state.crowdsaleFinalized = true;
     state.goalReached = goalReached;
@@ -500,15 +481,17 @@ async function runFundCrowdsaleBelowSoftCap(command, state) {
 
     let goal = await state.crowdsaleContract.goal.call(),
       tokensSold = state.tokensSold;
+
     if (goal > tokensSold) {
-      // wait for crowdsale startTimestamp
-      if (latestTime() < state.crowdsaleData.startTimestamp) {
-        await increaseTimeTestRPCTo(state.crowdsaleData.startTimestamp);
+      // wait for crowdsale startTime
+      if (latestTime() < state.crowdsaleData.startTime) {
+        await increaseTimeTestRPCTo(state.crowdsaleData.startTime);
       }
 
       // buy enough tokens to exactly reach the minCap (which is less than softCap)
       let tokens = goal.minus(tokensSold),
-        ethAmount = help.sqbx2qbx(tokens).div(state.crowdsaleData.rate()),
+        ethAmount = help.sqbx2qbx(tokens).div(help.getCrowdsaleExpectedRate(state)),
+        // ethAmount = help.sqbx2qbx(tokens).div(state.crowdsaleData.rate()), //TODO: CHECK IF RATE HAS TO BE CALLED TO THE HELPER OR TO THE CONTRACT
         buyTokensCommand = {account: command.account, eth: ethAmount, beneficiary: command.account};
 
       state = await runBuyTokensCommand(buyTokensCommand, state);
@@ -517,9 +500,9 @@ async function runFundCrowdsaleBelowSoftCap(command, state) {
     goal.should.be.bignumber.equal(new BigNumber(state.tokensSold));
 
     if (command.finalize) {
-      // wait for crowdsale endTimestamp
-      if (latestTime() < state.crowdsaleData.endTimestamp) {
-        await increaseTimeTestRPCTo(state.crowdsaleData.endTimestamp + 1);
+      // wait for crowdsale endTime
+      if (latestTime() < state.crowdsaleData.endTime) {
+        await increaseTimeTestRPCTo(state.crowdsaleData.endTime + 1);
       }
 
       state = await runFinalizeCrowdsaleCommand({fromAccount: command.account}, state);
