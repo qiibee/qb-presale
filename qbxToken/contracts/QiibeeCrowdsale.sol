@@ -24,6 +24,7 @@ import "./QiibeeToken.sol";
 //TODO: Change start and end blocks to timestamps (https://github.com/OpenZeppelin/zeppelin-solidity/pull/353)
 
 contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale {
+    using SafeMath for uint256;
 
     uint256 public constant TOTAL_SUPPLY = 10000000000000000000000000000; //in sqbx
     uint256 public constant FOUNDATION_SUPPLY = 7600000000000000000000000000; //in sqbx
@@ -83,8 +84,8 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         }
 
         // what about rate < initialRate
-        if (tokensSold > goal) { //TODO: add this condition as well || (tokensSold + weiAmount.mul(initialRate)) > goal
-            return initialRate.div(tokensSold.div(goal));
+        if (tokensSold >= goal) { //TODO: add this condition as well || (tokensSold + weiAmount.mul(initialRate)) > goal
+            return initialRate.mul(1000).div(tokensSold.mul(1000).div(goal));
         }
         return initialRate;
     }
@@ -102,11 +103,12 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
 
         uint256 rate = getRate();
         uint256 tokens = msg.value.mul(rate);
-        assert(tokensSold.add(tokens) <= cap);
+        uint256 newAmount = tokensSold.add(tokens);
+        assert(newAmount <= cap);
 
         // update state
         weiRaised = weiRaised.add(msg.value);
-        tokensSold = tokensSold.add(tokens);
+        tokensSold = newAmount;
 
         token.mint(beneficiary, tokens);
 

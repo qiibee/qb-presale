@@ -99,8 +99,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
         endTime: endTime,
         initialRate: input.crowdsale.initialRate,
         preferentialRate: input.crowdsale.preferentialRate,
-        goal: help.qbx2sqbx(input.crowdsale.goal),
-        cap: help.qbx2sqbx(input.crowdsale.cap),
+        goal: new BigNumber(help.qbx2sqbx(input.crowdsale.goal)),
+        cap: new BigNumber(help.qbx2sqbx(input.crowdsale.cap)),
         foundationWallet: gen.getAccount(input.crowdsale.foundationWallet),
         TOTAL_SUPPLY: 10000000000000000000000000000,
         FOUNDATION_SUPPLY: 7600000000000000000000000000,
@@ -230,8 +230,21 @@ contract('QiibeeCrowdsale Property-based test', function() {
   it('calculates correct rate as long as tokens are sold', async function() {
     let crowdsaleAndCommands = {
       commands: [
+        // { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 60001 },
         { type: 'checkRate', fromAccount: 3 },
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 4 },
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1000 },
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 3000 },
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 10000 },
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 100 },
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 300 },
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 500 },
         { type: 'checkRate', fromAccount: 3 },
       ],
       crowdsale: {

@@ -14,7 +14,6 @@ contract WhitelistedPreCrowdsale is Crowdsale, Ownable {
     // start and end block for the pre-ico event where whitelisted investments are allowed
     uint256 public startPreTime;
     uint256 public endPreTime;
-    uint256 public tokensSold;
 
     // price at which whitelisted buyers will be able to buy tokens
     uint256 public preferentialRate;

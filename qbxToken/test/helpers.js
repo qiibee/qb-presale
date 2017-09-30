@@ -138,8 +138,8 @@ module.exports = {
     }
 
     // what about rate < initialRate
-    if (parseFloat(tokensSold) > goal) { //TODO: add this condition as well || (tokensSold + weiAmount.mul(initialRate)) > goal
-        return initialRate / (tokensSold / goal);
+    if (tokensSold.gt(goal)) { //TODO: add this condition as well || (tokensSold + weiAmount.mul(initialRate)) > goal
+        return parseInt(initialRate * 1000 / parseInt((tokensSold * 1000) / goal));
     }
     return initialRate;
   },

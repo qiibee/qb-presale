@@ -46,7 +46,6 @@ async function runCheckRateCommand(command, state) {
   let from = gen.getAccount(command.fromAccount);
   let expectedRate = help.getCrowdsaleExpectedRate(state, from);
   let rate = await state.crowdsaleContract.getRate({from: from});
-
   assert.equal(expectedRate, rate,
     'expected rate is different! Expected: ' + expectedRate + ', actual: ' + rate + '. blocks: ' + web3.eth.blockTimestamp +
     ', start/initialRate/preferentialRate: ' + state.crowdsaleData.startTime + '/' + state.crowdsaleData.initialRate + '/' + state.crowdsaleData.preferentialRate);
@@ -241,7 +240,7 @@ async function runFinalizeCrowdsaleCommand(command, state) {
 
     await state.crowdsaleContract.finalize({from: account});
 
-    let fundsRaised = state.weiRaised.div(await state.crowdsaleContract.rate());
+    let fundsRaised = state.weiRaised.div(await state.crowdsaleContract.getRate());
 
     if (goalReached) {
 
@@ -491,7 +490,7 @@ async function runFundCrowdsaleBelowSoftCap(command, state) {
       // buy enough tokens to exactly reach the minCap (which is less than softCap)
       let tokens = goal.minus(tokensSold),
         ethAmount = help.sqbx2qbx(tokens).div(help.getCrowdsaleExpectedRate(state)),
-        // ethAmount = help.sqbx2qbx(tokens).div(state.crowdsaleData.rate()), //TODO: CHECK IF RATE HAS TO BE CALLED TO THE HELPER OR TO THE CONTRACT
+        // ethAmount = help.sqbx2qbx(tokens).div(state.crowdsaleData.getRate()), //TODO: CHECK IF RATE HAS TO BE CALLED TO THE HELPER OR TO THE CONTRACT
         buyTokensCommand = {account: command.account, eth: ethAmount, beneficiary: command.account};
 
       state = await runBuyTokensCommand(buyTokensCommand, state);
