@@ -17,13 +17,12 @@ import "./QiibeeToken.sol";
    it will have a maximum cap of Y tokens.
  */
 
- //TODO: explain that goal is soft cap and cap is hard cap
-
-//TODO: Check about multisig wallet
+//TODO: explain that goal is soft cap and cap is hard cap
 //TODO: Use uint64?
 //TODO: Change start and end blocks to timestamps (https://github.com/OpenZeppelin/zeppelin-solidity/pull/353)
 
 contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale {
+
     using SafeMath for uint256;
 
     uint256 public constant TOTAL_SUPPLY = 10000000000000000000000000000; //in sqbx
@@ -146,21 +145,22 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         of TGE
 
         @param beneficiary Address to which qbx will be sent
+        @param tokens Amount of tokens sold
         @param rate Rate of the tokens sold
     */
-    function addPrivatePresaleTokens(address beneficiary, uint256 rate) onlyOwner {
+    function addPrivatePresaleTokens(address beneficiary, uint256 tokens, uint256 rate) onlyOwner {
         require(now < startPreTime);
         require(beneficiary != address(0));
 
-        uint256 tokens = msg.value ** 18; //convert qbx to sqbx
-        uint256 weiAmount = msg.value.mul(rate);
+        uint256 tokensAmount = tokens ** 18; //convert qbx to sqbx
+        uint256 weiAmount = tokensAmount.mul(rate);
 
         // totalPresaleWei.add(weiSent);
         //TODO: Do we need to totalise the 'wei' rased in the private sale even though we received fiat?
         //TODO: should we have a variable like totalPresaleWei so as someone can check that?
         //update state
         weiRaised = weiRaised.add(weiAmount);
-        tokensSold = tokensSold.add(msg.value);
+        tokensSold = tokensSold.add(tokensAmount);
 
         token.mint(beneficiary, tokens);
 

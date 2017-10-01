@@ -10,6 +10,5 @@ script:
   - set -e
   - yarn lint
   - GEN_TESTS_QTY=20 yarn test test/QiibeeToken.js test/Crowdsale.js test/CrowdsaleGenTest.js
-  # - yarn test test/SomeFile.js test/SomeOtherFile.js
 after_script:
   - yarn run coveralls

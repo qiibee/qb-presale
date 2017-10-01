@@ -26,9 +26,8 @@ pragma solidity ^0.4.11;
 ///  This contract allows to hide and reveal the ceiling at will of the owner.
 
 
-import "./SafeMath.sol";
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
-
+import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
 contract DynamicCeiling is Ownable {
 
