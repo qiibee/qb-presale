@@ -230,21 +230,13 @@ contract('QiibeeCrowdsale Property-based test', function() {
   it('calculates correct rate as long as tokens are sold', async function() {
     let crowdsaleAndCommands = {
       commands: [
-        // { type: 'checkRate', fromAccount: 3 },
         { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'checkRate', fromAccount: 3 },
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 60001 },
         { type: 'checkRate', fromAccount: 3 },
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1000 },
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 100000 },
         { type: 'checkRate', fromAccount: 3 },
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 3000 },
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 10000 },
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 100 },
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 300 },
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 500 },
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 150000 },
         { type: 'checkRate', fromAccount: 3 },
       ],
       crowdsale: {
@@ -260,7 +252,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     let crowdsaleAndCommands = {
       commands: [
         { type: 'checkRate', fromAccount: 3 },
-        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'waitTime','seconds':duration.days(3)},
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 40000 },
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 23000 },
         { type: 'waitTime','seconds':duration.days(1)},
@@ -280,7 +272,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     let crowdsaleAndCommands = {
       commands: [
         { type: 'checkRate', fromAccount: 3 },
-        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'waitTime','seconds':duration.days(3)},
         { type: 'pauseToken', 'pause':true, 'fromAccount':1 },
         { type: 'pauseToken', 'pause':false, 'fromAccount':1 },
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 60000 },
@@ -385,8 +377,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
         { type: 'checkRate', fromAccount: 3 },
         { type: 'waitTime','seconds':duration.days(3)},
         { type: 'addToWhitelist', whitelistedAccount: 3, fromAccount: 0 },
-        { type: 'checkRate', fromAccount: 3 },
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 60000 },
+        { type: 'checkRate', fromAccount: 3 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,

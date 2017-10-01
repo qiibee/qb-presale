@@ -1,3 +1,6 @@
-LifToken
-mana
-status-network-token
+node_modules
+build
+npm-debug.log
+.node-xmlhttprequest-sync-[0-9]*
+coverage
+coverage.json

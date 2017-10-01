@@ -72,13 +72,15 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
     }
 
     function getRate() public constant returns(uint256) {
+        // preiod of the pre TGE
+        bool withinPeriod = now >= startPreTime && now <= endPreTime;
+
         // some early buyers are offered a different rate rather than the preferential rate
-        if (buyerRate[msg.sender] != 0) {
+        if (buyerRate[msg.sender] != 0 && withinPeriod) {
             return buyerRate[msg.sender];
         }
 
         // whitelisted buyers can purchase at preferential price during pre-ico event
-        bool withinPeriod = now >= startPreTime && now <= endPreTime;
         if (isWhitelisted(msg.sender) && withinPeriod) {
             return preferentialRate;
         }
@@ -103,12 +105,12 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
 
         uint256 rate = getRate();
         uint256 tokens = msg.value.mul(rate);
-        uint256 newAmount = tokensSold.add(tokens);
-        assert(newAmount <= cap);
+        uint256 newTokenAmount = tokensSold.add(tokens);
+        assert(newTokenAmount <= cap);
 
         // update state
         weiRaised = weiRaised.add(msg.value);
-        tokensSold = newAmount;
+        tokensSold = newTokenAmount;
 
         token.mint(beneficiary, tokens);
 
@@ -121,21 +123,49 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
     function mintTokens(address beneficiary) onlyOwner payable returns (bool) { //is it correct to add payable there?
         require(beneficiary != 0x0);
         require(validPurchase());
-        require(tokensSold.add(msg.value) <= cap);
 
         uint256 rate = getRate();
-        // calculate wei price for the amount of tokens
         uint256 weiAmount = msg.value.mul(rate);
+        uint256 newTokenAmount = tokensSold.add(msg.value)
+        assert(newTokenAmount <= cap);
 
         //update state
         weiRaised = weiRaised.add(weiAmount);
-        tokensSold = tokensSold.add(msg.value);
+        tokensSold = newTokenAmount;
 
         token.mint(beneficiary, msg.value);
 
         TokenPurchase(msg.sender, beneficiary, weiAmount, msg.value); //change event? or use this one?
 
         forwardFunds2(weiAmount, beneficiary); //check this call
+    }
+
+    /**
+        @dev Allows to add the address and the amount of wei sent by a contributor
+        in the private presale. Can only be called by the owner before the beginning
+        of TGE
+
+        @param beneficiary Address to which qbx will be sent
+        @param tokens Amount of tokens sold
+        @param rate Rate of the tokens sold
+    */
+    function addPrivatePresaleTokens(address beneficiary, uint256 rate) onlyOwner {
+        require(now < startPreTime);
+        require(beneficiary != address(0));
+
+        uint256 tokens = msg.value ** 18; //convert qbx to sqbx
+        uint256 weiAmount = msg.value.mul(rate);
+
+        // totalPresaleWei.add(weiSent);
+        //TODO: Do we need to totalise the 'wei' rased in the private sale even though we received fiat?
+        //TODO: should we have a variable like totalPresaleWei so as someone can check that?
+        //update state
+        weiRaised = weiRaised.add(weiAmount);
+        tokensSold = tokensSold.add(msg.value);
+
+        token.mint(beneficiary, tokens);
+
+        //TODO: forwardFunds?
     }
 
     function setWallet(address _wallet) onlyOwner public {

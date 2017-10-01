@@ -46,6 +46,8 @@ async function runCheckRateCommand(command, state) {
   let from = gen.getAccount(command.fromAccount);
   let expectedRate = help.getCrowdsaleExpectedRate(state, from);
   let rate = await state.crowdsaleContract.getRate({from: from});
+  console.log("RATE",rate);
+  console.log("expectedRate",expectedRate);
   assert.equal(expectedRate, rate,
     'expected rate is different! Expected: ' + expectedRate + ', actual: ' + rate + '. blocks: ' + web3.eth.blockTimestamp +
     ', start/initialRate/preferentialRate: ' + state.crowdsaleData.startTime + '/' + state.crowdsaleData.initialRate + '/' + state.crowdsaleData.preferentialRate);
@@ -70,18 +72,20 @@ async function runBuyTokensCommand(command, state) {
 
   let inPreTGE = nextTime >= startPreTime && nextTime <= endPreTime;
 
+  let capExceeded = state.tokensSold.plus(help.qbx2sqbx(tokens)).gt(crowdsale.cap);
+
   let shouldThrow = (inPreTGE && !state.whitelist[account]) ||
     (nextTime < startPreTime) ||
     (nextTime > endPreTime && nextTime < startTime) ||
     (nextTime > endTime) ||
     // (state.crowdsalePaused) || //TODO: remove this if we dont have a Pausable crowdsale
     //TODO: add reuqirements for TOTAL SUPPLY, FOUNDATION, etc
-    (state.initialRate == 0) ||
-    (state.goal == 0) ||
-    (state.cap == 0) ||
+    (crowdsale.initialRate == 0) ||
+    (crowdsale.goal == 0) ||
+    (crowdsale.cap == 0) ||
     (state.crowdsaleFinalized) ||
     hasZeroAddress ||
-    (command.eth == 0);
+    (command.eth == 0) || capExceeded;
 
   try {
     help.debug('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.endTime, 'blockTimestamp:', nextTime);
@@ -93,8 +97,10 @@ async function runBuyTokensCommand(command, state) {
     state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(help.qbx2sqbx(tokens));
     state.weiRaised = state.weiRaised.plus(weiCost);
     state.tokensSold = state.tokensSold.plus(help.qbx2sqbx(tokens));
+    console.log("TOKENS SOLD", await state.crowdsaleContract.tokensSold());
     state.crowdsaleSupply = state.crowdsaleSupply.plus(help.qbx2sqbx(tokens));
   } catch(e) {
+    console.log("FALLE");
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
   return state;
