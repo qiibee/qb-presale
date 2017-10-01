@@ -126,7 +126,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
 
         uint256 rate = getRate();
         uint256 weiAmount = msg.value.mul(rate);
-        uint256 newTokenAmount = tokensSold.add(msg.value)
+        uint256 newTokenAmount = tokensSold.add(msg.value);
         assert(newTokenAmount <= cap);
 
         //update state
@@ -146,7 +146,6 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         of TGE
 
         @param beneficiary Address to which qbx will be sent
-        @param tokens Amount of tokens sold
         @param rate Rate of the tokens sold
     */
     function addPrivatePresaleTokens(address beneficiary, uint256 rate) onlyOwner {

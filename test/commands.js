@@ -14,8 +14,6 @@ var gen = require('./generators');
 var latestTime = require('./helpers/latestTime');
 var {increaseTimeTestRPC, increaseTimeTestRPCTo} = require('./helpers/increaseTime');
 
-const priceFactor = 100000;
-
 const isZeroAddress = (addr) => addr === help.zeroAddress;
 
 let isCouldntUnlockAccount = (e) => e.message.search('could not unlock signer account') >= 0;
@@ -46,8 +44,8 @@ async function runCheckRateCommand(command, state) {
   let from = gen.getAccount(command.fromAccount);
   let expectedRate = help.getCrowdsaleExpectedRate(state, from);
   let rate = await state.crowdsaleContract.getRate({from: from});
-  console.log("RATE",rate);
-  console.log("expectedRate",expectedRate);
+  console.log('RATE',rate);
+  console.log('expectedRate',expectedRate);
   assert.equal(expectedRate, rate,
     'expected rate is different! Expected: ' + expectedRate + ', actual: ' + rate + '. blocks: ' + web3.eth.blockTimestamp +
     ', start/initialRate/preferentialRate: ' + state.crowdsaleData.startTime + '/' + state.crowdsaleData.initialRate + '/' + state.crowdsaleData.preferentialRate);
@@ -97,10 +95,10 @@ async function runBuyTokensCommand(command, state) {
     state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(help.qbx2sqbx(tokens));
     state.weiRaised = state.weiRaised.plus(weiCost);
     state.tokensSold = state.tokensSold.plus(help.qbx2sqbx(tokens));
-    console.log("TOKENS SOLD", await state.crowdsaleContract.tokensSold());
+    console.log('TOKENS SOLD', await state.crowdsaleContract.tokensSold());
     state.crowdsaleSupply = state.crowdsaleSupply.plus(help.qbx2sqbx(tokens));
   } catch(e) {
-    console.log("FALLE");
+    console.log('FALLE');
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
   return state;
@@ -154,10 +152,7 @@ async function runSendTransactionCommand(command, state) {
 
 async function runAddToWhitelistCommand(command, state) {
 
-  let crowdsale = state.crowdsaleData,
-    { startPreTime, endPreTime, startTime } = crowdsale,
-    nextTimestamp = latestTime(),
-    account = gen.getAccount(command.fromAccount),
+  let account = gen.getAccount(command.fromAccount),
     whitelistedAccount = gen.getAccount(command.whitelistedAccount);
 
   let hasZeroAddress = _.some([account, whitelistedAccount], isZeroAddress);
@@ -224,7 +219,7 @@ async function runPauseTokenCommand(command, state) {
 async function runFinalizeCrowdsaleCommand(command, state) {
 
   let crowdsale = state.crowdsaleData,
-    { startPreTime, endPreTime, startTime } = crowdsale,
+    { endPreTime } = crowdsale,
     nextTimestamp = latestTime(),
     account = gen.getAccount(command.fromAccount),
     hasZeroAddress = isZeroAddress(account);
@@ -246,16 +241,16 @@ async function runFinalizeCrowdsaleCommand(command, state) {
 
     await state.crowdsaleContract.finalize({from: account});
 
-    let fundsRaised = state.weiRaised.div(await state.crowdsaleContract.getRate());
+    // let fundsRaised = state.weiRaised.div(await state.crowdsaleContract.getRate());
 
     if (goalReached) {
 
       let totalSupplyBeforeFinalize = state.crowdsaleSupply;
 
       //TODO: check this
-      console.log("foundation wallet", state.crowdsaleData.foundationWallet);
-      console.log("owner", await state.crowdsaleContract.owner());
-      console.log("totalSupplyBeforeFinalize", totalSupplyBeforeFinalize);
+      console.log('foundation wallet', state.crowdsaleData.foundationWallet);
+      console.log('owner', await state.crowdsaleContract.owner());
+      console.log('totalSupplyBeforeFinalize', totalSupplyBeforeFinalize);
 
       //TODO: CHECK CHANGE OF OWNERSHIP
       // assert.equal(state.crowdsaleData.foundationWallet, await state.crowdsaleContract.owner());
@@ -454,28 +449,6 @@ async function runBurnTokensCommand(command, state) {
   }
   return state;
 }
-
-//
-// Market Maker commands
-//
-
-let getMMMaxClaimableWei = function(state) {
-  if (state.MVMMonth >= state.MVMPeriods) {
-    help.debug('calculating maxClaimableEth with', state.MVMStartingBalance,
-      state.MVMClaimedWei,
-      state.returnedWeiForBurnedTokens);
-    return state.MVMStartingBalance.
-      minus(state.MVMClaimedWei).
-      minus(state.returnedWeiForBurnedTokens);
-  } else {
-    const maxClaimable = state.MVMStartingBalance.
-      mul(state.claimablePercentage).dividedBy(priceFactor).
-      mul(state.initialTokenSupply - state.MVMBurnedTokens).
-      dividedBy(state.initialTokenSupply).
-      minus(state.MVMClaimedWei);
-    return _.max([0, maxClaimable]);
-  }
-};
 
 async function runFundCrowdsaleBelowSoftCap(command, state) {
   if (!state.crowdsaleFinalized) {

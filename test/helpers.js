@@ -66,7 +66,7 @@ module.exports = {
     await increaseTimeTestRPC(1);
     var startTime = latestTime() + 5;
     var endTime = startTime + 20;
-    var crowdsale = await LifCrowdsale.new(
+    var crowdsale = await QiibeeCrowdsale.new(
       startTime+3, startTime+15, endTime,
       rate, rate+10, rate+20, 1,
       accounts[0]
@@ -123,23 +123,23 @@ module.exports = {
 
   getCrowdsaleExpectedRate: function(state, from) {
     let { startPreTime, endPreTime, initialRate, preferentialRate, goal } = state.crowdsaleData,
-        { tokensSold, buyerRate, whitelist } = state;
+      { tokensSold, buyerRate, whitelist } = state;
 
     let withinPeriod = latestTime() >= startPreTime && latestTime() <= endPreTime;
 
     // some early buyers are offered a different rate rather than the preferential rate
     if (buyerRate.length > 0 && buyerRate[from] != 0) { //TODO: check if that of the .length has to be in the contract
-        return buyerRate[from];
+      return buyerRate[from];
     }
 
     // whitelisted buyers can purchase at preferential price during pre-ico event
     if (withinPeriod && whitelist[from]) {
-        return preferentialRate;
+      return preferentialRate;
     }
 
     // what about rate < initialRate
     if (tokensSold.gt(goal)) { //TODO: add this condition as well || (tokensSold + weiAmount.mul(initialRate)) > goal
-        return parseInt(initialRate * 1000 / parseInt((tokensSold * 1000) / goal));
+      return parseInt(initialRate * 1000 / parseInt((tokensSold * 1000) / goal));
     }
     return initialRate;
   },
