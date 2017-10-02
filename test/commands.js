@@ -14,6 +14,8 @@ var gen = require('./generators');
 var latestTime = require('./helpers/latestTime');
 var {increaseTimeTestRPC, increaseTimeTestRPCTo} = require('./helpers/increaseTime');
 
+var colors = require('colors');
+
 const isZeroAddress = (addr) => addr === help.zeroAddress;
 
 let isCouldntUnlockAccount = (e) => e.message.search('could not unlock signer account') >= 0;
@@ -44,8 +46,6 @@ async function runCheckRateCommand(command, state) {
   let from = gen.getAccount(command.fromAccount);
   let expectedRate = help.getCrowdsaleExpectedRate(state, from);
   let rate = await state.crowdsaleContract.getRate({from: from});
-  console.log('RATE',rate);
-  console.log('expectedRate',expectedRate);
   assert.equal(expectedRate, rate,
     'expected rate is different! Expected: ' + expectedRate + ', actual: ' + rate + '. blocks: ' + web3.eth.blockTimestamp +
     ', start/initialRate/preferentialRate: ' + state.crowdsaleData.startTime + '/' + state.crowdsaleData.initialRate + '/' + state.crowdsaleData.preferentialRate);
@@ -86,7 +86,7 @@ async function runBuyTokensCommand(command, state) {
     (command.eth == 0) || capExceeded;
 
   try {
-    help.debug('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.endTime, 'blockTimestamp:', nextTime);
+    help.debug(colors.yellow('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.endTime, 'blockTimestamp:', nextTime));
     await state.crowdsaleContract.buyTokens(beneficiaryAccount, {value: weiCost, from: account});
     assert.equal(false, shouldThrow, 'buyTokens should have thrown but it didn\'t');
     state.purchases = _.concat(state.purchases,
@@ -95,10 +95,8 @@ async function runBuyTokensCommand(command, state) {
     state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(help.qbx2sqbx(tokens));
     state.weiRaised = state.weiRaised.plus(weiCost);
     state.tokensSold = state.tokensSold.plus(help.qbx2sqbx(tokens));
-    console.log('TOKENS SOLD', await state.crowdsaleContract.tokensSold());
     state.crowdsaleSupply = state.crowdsaleSupply.plus(help.qbx2sqbx(tokens));
   } catch(e) {
-    console.log('FALLE');
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
   return state;
@@ -118,16 +116,16 @@ async function runSendTransactionCommand(command, state) {
     hasZeroAddress = isZeroAddress(account);
 
   let shouldThrow = (!inTGE) ||
-    (inTGE && state.initialRate == 0) || //TODO: below
+    (inTGE && crowdsale.initialRate == 0) || //TODO: below
     // (inTGE && state.weiPerUSDinTGE == 0) || //TODO
     // (state.crowdsalePaused) || //TODO: remove this if we dont have a Pausable crowdsale
-    (state.goal == 0) ||
-    (state.cap == 0) ||
+    (crowdsale.goal == 0) ||
+    (crowdsale.cap == 0) ||
     (state.crowdsaleFinalized) ||
     (command.eth == 0) ||
     hasZeroAddress;
   try {
-    // help.debug('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.end1Timestamp, end2Timestamp, 'blockTimestamp:', nextTimestamp);
+    // help.debug(colors.yellow('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.end1Timestamp, end2Timestamp, 'blockTimestamp:', nextTimestamp));
     await state.crowdsaleContract.sendTransaction({value: weiCost, from: account});
     assert.equal(false, shouldThrow, 'sendTransaction should have thrown but it did not');
     if (inTGE) {
@@ -177,7 +175,7 @@ async function runPauseCrowdsaleCommand(command, state) {
     (command.fromAccount != state.owner) ||
     hasZeroAddress;
 
-  help.debug('pausing crowdsale, previous state:', state.crowdsalePaused, 'new state:', command.pause);
+  help.debug(colors.yellow('pausing crowdsale, previous state:', state.crowdsalePaused, 'new state:', command.pause));
   try {
     if (command.pause) {
       await state.crowdsaleContract.pause({from: account});
@@ -201,7 +199,7 @@ async function runPauseTokenCommand(command, state) {
     (command.fromAccount != state.owner) ||
     hasZeroAddress;
 
-  help.debug('pausing token, previous state:', state.tokenPaused, 'new state:', command.pause);
+  help.debug(colors.yellow('pausing token, previous state:', state.tokenPaused, 'new state:', command.pause));
   try {
     if (command.pause) {
       await state.token.pause({from: account});
@@ -229,18 +227,17 @@ async function runFinalizeCrowdsaleCommand(command, state) {
   let shouldThrow = state.crowdsaleFinalized ||
     // state.crowdsalePaused ||
     !preTGEDone ||
-    // state.crowdsalePaused || (state.initialRate == 0) || //TODO: check
+    // state.crowdsalePaused || (crowdsale.initialRate == 0) || //TODO: check
     hasZeroAddress ||
     (nextTimestamp <= state.crowdsaleData.endTime);
 
   try {
 
-    let goalReached = (state.tokensSold >= state.crowdsaleData.cap);
+    let goalReached = state.tokensSold.gte(state.crowdsaleData.goal);
 
-    help.debug('finishing crowdsale on block', nextTimestamp, ', from address:', gen.getAccount(command.fromAccount), ', funded:', goalReached);
+    help.debug(colors.yellow('finishing crowdsale on block', nextTimestamp, ', from address:', gen.getAccount(command.fromAccount), ', funded:', goalReached));
 
     await state.crowdsaleContract.finalize({from: account});
-
     // let fundsRaised = state.weiRaised.div(await state.crowdsaleContract.getRate());
 
     if (goalReached) {
@@ -274,12 +271,17 @@ async function runFinalizeCrowdsaleCommand(command, state) {
       //TODO: SET NEW TOTAL SUPPLY
       // state.totalSupply = state.totalSupply.plus(foundersVestingTokens).
       //   plus(longTermReserve).plus(teamTokens);
+      state.vaultState = 2;
+    } else {
+      state.vaultState = 1;
     }
     assert.equal(false, shouldThrow);
+
+    help.debug(colors.yellow('crowdsale finished on block', nextTimestamp, ', vault state:', state.vaultState, ', vault:', JSON.stringify(state.vault)));
+
     state.crowdsaleFinalized = true;
     state.goalReached = goalReached;
     state.tokenPaused = false;
-    state.revaultState = 0;
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
@@ -303,7 +305,7 @@ async function runAddPrivatePresalePaymentCommand(command, state) {
     (weiToSend == 0);
 
   try {
-    help.debug('Adding presale private tokens for account:', command.beneficiaryAccount, 'eth:', command.eth, 'fromAccount:', command.fromAccount, 'blockTimestamp:', nextTimestamp);
+    help.debug(colors.yellow('Adding presale private tokens for account:', command.beneficiaryAccount, 'eth:', command.eth, 'fromAccount:', command.fromAccount, 'blockTimestamp:', nextTimestamp));
 
     await state.crowdsaleContract.addPrivatePresaleTokens(beneficiary, weiToSend, {from: account});
 
@@ -316,24 +318,22 @@ async function runAddPrivatePresalePaymentCommand(command, state) {
   return state;
 }
 
-async function runClaimEthCommand(command, state) {
+async function runClaimRefundCommand(command, state) {
 
   let account = gen.getAccount(command.fromAccount),
     purchases = _.filter(state.purchases, (p) => p.account == command.fromAccount),
     hasZeroAddress = isZeroAddress(account);
 
   let shouldThrow = !state.crowdsaleFinalized ||
-    !state.goalReached ||
+    state.goalReached ||
     (purchases.length == 0) ||
     hasZeroAddress ||
-    state.claimedEth[command.account] > 0;
+    state.vault[command.fromAccount] > 0;
 
   try {
-    await state.crowdsaleContract.claimEth({from: account});
-
-    assert.equal(false, shouldThrow, 'claimEth should have thrown but it did not');
-
-    state.claimedEth[command.account] = _.sumBy(purchases, (p) => p.amount);
+    await state.crowdsaleContract.claimRefund({from: account});
+    assert.equal(false, shouldThrow, 'claimRefund should have thrown but it did not');
+    state.vault[command.fromAccount] = _.sumBy(purchases, (p) => p.wei);
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
@@ -506,7 +506,7 @@ const commands = {
   pauseToken: {gen: gen.pauseTokenCommandGen, run: runPauseTokenCommand},
   finalizeCrowdsale: {gen: gen.finalizeCrowdsaleCommandGen, run: runFinalizeCrowdsaleCommand},
   addPrivatePresalePayment: {gen: gen.addPrivatePresalePaymentCommandGen, run: runAddPrivatePresalePaymentCommand},
-  claimEth: {gen: gen.claimEthCommandGen, run: runClaimEthCommand},
+  claimRefund: {gen: gen.claimRefundCommandGen, run: runClaimRefundCommand},
   transfer: {gen: gen.transferCommandGen, run: runTransferCommand},
   approve: {gen: gen.approveCommandGen, run: runApproveCommand},
   transferFrom: {gen: gen.transferFromCommandGen, run: runTransferFromCommand},

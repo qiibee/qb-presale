@@ -25,6 +25,7 @@
   "license": "MIT",
   "dependencies": {
     "abi-decoder": "^1.0.8",
+    "colors": "^1.1.2",
     "ethereumjs-abi": "^0.6.4",
     "jsverify": "^0.8.2",
     "lodash": "^4.17.4",

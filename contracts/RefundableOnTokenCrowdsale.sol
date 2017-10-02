@@ -32,7 +32,7 @@ contract RefundableOnTokenCrowdsale is FinalizableCrowdsale {
 
   // In addition to sending the funds, we want to call
   // the RefundVault deposit function
-  function forwardFunds2(uint256 amount, address beneficiary) internal {
+  function toVault(uint256 amount, address beneficiary) internal {
     if (beneficiary == 0x0) {
         beneficiary = msg.sender;
         amount = msg.value;

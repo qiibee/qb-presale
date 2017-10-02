@@ -89,8 +89,8 @@ module.exports = {
     eth: jsc.nat(0,200)
   }),
 
-  claimEthCommandGen: jsc.record({
-    type: jsc.constant('claimEth'),
+  claimRefundCommandGen: jsc.record({
+    type: jsc.constant('claimRefund'),
     eth: jsc.nat(0, 200),
     fromAccount: accountGen
   }),

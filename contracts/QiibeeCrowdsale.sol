@@ -8,18 +8,20 @@ import "./QiibeeToken.sol";
 /**
    @title Crowdsale for the QBX Token Generation Event
 
-   Implementation of the QBX Token Generation Event (TGE) Crowdsale: A 4-week, fixed token supply,
-   dynamic token rate, capped on token, refundable crowdsale. Pre-ICO for whitelisted investors with
-   a preferential rate.
-   The crowdsale has a minimum cap (goal) of X tokens which in case of not being reached by
-   purchases made during the 4-week period the token will not start operating and all funds sent
-   during that period will be made available to be claimed by the originating addresses. Moreover,
-   it will have a maximum cap of Y tokens.
- */
+   Implementation of the QBX Token Generation Event (TGE): A 4-week, fixed token supply with a
+   fixed rate until the goal (soft cap) is reached and then a dynamic rate linked to the amount of
+   tokens sold is applied. TGE has a cap on the amount of token (hard cap).
 
-//TODO: explain that goal is soft cap and cap is hard cap
-//TODO: Use uint64?
-//TODO: Change start and end blocks to timestamps (https://github.com/OpenZeppelin/zeppelin-solidity/pull/353)
+   Tokens bought in the private presale will be added before the pre-TGE starts.
+
+   There is pre-TGE for whitelisted investors with global a preferential rate. They can also
+   have a special rate (different for each whiteslisted investor) that will apply only if they buy
+   a determined amount of ETH (if not, they just get the global preferential rate).
+
+   In case of the goal not being reached by purchases made during the 4-week period the token will
+   not start operating and all funds sent during that period will be made available to be claimed
+   by the originating addresses.
+ */
 
 contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale {
 
@@ -36,9 +38,20 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
     uint256 public cap;
 
 
+     /**
+     * event for change wallet logging
+     * @param wallet new wallet address
+     */
     event WalletChange(address wallet);
 
-    event InitialRateChange(uint256 rate);
+    /**
+     * event for adding tokens from the private sale
+     * @param purchaser who paid for the tokens
+     * @param beneficiary who got the tokens
+     * @param value weis paid for purchase
+     * @param amount amount of tokens purchased
+     */
+    event PrivatePresalePurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
     function QiibeeCrowdsale(
         uint256 _startPreTime,
@@ -84,22 +97,15 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
             return preferentialRate;
         }
 
-        // what about rate < initialRate
-        if (tokensSold >= goal) { //TODO: add this condition as well || (tokensSold + weiAmount.mul(initialRate)) > goal
+        if (tokensSold >= goal) {
             return initialRate.mul(1000).div(tokensSold.mul(1000).div(goal));
         }
         return initialRate;
     }
 
-    function convertWeiToToken(uint256 weiAmount) internal returns(uint256) {
-        uint256 rate = getRate();
-        // calculate tokens amount
-        return weiAmount.mul(rate);
-    }
-
     // low level token purchase function
     function buyTokens(address beneficiary) payable {
-        require(beneficiary != 0x0);
+        require(beneficiary != address(0));
         require(validPurchase());
 
         uint256 rate = getRate();
@@ -118,25 +124,29 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         forwardFunds();
     }
 
-    // directly mint tokens (used when people want to invest in a different currency than ETH)
-    function mintTokens(address beneficiary) onlyOwner payable returns (bool) { //is it correct to add payable there?
-        require(beneficiary != 0x0);
+    /**
+        @dev Directly mint tokens (used for non ETH investments).Can only be called by the owner.
+
+        @param beneficiary Address to which qbx will be sent
+    */
+    function mintTokens(address beneficiary, uint256 tokens) onlyOwner returns (bool) { //does it need payable?
+        require(beneficiary != address(0));
         require(validPurchase());
 
         uint256 rate = getRate();
-        uint256 weiAmount = msg.value.mul(rate);
-        uint256 newTokenAmount = tokensSold.add(msg.value);
+        uint256 weiAmount = tokens.mul(rate);
+        uint256 newTokenAmount = tokensSold.add(tokens);
         assert(newTokenAmount <= cap);
 
         //update state
         weiRaised = weiRaised.add(weiAmount);
         tokensSold = newTokenAmount;
 
-        token.mint(beneficiary, msg.value);
+        token.mint(beneficiary, tokens);
 
-        TokenPurchase(msg.sender, beneficiary, weiAmount, msg.value); //change event? or use this one?
+        TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
 
-        forwardFunds2(weiAmount, beneficiary); //check this call
+        toVault(weiAmount, beneficiary); //TODO: check this call
     }
 
     /**
@@ -152,19 +162,19 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         require(now < startPreTime);
         require(beneficiary != address(0));
 
-        uint256 tokensAmount = tokens ** 18; //convert qbx to sqbx
+        uint256 tokensAmount = tokens ** 18; //converts qbx to sqbx
         uint256 weiAmount = tokensAmount.mul(rate);
 
-        // totalPresaleWei.add(weiSent);
-        //TODO: Do we need to totalise the 'wei' rased in the private sale even though we received fiat?
-        //TODO: should we have a variable like totalPresaleWei so as someone can check that?
         //update state
         weiRaised = weiRaised.add(weiAmount);
         tokensSold = tokensSold.add(tokensAmount);
 
         token.mint(beneficiary, tokens);
 
+        PrivatePresalePurchase(msg.sender, beneficiary, weiAmount, tokens);
+
         //TODO: forwardFunds?
+        // toVault(weiAmount, beneficiary);
     }
 
     function setWallet(address _wallet) onlyOwner public {
@@ -187,8 +197,10 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         uint256 crowdsaleSupply = token.totalSupply();
         uint256 restSupply = CROWDSALE_SUPPLY.sub(crowdsaleSupply);
         //TODO: do the restSupply go to the foundation? If they go, just simplify the calculation with TOTAL_SUPPLY.sub(crowdsaleSupply).
-        uint256 foundationSupply = FOUNDATION_SUPPLY.add(restSupply); //TODO: this is the 7.6bn PLUS
+        uint256 foundationSupply = FOUNDATION_SUPPLY.add(restSupply);
         token.mint(wallet, foundationSupply);
+
+        super.finalization();
     }
 
     function finalize() onlyOwner { //make it public? redistribute tokens to other pools?
@@ -206,7 +218,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         token.transferOwnership(owner);
     }
 
-    // overriding Crowdsale#hasEnded to add cap logic
+    // overrides Crowdsale#hasEnded to add cap logic
     function hasEnded() public constant returns (bool) {
         bool capReached = tokensSold >= cap;
         return super.hasEnded() || capReached;

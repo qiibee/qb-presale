@@ -1,4 +1,5 @@
 var _ = require('lodash');
+var colors = require('colors');
 // var jsc = require('jsverify');
 
 var BigNumber = web3.BigNumber;
@@ -9,7 +10,6 @@ var {increaseTimeTestRPC, duration} = require('./helpers/increaseTime');
 
 var QiibeeToken = artifacts.require('./QiibeeToken.sol');
 var QiibeeCrowdsale = artifacts.require('./QiibeeCrowdsale.sol');
-// var RefundVault = artifacts.require('zeppelin-solidity/contracts/crowdsale/Crowdsale.sol');
 
 let gen = require('./generators');
 let commands = require('./commands');
@@ -44,18 +44,19 @@ contract('QiibeeCrowdsale Property-based test', function() {
     // let presaleWei = sumBigNumbers(_.map(state.presalePurchases, (p) => p.wei));
     // presaleWei.should.be.bignumber.equal(await crowdsale.totalPresaleWei.call());
 
-    help.debug('checking purchases total wei, purchases:', JSON.stringify(state.purchases));
+    help.debug(colors.yellow('checking purchases total wei, purchases:', JSON.stringify(state.purchases)));
     let weiInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.wei));
     weiInPurchases.should.be.bignumber.equal(await crowdsale.weiRaised());
     // Check presale tokens sold
     // state.totalPresaleWei.should.be.bignumber.equal(await crowdsale.totalPresaleWei.call());
     assert.equal(state.crowdsaleFinalized, await crowdsale.isFinalized());
+
     if (state.crowdsaleFinalized) {
       assert.equal(state.goalReached, await crowdsale.goalReached());
 
       //TODO: check revault state
       let vaultState = parseInt((await crowdsale.getVaultState()).toString());
-      assert.equal(state.revaultState, vaultState);
+      assert.equal(state.vaultState, vaultState);
 
       state.crowdsaleData.TOTAL_SUPPLY.
         should.be.bignumber.equal(await state.token.totalSupply());
@@ -63,6 +64,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
       state.crowdsaleSupply.
         should.be.bignumber.equal(await state.token.totalSupply());
     }
+
   };
 
   let runGeneratedCrowdsaleAndCommands = async function(input) {
@@ -72,7 +74,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     let endPreTime = startPreTime + duration.days(1);
     let startTime = endPreTime + duration.days(1);
     let endTime = startTime + duration.days(1);
-    help.debug('crowdsaleTestInput data:\n', input, startTime, endTime);
+    help.debug(colors.yellow('crowdsaleTestInput data:\n', JSON.stringify(input), startTime, endTime));
 
     let {initialRate, goal, cap, preferentialRate, owner} = input.crowdsale,
       ownerAddress = gen.getAccount(input.crowdsale.owner),
@@ -130,7 +132,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
           console.log('Event:', log.event, ':',log.args);
       });
 
-      help.debug('created crowdsale at address ', crowdsale.address);
+      help.debug(colors.yellow('created crowdsale at address ', crowdsale.address));
 
       // issue & transfer tokens for founders payments
       // let maxFoundersPaymentTokens = crowdsaleData.maxTokens * (crowdsaleData.ownerPercentage / 1000.0) ;
@@ -143,7 +145,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
         ethBalances: {},
         allowances: {},
         purchases: [],
-        claimedEth: {},
         weiRaised: zero,
         tokensSold: zero,
         // totalPresaleWei: zero,
@@ -158,9 +159,10 @@ contract('QiibeeCrowdsale Property-based test', function() {
         // MVMBurnedTokens: new BigNumber(0),
         burnedTokens: zero,
         returnedWeiForBurnedTokens: new BigNumber(0),
-        revaultState: 0,
+        vault: {},
+        vaultState: 0,
         buyerRate: [],
-        whitelist: []
+        whitelist: [],
       };
       for (let commandParams of input.commands) {
         let command = commands.findCommand(commandParams.type);
@@ -168,7 +170,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
           state = await command.run(commandParams, state);
         }
         catch(error) {
-          help.debug('An error occurred, block timestamp: ' + latestTime() + '\nError: ' + error);
+          help.debug(colors.yellow('An error occurred, block timestamp: ' + latestTime() + '\nError: ' + error));
           if (error instanceof commands.ExceptionRunningCommand) {
             throw(new Error('command ' + JSON.stringify(commandParams) + ' has thrown.'
               + '\nError: ' + error.error));
@@ -249,7 +251,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
   });
 
-  it('Execute a normal TGE', async function() {
+  it('executes a normal TGE fine', async function() {
     let crowdsaleAndCommands = {
       commands: [
         { type: 'checkRate', fromAccount: 3 },
@@ -380,6 +382,41 @@ contract('QiibeeCrowdsale Property-based test', function() {
         { type: 'addToWhitelist', whitelistedAccount: 3, fromAccount: 0 },
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 60000 },
         { type: 'checkRate', fromAccount: 3 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('should have vault state set to Active when crowdsale is finished and did not reach the goal', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 50000 },
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'finalizeCrowdsale', fromAccount: 0 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('should refund investor if crowdsale did not reach the goal and if he asks to', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 50000 },
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'finalizeCrowdsale', fromAccount: 0 },
+        { type: 'claimRefund', fromAccount: 4 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
