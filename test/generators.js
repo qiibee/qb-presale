@@ -128,6 +128,13 @@ module.exports = {
     senderAccount: accountGen,
     fromAccount: accountGen,
     toAccount: accountGen
+  }),
+
+  setBuyerRateGen: jsc.record({
+    type: jsc.constant('setBuyerRate'),
+    senderAccount: accountGen,
+    fromAccount: accountGen,
+    toAccount: accountGen
   })
 
 };

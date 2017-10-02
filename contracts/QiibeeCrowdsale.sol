@@ -91,13 +91,13 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         // preiod of the pre TGE
         bool withinPeriod = now >= startPreTime && now <= endPreTime;
 
-        // some early buyers are offered a different rate rather than the preferential rate
-        if (buyerRate[msg.sender] != 0 && withinPeriod) {
-            return buyerRate[msg.sender];
-        }
-
         // whitelisted buyers can purchase at preferential price during pre-ico event
         if (isWhitelisted(msg.sender) && withinPeriod) {
+            // some early buyers are offered a different rate rather than the preferential rate but they
+            // are required to buy at least a minimum already negotiated
+            if (buyerRate[msg.sender] != 0 && msg.value >= buyerMinimum[msg.sender]) {
+                return buyerRate[msg.sender];
+            }
             return preferentialRate;
         }
 

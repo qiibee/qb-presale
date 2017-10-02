@@ -150,17 +150,49 @@ async function runSendTransactionCommand(command, state) {
 
 async function runAddToWhitelistCommand(command, state) {
 
-  let account = gen.getAccount(command.fromAccount),
+  let { startPreTime } = state.crowdsaleData,
+    nextTimestamp = latestTime(),
+    account = gen.getAccount(command.fromAccount),
     whitelistedAccount = gen.getAccount(command.whitelistedAccount);
 
   let hasZeroAddress = _.some([account, whitelistedAccount], isZeroAddress);
 
-  let shouldThrow = hasZeroAddress;
-
+  let shouldThrow = hasZeroAddress ||
+    command.fromAccount != state.owner ||
+    nextTimestamp > startPreTime;
   try {
     await state.crowdsaleContract.addToWhitelist(whitelistedAccount, {from: account});
     assert.equal(false, shouldThrow, 'add to whitelist should have thrown but it did not');
+
     state.whitelist[whitelistedAccount] = true;
+  } catch(e) {
+    assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
+  }
+  return state;
+}
+
+async function runSetBuyerRateCommand(command, state) {
+
+  let { startPreTime } = state.crowdsaleData,
+    account = gen.getAccount(command.fromAccount),
+    nextTimestamp = latestTime(),
+    whitelistedAccount = gen.getAccount(command.whitelistedAccount),
+    rate = command.rate,
+    minimum = command.minimum;
+
+  let hasZeroAddress = _.some([account, whitelistedAccount], isZeroAddress);
+
+  let shouldThrow = hasZeroAddress ||
+    rate == 0 ||
+    minimum == 0 ||
+    command.fromAccount != state.owner ||
+    nextTimestamp > startPreTime;
+
+  try {
+    await state.crowdsaleContract.setBuyerRate(whitelistedAccount, rate, minimum, {from: account});
+    assert.equal(false, shouldThrow, 'add to whitelist should have thrown but it did not');
+    state.buyerRate[whitelistedAccount] = rate;
+    state.buyerMinimum[whitelistedAccount] = minimum;
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
@@ -520,6 +552,7 @@ const commands = {
   transferFrom: {gen: gen.transferFromCommandGen, run: runTransferFromCommand},
   fundCrowdsaleBelowSoftCap: {gen: gen.fundCrowdsaleBelowSoftCap, run: runFundCrowdsaleBelowSoftCap},
   addToWhitelist: { gen: gen.addToWhitelistGen, run: runAddToWhitelistCommand},
+  setBuyerRate: { gen: gen.setBuyerRateGen, run: runSetBuyerRateCommand},
 };
 
 module.exports = {

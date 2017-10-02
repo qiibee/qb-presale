@@ -21,6 +21,9 @@ contract WhitelistedPreCrowdsale is Crowdsale, Ownable {
     // customize the rate for each whitelisted buyer
     mapping (address => uint256) public buyerRate;
 
+    // minimum investment that each whiteslited buyer has to do
+    mapping (address => uint256) public buyerMinimum;
+
     // list of addresses that can purchase during pre-ico event (a.k.a before crowdsale opens)
     mapping (address => bool) public whitelist;
 
@@ -36,13 +39,14 @@ contract WhitelistedPreCrowdsale is Crowdsale, Ownable {
     }
 
     function addToWhitelist(address buyer) public onlyOwner {
-        require(buyer != 0x0);
+        require(buyer != address(0));
+        require(now <= startPreTime);
 
         whitelist[buyer] = true;
     }
 
     function removeFromWhitelist(address buyer) public onlyOwner {
-        require(buyer != 0x0);
+        require(buyer != address(0));
         whitelist[buyer] = false;
     }
 
@@ -57,12 +61,13 @@ contract WhitelistedPreCrowdsale is Crowdsale, Ownable {
         return super.validPurchase() || (withinPeriod && isWhitelisted(msg.sender) && nonZeroPurchase);
     }
 
-    function setBuyerRate(address buyer, uint256 rate) onlyOwner public {
+    function setBuyerRate(address buyer, uint256 rate, uint256 minimum) onlyOwner public {
         require(rate != 0);
         require(isWhitelisted(buyer));
         require(now < startPreTime);
 
         buyerRate[buyer] = rate;
+        buyerMinimum[buyer] = minimum;
 
         PreferentialRateChange(buyer, rate);
     }

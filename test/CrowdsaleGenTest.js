@@ -163,6 +163,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
         vault: {},
         vaultState: 0,
         buyerRate: [],
+        buyerMinimum: [],
         whitelist: [],
       };
       for (let commandParams of input.commands) {
@@ -345,8 +346,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'checkRate', fromAccount: 3 },
-        { type: 'waitTime','seconds':duration.days(1)},
         { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
+        { type: 'waitTime','seconds':duration.days(1)},
         { type: 'checkRate', fromAccount: 3 },
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 1 },
         { type: 'waitTime','seconds':duration.days(1)},
@@ -379,8 +380,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'checkRate', fromAccount: 3 },
-        { type: 'waitTime','seconds':duration.days(3)},
         { type: 'addToWhitelist', whitelistedAccount: 3, fromAccount: 0 },
+        { type: 'waitTime','seconds':duration.days(3)},
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 60000 },
         { type: 'checkRate', fromAccount: 3 },
       ],
@@ -445,6 +446,36 @@ contract('QiibeeCrowdsale Property-based test', function() {
         { type: 'checkRate', fromAccount: 3 },
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'addPrivatePresaleTokens', rate: 10000, beneficiary: 3, account: 0, tokens: 1000 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('should NOT add special rate to whitelisted investor if pre TGE has already started', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
+        { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0, minimum: 2000 },
+        { type: 'checkRate', fromAccount: 4 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('should add special rate and minimum investment to whitelisted investor', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        // { type: 'waitTime','seconds':duration.days(5)},
+        { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
+        { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0, minimum: 2000 },
+        { type: 'checkRate', fromAccount: 4 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
