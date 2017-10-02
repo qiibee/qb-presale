@@ -51,7 +51,11 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
      * @param value weis paid for purchase
      * @param amount amount of tokens purchased
      */
-    event PrivatePresalePurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
+    event PrivatePresalePurchase(address indexed purchaser,
+      address indexed beneficiary,
+      uint256 rate,
+      uint256 value,
+      uint256 amount);
 
     function QiibeeCrowdsale(
         uint256 _startPreTime,
@@ -161,17 +165,19 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
     function addPrivatePresaleTokens(address beneficiary, uint256 tokens, uint256 rate) onlyOwner {
         require(now < startPreTime);
         require(beneficiary != address(0));
+        require(tokens > 0);
+        require(rate > 0);
 
-        uint256 tokensAmount = tokens ** 18; //converts qbx to sqbx
+        uint256 tokensAmount = tokens * (1 wei); //converts qbx to sqbx
         uint256 weiAmount = tokensAmount.mul(rate);
 
         //update state
         weiRaised = weiRaised.add(weiAmount);
         tokensSold = tokensSold.add(tokensAmount);
 
-        token.mint(beneficiary, tokens);
+        token.mint(beneficiary, tokensAmount);
 
-        PrivatePresalePurchase(msg.sender, beneficiary, weiAmount, tokens);
+        PrivatePresalePurchase(msg.sender, beneficiary, rate, weiAmount, tokensAmount);
 
         //TODO: forwardFunds?
         // toVault(weiAmount, beneficiary);

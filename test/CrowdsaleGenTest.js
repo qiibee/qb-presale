@@ -39,6 +39,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
   let checkCrowdsaleState = async function(state, crowdsaleData, crowdsale) {
     // assert.equal(state.crowdsalePaused, await crowdsale.token().paused()); //TODO: ask Augusto why they have a Pausable crowdsale
     let tokensInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.tokens));
+
     tokensInPurchases.should.be.bignumber.equal(help.sqbx2qbx(await crowdsale.tokensSold())); //TODO: check if conver everythign to QBX
 
     // let presaleWei = sumBigNumbers(_.map(state.presalePurchases, (p) => p.wei));
@@ -417,6 +418,33 @@ contract('QiibeeCrowdsale Property-based test', function() {
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'finalizeCrowdsale', fromAccount: 0 },
         { type: 'claimRefund', fromAccount: 4 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('should be able to add tokens of the private presale before pre TGE starts', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'addPrivatePresaleTokens', rate: 10000, beneficiary: 3, account: 0, tokens: 1000 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('should NOT be able to add tokens of the private presale after pre TGE starts', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'addPrivatePresaleTokens', rate: 10000, beneficiary: 3, account: 0, tokens: 1000 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,

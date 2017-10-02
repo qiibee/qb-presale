@@ -288,30 +288,38 @@ async function runFinalizeCrowdsaleCommand(command, state) {
   return state;
 }
 
-async function runAddPrivatePresalePaymentCommand(command, state) {
+async function runAddPrivatePresaleTokensCommand(command, state) {
 
-  let { publicPresaleStartTimestamp } = state.crowdsaleData,
+  let { startPreTime } = state.crowdsaleData,
     nextTimestamp = latestTime(),
-    weiToSend = web3.toWei(command.eth, 'ether'),
-    account = gen.getAccount(command.fromAccount),
-    beneficiary = gen.getAccount(command.beneficiaryAccount),
+    tokens = command.tokens,
+    rate = command.rate,
+    account = gen.getAccount(command.account),
+    beneficiary = gen.getAccount(command.beneficiary),
     hasZeroAddress = _.some([account, beneficiary], isZeroAddress);
 
-  let shouldThrow = (nextTimestamp >= publicPresaleStartTimestamp) ||
-    (state.crowdsalePaused) ||
+  let shouldThrow = (nextTimestamp >= startPreTime) ||
+    // (state.crowdsalePaused) ||
     (account != gen.getAccount(state.owner)) ||
+    (tokens == 0) ||
+    (rate == 0) ||
     (state.crowdsaleFinalized) ||
-    hasZeroAddress ||
-    (weiToSend == 0);
+    hasZeroAddress;
 
   try {
-    help.debug(colors.yellow('Adding presale private tokens for account:', command.beneficiaryAccount, 'eth:', command.eth, 'fromAccount:', command.fromAccount, 'blockTimestamp:', nextTimestamp));
+    help.debug(colors.yellow('Adding presale private tokens for account:', command.beneficiary, 'tokens:', tokens, 'fromAccount:', command.account, 'blockTimestamp:', nextTimestamp));
 
-    await state.crowdsaleContract.addPrivatePresaleTokens(beneficiary, weiToSend, {from: account});
+    await state.crowdsaleContract.addPrivatePresaleTokens(beneficiary, help.qbx2sqbx(tokens), rate, {from: account});
 
     assert.equal(false, shouldThrow, 'buyTokens should have thrown but it did not');
 
-    state.totalPresaleWei = state.totalPresaleWei.plus(weiToSend);
+    let weiCost = new BigNumber(help.qbx2sqbx(tokens)).mul(rate);
+    state.purchases = _.concat(state.purchases,
+      {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
+    );
+    state.weiRaised = state.weiRaised.plus(weiCost);
+    state.crowdsaleSupply = state.crowdsaleSupply.plus(help.qbx2sqbx(tokens));
+    // state.totalPresaleWei = state.totalPresaleWei.plus(weiToSend);
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
@@ -505,7 +513,7 @@ const commands = {
   pauseCrowdsale: {gen: gen.pauseCrowdsaleCommandGen, run: runPauseCrowdsaleCommand},
   pauseToken: {gen: gen.pauseTokenCommandGen, run: runPauseTokenCommand},
   finalizeCrowdsale: {gen: gen.finalizeCrowdsaleCommandGen, run: runFinalizeCrowdsaleCommand},
-  addPrivatePresalePayment: {gen: gen.addPrivatePresalePaymentCommandGen, run: runAddPrivatePresalePaymentCommand},
+  addPrivatePresaleTokens: {gen: gen.addPrivatePresaleTokensCommandGen, run: runAddPrivatePresaleTokensCommand},
   claimRefund: {gen: gen.claimRefundCommandGen, run: runClaimRefundCommand},
   transfer: {gen: gen.transferCommandGen, run: runTransferCommand},
   approve: {gen: gen.approveCommandGen, run: runApproveCommand},

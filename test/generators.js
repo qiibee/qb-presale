@@ -82,8 +82,8 @@ module.exports = {
     fromAccount: accountGen
   }),
 
-  addPrivatePresalePaymentCommandGen: jsc.record({
-    type: jsc.constant('addPrivatePresalePayment'),
+  addPrivatePresaleTokensCommandGen: jsc.record({
+    type: jsc.constant('addPrivatePresaleTokens'),
     beneficiaryAccount: accountGen,
     fromAccount: accountGen,
     eth: jsc.nat(0,200)
