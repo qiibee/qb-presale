@@ -2,7 +2,7 @@ pragma solidity ^0.4.11;
 
 import "zeppelin-solidity/contracts/token/PausableToken.sol";
 import "zeppelin-solidity/contracts/token/MintableToken.sol";
-import "zeppelin-solidity/contracts/token/VestedToken.sol";
+// import "zeppelin-solidity/contracts/token/VestedToken.sol";
 import "./BurnableToken.sol";
 
 /**
@@ -14,11 +14,11 @@ import "./BurnableToken.sol";
  */
 contract QiibeeToken is BurnableToken, PausableToken, MintableToken {
 
-    string public constant symbol = "QBX";
+    string public constant SYMBOL = "QBX";
 
-    string public constant name = "QiibeeCoin";
+    string public constant NAME = "qiibeeCoin";
 
-    uint8 public constant decimals = 18;
+    uint8 public constant DECIMALS = 18;
 
     function burn(uint256 _value) whenNotPaused public {
         super.burn(_value);

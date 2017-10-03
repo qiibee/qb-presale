@@ -62,21 +62,28 @@ module.exports = {
     return this.waitToBlock(parseInt(web3.eth.blockNumber) + toWait, accounts);
   },
 
-  simulateCrowdsale: async function(rate, balances, accounts, weiPerUSD) {
+  simulateCrowdsale: async function(initialRate, preferentialRate, goal, cap, accounts, balances) {
     await increaseTimeTestRPC(1);
-    var startTime = latestTime() + 5;
+    var startPreTime = latestTime() + 5;
+    var endPreTime = startPreTime + 10;
+    var startTime = endPreTime + 5;
     var endTime = startTime + 20;
     var crowdsale = await QiibeeCrowdsale.new(
-      startTime+3, startTime+15, endTime,
-      rate, rate+10, rate+20, 1,
-      accounts[0]
+      startPreTime, endPreTime, startTime, endTime,
+      initialRate, preferentialRate,
+      goal, cap, accounts[0]
     );
+    console.log(startPreTime, endPreTime, startTime, endTime,
+      initialRate, preferentialRate,
+      goal, cap, accounts[0]);
     await increaseTimeTestRPCTo(latestTime()+1);
-    await crowdsale.setWeiPerUSDinTGE(weiPerUSD);
     await increaseTimeTestRPCTo(startTime+3);
     for(let i = 0; i < 5; i++) {
       if (balances[i] > 0)
-        await crowdsale.sendTransaction({ value: web3.toWei(balances[i]/rate, 'ether'), from: accounts[i + 1]});
+        //TODO: check rate to use the correspondin rate?
+        await crowdsale.sendTransaction({ value: web3.toWei(balances[i], 'ether'), from: accounts[i + 1]});
+      // console.log(web3.toWei(balances[i]/initialRate, 'ether'));
+
     }
     await increaseTimeTestRPCTo(endTime+1);
     await crowdsale.finalize();
@@ -123,22 +130,19 @@ module.exports = {
 
   getCrowdsaleExpectedRate: function(state, from) {
     let { startPreTime, endPreTime, initialRate, preferentialRate, goal } = state.crowdsaleData,
-      { tokensSold, buyerRate, whitelist } = state;
+      { tokensSold, buyerRate, whitelist } = state; //TODO: add buyerMinimum
 
     let withinPeriod = latestTime() >= startPreTime && latestTime() <= endPreTime;
 
-    // some early buyers are offered a different rate rather than the preferential rate
-    if (buyerRate.length > 0 && buyerRate[from] != 0) { //TODO: check if that of the .length has to be in the contract
+    if (buyerRate.length > 0 && buyerRate[from] != 0) { //TODO: add && msg.value >= buyerMinimum[msg.sender]
       return buyerRate[from];
     }
 
-    // whitelisted buyers can purchase at preferential price during pre-ico event
     if (withinPeriod && whitelist[from]) {
       return preferentialRate;
     }
 
-    // what about rate < initialRate
-    if (tokensSold.gt(goal)) { //TODO: add this condition as well || (tokensSold + weiAmount.mul(initialRate)) > goal
+    if (tokensSold.gt(goal)) {
       return parseInt(initialRate * 1000 / parseInt((tokensSold * 1000) / goal));
     }
     return initialRate;

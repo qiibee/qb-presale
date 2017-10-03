@@ -1,242 +1,243 @@
-//     var QiibeeCrowdsale = artifacts.require('./QiibeeCrowdsale.sol');
-//     var QiibeeToken = artifacts.require("./QiibeeToken");
-//     var Message = artifacts.require('./Message.sol');
-//     var help = require('./helpers');
-//     const timer = require('./helpers/timer');
-//     var latestTime = require('./helpers/latestTime');
-//     var {duration} = require('./helpers/increaseTime');
-//     var BigNumber = web3.BigNumber;
+var help = require('./helpers');
+// var _ = require('lodash');
 
-//     require('chai')
-//       .use(require('chai-bignumber')(BigNumber))
-//       .should();
+var BigNumber = web3.BigNumber;
 
-//     const LOG_EVENTS = true;
+require('chai')
+  .use(require('chai-bignumber')(BigNumber))
+  .should();
 
-//     contract('QiibeeToken', function(accounts) {
+var QiibeeToken = artifacts.require('./QiibeeToken.sol');
+// var Message = artifacts.require('./Message.sol');
 
-//     let token = null
-//     let now = 0
+const LOG_EVENTS = true;
 
-//         var eventsWatcher;
-//     beforeEach(async function() {
-//         const rate = 100000000000;
-//       //   const crowdsale = await help.simulateCrowdsale(rate, [40,30,20,10,0], accounts, 1);
-//         token = await QiibeeToken.new();
-//         now = web3.eth.getBlock(web3.eth.blockNumber).timestamp;
+contract('qiibeeToken', function(accounts) {
 
-//         eventsWatcher = token.allEvents();
-//         eventsWatcher.watch(function(error, log){
-//         //  if (LOG_EVENTS)
-//        //     console.log('Event:', log.event, ':',log.args);
-//         });
-//     });
+  var token;
+  var eventsWatcher;
 
+  beforeEach(async function() {
+    const initialRate = 6000;
+    const preferentialRate = 8000;
+    const goal = 360000000;
+    const cap = 2400000000;
 
+    const crowdsale = await help.simulateCrowdsale(
+      initialRate,
+      preferentialRate,
+      new BigNumber(help.qbx2sqbx(goal)),
+      new BigNumber(help.qbx2sqbx(cap)),
+      accounts,
+      [40,30,20,10,0]
+    );
+    token = QiibeeToken.at(await crowdsale.token());
 
-//     it('has name, symbol and decimals', async function() {
-//         assert.equal('QiibeeCoin', await token.name.call());
-//         assert.equal('QBX', await token.symbol.call());
-//         assert.equal(18, await token.decimals.call());
-//     });
+    //TODO: do we need to add something else here? PrivatePresale? Whitelist?
+    eventsWatcher = token.allEvents();
 
-//     it('should mint 1000 qbx to account[1]', async function() {
-//       //  console.log(await token.mint(accounts[1], help.qbx2sqbx(1000)));
-//         await token.mint(accounts[0], 1000);
-//         assert.equal(1000, await token.balanceOf(accounts[0]));
-//     });
+    eventsWatcher.watch(function(error, log){
+      if (LOG_EVENTS)
+        console.log('Event:', log.event, ':',log.args);
+    });
+  });
 
-//     it('should get the right totalSupply', async function() {
-//       //  console.log(await token.balanceOf(accounts[1]));
-//         assert.equal(0, await token.totalSupply.call());
-//         await token.mint(accounts[0], 1000);
-//         assert.equal(1000, await token.totalSupply.call());
+  afterEach(function(done) {
+    eventsWatcher.stopWatching();
+    done();
+  });
 
-//     });
+  it('has name, symbol and decimals', async function() {
+    assert.equal('QBX', await token.SYMBOL());
+    assert.equal('qiibeeCoin', await token.NAME());
+    assert.equal(18, await token.DECIMALS());
+  });
 
-//     it('should return correct balances after transfer', async function() {
-//       //  let token = await QiibeeToken.new();
+  // _.forEach([0, 1], function(tokens) {
+  //   it('should return correct balances after transferData with ' + tokens + ' tokens and show the event on receiver contract', async function() {
+  //     let message = await Message.new();
+  //     help.abiDecoder.addABI(Message._json.abi);
 
-//        // await token.transfer(accounts[4], help.qbx2sqbx(3.55), { from: accounts[1] });
-//       //  await help.checkToken(token, accounts, 125, [36.45,30,20,13.55,0]);
-//     });
+  //     let data = message.contract.showMessage.getData(web3.toHex(123456), 666, 'Transfer Done');
 
+  //     let transaction = await token.transferData(message.contract.address, help.qbx2sqbx(tokens), data, {from: accounts[1]});
+  //     let decodedEvents = help.abiDecoder.decodeLogs(transaction.receipt.logs);
 
+  //     assert.equal(2, decodedEvents.length);
+  //     assert.equal(data, decodedEvents[1].events[3].value);
 
+  //     assert.equal(help.qbx2sqbx(tokens), await token.balanceOf(message.contract.address));
 
+  //     await help.checkToken(token, accounts, 125, [40 - tokens,30,20,10,0]);
+  //   });
+  // });
 
-//     it('should finish minting', async function() {
-//         // pause the token
-//          assert.equal(false, await token.mintingFinished.call());
-//          await token.finishMinting();
-//          assert.equal(true, await token.mintingFinished.call());
-//     });
+  // it('should return correct balances after transferDataFrom and show the event on receiver contract', async function() {
+  //   let message = await Message.new();
+  //   help.abiDecoder.addABI(Message._json.abi);
 
-//     it('token is NOT paused', async function() {
-//         // pause the token
-//          assert.equal(false, await token.paused.call());
-//     });
+  //   let data = message.contract.showMessage.getData(web3.toHex(123456), 666, 'Transfer Done');
 
-//     it('should pause the token', async function() {
+  //   await token.approve(accounts[2], help.qbx2sqbx(2), {from: accounts[1]});
 
-//     // pause the token
-//     await token.pause({from: accounts[0]});
-//     assert.equal(true, await token.paused.call());
+  //   let transaction = await token.transferDataFrom(accounts[1], message.contract.address, help.qbx2sqbx(1), data, {from: accounts[2]});
+  //   let decodedEvents = help.abiDecoder.decodeLogs(transaction.receipt.logs);
 
+  //   assert.equal(2, decodedEvents.length);
+  //   assert.equal(data, decodedEvents[1].events[3].value);
+  //   assert.equal('0x1e24000000000000000000000000000000000000000000000000000000000000', decodedEvents[0].events[0].value);
+  //   assert.equal(666, decodedEvents[0].events[1].value);
+  //   assert.equal('Transfer Done', decodedEvents[0].events[2].value);
+  //   assert.equal(help.qbx2sqbx(1), await token.balanceOf(message.contract.address));
 
-//     });
+  //   await help.checkToken(token, accounts, 125, [39,30,20,10,0]);
+  // });
 
-//      it('should throw an error when trying to transfer more than balance', async function() {
-//         try {
-//           await token.transfer(accounts[2], 50);
-//           assert(false, 'transfer should have thrown');
-//         } catch (error) {
-//           if (!help.isInvalidOpcodeEx(error)) throw error;
-//         }
-//     });
+  // it('should return correct balances after approve and show the event on receiver contract', async function() {
+  //   let message = await Message.new();
+  //   help.abiDecoder.addABI(Message._json.abi);
 
+  //   let data = message.contract.showMessage.getData(web3.toHex(123456), 666, 'Transfer Done');
 
-//     it('should transfer 1000 tokens to a account[2] leaving account[0] with 0 tokens', async function() {
-//         await token.mint(accounts[0], 1000);
-//         await token.transfer(accounts[2], 1000);
-//         assert.equal(0, await token.balanceOf(accounts[0]));
-//         assert.equal(1000, await token.balanceOf(accounts[2]));
-//     });
+  //   let transaction = await token.approveData(message.contract.address, help.qbx2sqbx(1000), data, {from: accounts[1]});
+  //   let decodedEvents = help.abiDecoder.decodeLogs(transaction.receipt.logs);
 
+  //   assert.equal(2, decodedEvents.length);
+  //   assert.equal(data, decodedEvents[1].events[3].value);
 
+  //   new BigNumber(help.qbx2sqbx(1000)).should.be.bignumber.equal(await token.allowance(accounts[1], message.contract.address));
 
+  //   await help.checkToken(token, accounts, 125, [40,30,20,10,0]);
+  // });
 
-//     it('should transfer 1000 tokens to a account[2] with 1 hour vesting and 30Min Cliff period', async function() {
-//         const cliff = 1800
-//         const vesting = 3600 // seconds
-//         /*
-//         grantVestedTokens(
-//             address _to,
-//             uint256 _value,
-//             uint64 _start,
-//             uint64 _cliff,
-//             uint64 _vesting,
-//             bool _revokable,
-//             bool _burnsOnRevoke
-//           )
+  // it('should fail on approveData when spender is the same qiibeeToken contract', async function() {
+  //   let data = token.contract.approve.getData(accounts[5], help.qbx2sqbx(666));
 
+  //   try {
+  //     await token.approveData(token.contract.address, help.qbx2sqbx(1000), data, {from: accounts[1]});
+  //     assert(false, 'approveData should have thrown because the spender should not be the qiibeeToken itself');
+  //   } catch(e) {
+  //     if (!help.isInvalidOpcodeEx(e)) throw e;
+  //   }
+  // });
 
-//            const cliff = 10000
-//     const vesting = 20000 // seconds
+  // it('should fail inside approveData and not trigger ApproveData event', async function() {
+  //   let message = await Message.new();
+  //   help.abiDecoder.addABI(Message._json.abi);
 
-//     beforeEach(async () => {
-//       await token.grantVestedTokens(receiver, tokenAmount, now, now + cliff, now + vesting, true, false, { from: granter })
+  //   let data = message.contract.fail.getData();
 
-//         */
-//         await token.mint(accounts[0], 1000);
-//         await token.grantVestedTokens(accounts[0], 500, now, now + cliff, now + vesting, true, false, { from: accounts[0]});
-//         assert.equal(1000, await token.balanceOf(accounts[0]));
-//         await token.transfer(accounts[2], 500);
-//         assert.equal(500, await token.balanceOf(accounts[0]));
+  //   let transaction = await token.approveData(
+  //     message.contract.address, help.qbx2sqbx(10), data,
+  //     {from: accounts[1]}
+  //   );
 
-//        /* assert.equal(1000, await token.balanceOf(accounts[2]));
-//         await token.transfer(accounts[3], 1000, { from: accounts[2]});
-//         assert.equal(1000, await token.balanceOf(accounts[3]));*/
-//     });
+  //   let decodedEvents = help.abiDecoder.decodeLogs(transaction.receipt.logs);
+  //   assert.equal(0, decodedEvents.length);
 
+  //   new BigNumber(help.qbx2sqbx(10)).should.be.bignumber
+  //     .equal(await token.allowance(accounts[1], message.contract.address));
 
-//    describe('getting a revokable/non-burnable token grant', async () => {
-//     const cliff = 10000
-//     const vesting = 20000 // seconds
-//     const granter = accounts[0]
-//     const receiver = accounts[1]
-//     const tokenAmount = 50
+  //   await help.checkToken(token, accounts, 125, [40,30,20,10,0]);
+  // });
 
+  // it('should fail inside transferData and not trigger TransferData event', async function() {
+  //   let message = await Message.new();
+  //   help.abiDecoder.addABI(Message._json.abi);
 
-//     beforeEach(async () => {
-//       await token.grantVestedTokens(receiver, tokenAmount, now, now + cliff, now + vesting, true, false, { from: granter })
-//     })
+  //   let data = message.contract.fail.getData();
 
-//     it('tokens are received', async () => {
-//       assert.equal(await token.balanceOf(receiver), tokenAmount);
-//     })
+  //   let transaction = await token.transferData(
+  //     message.contract.address, help.qbx2sqbx(10), data,
+  //     {from: accounts[1]}
+  //   );
 
-//     it('has 0 transferable tokens before cliff', async () => {
-//       assert.equal(await token.transferableTokens(receiver, now), 0);
-//     })
+  //   let decodedEvents = help.abiDecoder.decodeLogs(transaction.receipt.logs);
+  //   assert.equal(0, decodedEvents.length);
 
-//     it('all tokens are transferable after vesting', async () => {
-//       assert.equal(await token.transferableTokens(receiver, now + vesting), tokenAmount);
-//     })
+  //   new BigNumber(help.qbx2sqbx(10)).should.be.bignumber
+  //     .equal(await token.balanceOf(message.contract.address));
 
-//     it('throws when trying to transfer non vested tokens', async () => {
-//       try {
-//         await token.transfer(accounts[7], 1, { from: receiver })
-//         assert.fail('should have thrown before');
-//       } catch(error) {
-//         assertJump(error);
-//       }
-//     })
+  //   await help.checkToken(token, accounts, 125, [30,30,20,10,0]);
+  // });
 
-//     it('throws when trying to transfer from non vested tokens', async () => {
-//       try {
-//         await token.approve(accounts[7], 1, { from: receiver })
-//         await token.transferFrom(receiver, accounts[7], tokenAmount, { from: accounts[7] })
-//         assert.fail('should have thrown before');
-//       } catch(error) {
-//         assertJump(error);
-//       }
-//     })
+  // it('should fail inside transferDataFrom and not trigger TransferData event', async function() {
+  //   let message = await Message.new();
+  //   help.abiDecoder.addABI(Message._json.abi);
 
-//     it('can be revoked by granter', async () => {
-//       await token.revokeTokenGrant(receiver, 0, { from: granter });
-//       assert.equal(await token.balanceOf(receiver), 0);
-//       assert.equal(await token.balanceOf(granter), 100);
-//     })
+  //   let data = message.contract.fail.getData();
 
-//     it('cannot be revoked by non granter', async () => {
-//       try {
-//         await token.revokeTokenGrant(receiver, 0, { from: accounts[3] });
-//         assert.fail('should have thrown before');
-//       } catch(error) {
-//         assertJump(error);
-//       }
-//     })
+  //   await token.approve(accounts[1], help.qbx2sqbx(10), {from: accounts[2]});
 
-//     it('can be revoked by granter and non vested tokens are returned', async () => {
-//       await timer(cliff);
-//       await token.revokeTokenGrant(receiver, 0, { from: granter });
-//       assert.equal(await token.balanceOf(receiver), tokenAmount * cliff / vesting);
-//     })
+  //   let transaction = await token.transferDataFrom(
+  //     accounts[2], message.contract.address, help.qbx2sqbx(10), data,
+  //     {from: accounts[1]}
+  //   );
 
-//     it('can transfer all tokens after vesting ends', async () => {
-//       await timer(vesting);
-//       await token.transfer(accounts[7], tokenAmount, { from: receiver })
-//       assert.equal(await token.balanceOf(accounts[7]), tokenAmount);
-//     })
+  //   let decodedEvents = help.abiDecoder.decodeLogs(transaction.receipt.logs);
+  //   assert.equal(0, decodedEvents.length);
 
-//     it('can approve and transferFrom all tokens after vesting ends', async () => {
-//       await timer(vesting);
-//       await token.approve(accounts[7], tokenAmount, { from: receiver })
-//       await token.transferFrom(receiver, accounts[7], tokenAmount, { from: accounts[7] })
-//       assert.equal(await token.balanceOf(accounts[7]), tokenAmount);
-//     })
+  //   new BigNumber(help.qbx2sqbx(10)).should.be.bignumber
+  //     .equal(await token.balanceOf(message.contract.address));
 
-//     it('can handle composed vesting schedules', async () => {
-//       await timer(cliff);
-//       await token.transfer(accounts[7], 12, { from: receiver })
-//       assert.equal(await token.balanceOf(accounts[7]), 12);
+  //   await help.checkToken(token, accounts, 125, [40,20,20,10,0]);
+  // });
 
-//       let newNow = web3.eth.getBlock(web3.eth.blockNumber).timestamp
+  // it('should fail transferData when using qiibeeToken contract address as receiver', async function() {
 
-//       await token.grantVestedTokens(receiver, tokenAmount, newNow, newNow + cliff, newNow + vesting, false, false, { from: granter })
+  //   try {
+  //     await token.transferData(token.contract.address, help.qbx2sqbx(1000), web3.toHex(0), {from: accounts[1]});
+  //     assert(false, 'transferData should have thrown');
+  //   } catch (error) {
+  //     if (!help.isInvalidOpcodeEx(error)) throw error;
+  //   }
 
-//       await token.transfer(accounts[7], 13, { from: receiver })
-//       assert.equal(await token.balanceOf(accounts[7]), tokenAmount / 2);
+  //   await help.checkToken(token, accounts, 125, [40,30,20,10,0]);
+  // });
 
-//       assert.equal(await token.balanceOf(receiver), 3 * tokenAmount / 2)
-//       assert.equal(await token.transferableTokens(receiver, newNow), 0)
-//       await timer(vesting);
-//       await token.transfer(accounts[7], 3 * tokenAmount / 2, { from: receiver })
-//       assert.equal(await token.balanceOf(accounts[7]), tokenAmount * 2)
-//     })
-//   })
+  // it('should fail transferDataFrom when using qiibeeToken contract address as receiver', async function() {
 
+  //   await token.approve(accounts[1], help.qbx2sqbx(1), {from: accounts[3]});
 
+  //   try {
+  //     await token.transferDataFrom(accounts[3], token.contract.address, help.qbx2sqbx(1), web3.toHex(0), {from: accounts[1]});
+  //     assert(false, 'transferDataFrom should have thrown');
+  //   } catch (error) {
+  //     if (!help.isInvalidOpcodeEx(error)) throw error;
+  //   }
 
-// });
+  //   await help.checkToken(token, accounts, 125, [40,30,20,10,0]);
+  // });
+
+  it('can burn tokens', async function() {
+    let totalSupply = await token.totalSupply.call();
+    new BigNumber(0).should.be.bignumber.equal(await token.balanceOf(accounts[5]));
+
+    let initialBalance = web3.toWei(1);
+    await token.transfer(accounts[5], initialBalance, { from: accounts[1] });
+    initialBalance.should.be.bignumber.equal(await token.balanceOf(accounts[5]));
+
+    let burned = web3.toWei(0.3);
+
+    assert.equal(accounts[0], await token.owner());
+
+    // pause the token
+    await token.pause({from: accounts[0]});
+
+    try {
+      await token.burn(burned, {from: accounts[5]});
+      assert(false, 'burn should have thrown');
+    } catch (error) {
+      if (!help.isInvalidOpcodeEx(error)) throw error;
+    }
+    await token.unpause({from: accounts[0]});
+
+    // now burn should work
+    await token.burn(burned, {from: accounts[5]});
+
+    new BigNumber(initialBalance).minus(burned).
+      should.be.bignumber.equal(await token.balanceOf(accounts[5]));
+    totalSupply.minus(burned).should.be.bignumber.equal(await token.totalSupply.call());
+  });
+
+});
