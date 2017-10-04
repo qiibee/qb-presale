@@ -105,6 +105,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
         preferentialRate: input.crowdsale.preferentialRate,
         goal: new BigNumber(help.qbx2sqbx(input.crowdsale.goal)),
         cap: new BigNumber(help.qbx2sqbx(input.crowdsale.cap)),
+        maxCallFrequency: 600,
         foundationWallet: gen.getAccount(input.crowdsale.foundationWallet),
         TOTAL_SUPPLY: 10000000000000000000000000000,
         FOUNDATION_SUPPLY: 7600000000000000000000000000,
@@ -197,15 +198,15 @@ contract('QiibeeCrowdsale Property-based test', function() {
   };
 
   // SPAM TESTS
-  
+
   it('should block the second of two transactions within 10 Minutes', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(3)},
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
-        { type: 'waitTime','seconds':700},
+        { type: 'waitTime','seconds':duration.minutes(12)},
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
-        { type: 'waitTime','seconds':590},
+        { type: 'waitTime','seconds':duration.minutes(9)},
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
       ],
       crowdsale: {
@@ -214,9 +215,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
       }
     });
   });
-  
-  
-  
+
   // CROWDSALE TESTS
   it('does not fail on some specific examples that once failed', async function() {
 

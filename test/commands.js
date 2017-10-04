@@ -84,8 +84,8 @@ async function runBuyTokensCommand(command, state) {
     (crowdsale.cap == 0) ||
     (state.crowdsaleFinalized) ||
     hasZeroAddress ||
-    (command.eth == 0) || 
-    (state.lastCallTime[command.beneficiary] && (nextTime - state.lastCallTime[command.beneficiary]) < 600) ||
+    (command.eth == 0) ||
+    (state.lastCallTime[command.beneficiary] && (nextTime - state.lastCallTime[command.beneficiary]) < state.crowdsaleData.maxCallFrequency) ||
     capExceeded;
 
   try {

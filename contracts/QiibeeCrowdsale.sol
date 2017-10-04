@@ -42,10 +42,10 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
 
     // maximal Gas Price per transaction
     uint256 constant public maxGasPrice = 50000000000;
-    
-    // maximal call frequency / max. buys per x Blocks.
+
+    // max frequency for purchases from a single source (in seconds)
     uint256 constant public maxCallFrequency = 600;
-    
+
      /**
      * event for change wallet logging
      * @param wallet new wallet address
@@ -127,7 +127,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         assert(newTokenAmount <= cap);
 
         lastCallTime[msg.sender] = now;
-        
+
         // update state
         weiRaised = weiRaised.add(msg.value);
         tokensSold = newTokenAmount;
