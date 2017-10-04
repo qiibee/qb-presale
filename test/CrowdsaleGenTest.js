@@ -37,10 +37,11 @@ contract('QiibeeCrowdsale Property-based test', function() {
   let sumBigNumbers = (arr) => _.reduce(arr, (accum, x) => accum.plus(x), zero);
 
   let checkCrowdsaleState = async function(state, crowdsaleData, crowdsale) {
-    // assert.equal(state.crowdsalePaused, await crowdsale.token().paused()); //TODO: ask Augusto why they have a Pausable crowdsale
-    let tokensInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.tokens));
 
-    tokensInPurchases.should.be.bignumber.equal(help.sqbx2qbx(await crowdsale.tokensSold())); //TODO: check if conver everythign to QBX
+    assert.equal(state.crowdsalePaused, await crowdsale.paused());
+
+    let tokensInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.tokens));
+    tokensInPurchases.should.be.bignumber.equal(help.sqbx2qbx(await crowdsale.tokensSold()));
 
     // let presaleWei = sumBigNumbers(_.map(state.presalePurchases, (p) => p.wei));
     // presaleWei.should.be.bignumber.equal(await crowdsale.totalPresaleWei.call());
@@ -48,6 +49,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     help.debug(colors.yellow('checking purchases total wei, purchases:', JSON.stringify(state.purchases)));
     let weiInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.wei));
     weiInPurchases.should.be.bignumber.equal(await crowdsale.weiRaised());
+
     // Check presale tokens sold
     // state.totalPresaleWei.should.be.bignumber.equal(await crowdsale.totalPresaleWei.call());
     assert.equal(state.crowdsaleFinalized, await crowdsale.isFinalized());
@@ -55,7 +57,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
     if (state.crowdsaleFinalized) {
       assert.equal(state.goalReached, await crowdsale.goalReached());
 
-      //TODO: check revault state
       let vaultState = parseInt((await crowdsale.getVaultState()).toString());
       assert.equal(state.vaultState, vaultState);
 
@@ -65,7 +66,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
       state.crowdsaleSupply.
         should.be.bignumber.equal(await state.token.totalSupply());
     }
-
   };
 
   let runGeneratedCrowdsaleAndCommands = async function(input) {
@@ -195,6 +195,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     return true;
   };
 
+  // CROWDSALE TESTS
   it('does not fail on some specific examples that once failed', async function() {
 
     await runGeneratedCrowdsaleAndCommands({
@@ -208,17 +209,17 @@ contract('QiibeeCrowdsale Property-based test', function() {
       }
     });
 
-    // await runGeneratedCrowdsaleAndCommands({
-    //   commands: [
-    //     { type: 'waitTime','seconds':duration.days(2.6)},
-    //     { type:'pauseCrowdsale','pause':true,'fromAccount':8},
-    //     { type:'sendTransaction','account':0,'beneficiary':9,'eth':39}
-    //   ],
-    //   crowdsale: {
-    //     initialRate: 30, preferentialRate: 33,
-    //     foundationWallet: 8, goal: 50, cap: 60, owner: 9
-    //   }
-    // });
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'waitTime','seconds':duration.days(2.6)},
+        { type:'pauseCrowdsale','pause':true,'fromAccount':8},
+        { type:'sendTransaction','account':0,'beneficiary':9,'eth':39}
+      ],
+      crowdsale: {
+        initialRate: 30, preferentialRate: 33,
+        foundationWallet: 8, goal: 50, cap: 60, owner: 9
+      }
+    });
 
     await runGeneratedCrowdsaleAndCommands({
       commands: [
@@ -272,6 +273,41 @@ contract('QiibeeCrowdsale Property-based test', function() {
     await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
   });
 
+  it('should be able to mint tokens directly', async function() {
+    let crowdsaleAndCommands = {
+      commands: [
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'mintTokens', beneficiary: 3, account: 0, tokens: 6000 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    };
+
+    await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
+  });
+
+  //TODO
+  // it('should NOT be able to claim their funds if tokens were minted by qiibee', async function() {
+  //   let crowdsaleAndCommands = {
+  //     commands: [
+  //       { type: 'checkRate', fromAccount: 3 },
+  //       { type: 'waitTime','seconds':duration.days(3)},
+  //       { type: 'mintTokens', beneficiary: 3, account: 0, tokens: 6000 },
+  //       { type: 'finalizeCrowdsale', fromAccount: 0 },
+  //       { type: 'claimRefund', fromAccount: 3 },
+  //     ],
+  //     crowdsale: {
+  //       initialRate: 6000, preferentialRate: 8000,
+  //       foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+  //     }
+  //   };
+
+  //   await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
+  // });
+
   it('should handle the exception correctly when trying to pause the token during and after the crowdsale', async function() {
     let crowdsaleAndCommands = {
       commands: [
@@ -293,16 +329,15 @@ contract('QiibeeCrowdsale Property-based test', function() {
     await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
   });
 
-  // TODO: do we need to do a Psauble crowdsale??
-  // it('should handle the thrown exc. when trying to approve on the paused token', async function() {
-  //   await runGeneratedCrowdsaleAndCommands({
-  //     commands: [{ type:'approve','lif':0,'fromAccount':3,'spenderAccount':5}],
-  //     crowdsale: {
-  //       initialRate: 6000, preferentialRate: 8000,
-  //       foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-  //     }
-  //   });
-  // });
+  it('should handle the thrown exc. when trying to approve on the paused token', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [{ type:'approve','sqbx':0,'fromAccount':3,'spenderAccount':5}],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
 
   it('should run the fund and finalize crowdsale command fine', async function() {
     await runGeneratedCrowdsaleAndCommands({
@@ -341,6 +376,71 @@ contract('QiibeeCrowdsale Property-based test', function() {
   //   return jsc.assert(property, {tests: GEN_TESTS_QTY});
   // });
 
+  //REFUNDABLE TESTS
+  it('should have vault state set to Active when crowdsale is finished and did not reach the goal', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 50000 },
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'finalizeCrowdsale', fromAccount: 0 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('should refund investor if crowdsale did not reach the goal and if he asks to', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 50000, gasPrice: 0 },
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'finalizeCrowdsale', fromAccount: 0 },
+        { type: 'claimRefund', fromAccount: 4, investedEth: 50000 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  //PRIVATE PRESALE TESTS
+  it('should be able to add tokens of the private presale before pre TGE starts', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'addPrivatePresaleTokens', rate: 10000, beneficiary: 3, account: 0, tokens: 1000 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('should NOT be able to add tokens of the private presale after pre TGE starts', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'addPrivatePresaleTokens', rate: 10000, beneficiary: 3, account: 0, tokens: 1000 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  //WHITELIST TESTS
   it('should allow whitelisted investors to buy tokens during pre crowdsale', async function () {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
@@ -383,68 +483,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
         { type: 'waitTime','seconds':duration.days(3)},
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 60000 },
         { type: 'checkRate', fromAccount: 3 },
-      ],
-      crowdsale: {
-        initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-      }
-    });
-  });
-
-  it('should have vault state set to Active when crowdsale is finished and did not reach the goal', async function () {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 50000 },
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'finalizeCrowdsale', fromAccount: 0 },
-      ],
-      crowdsale: {
-        initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-      }
-    });
-  });
-
-  it('should refund investor if crowdsale did not reach the goal and if he asks to', async function () {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 50000 },
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'finalizeCrowdsale', fromAccount: 0 },
-        { type: 'claimRefund', fromAccount: 4 },
-      ],
-      crowdsale: {
-        initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-      }
-    });
-  });
-
-  it('should be able to add tokens of the private presale before pre TGE starts', async function () {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'addPrivatePresaleTokens', rate: 10000, beneficiary: 3, account: 0, tokens: 1000 },
-      ],
-      crowdsale: {
-        initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-      }
-    });
-  });
-
-  it('should NOT be able to add tokens of the private presale after pre TGE starts', async function () {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addPrivatePresaleTokens', rate: 10000, beneficiary: 3, account: 0, tokens: 1000 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,

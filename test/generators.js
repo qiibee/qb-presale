@@ -45,8 +45,19 @@ module.exports = {
     type: jsc.constant('checkRate')
   }),
 
+  checkVaultCommandGen: jsc.record({
+    type: jsc.constant('checkVault')
+  }),
+
   buyTokensCommandGen: jsc.record({
     type: jsc.constant('buyTokens'),
+    account: accountGen,
+    beneficiary: accountGen,
+    eth: jsc.nat
+  }),
+
+  mintTokensCommandGen: jsc.record({
+    type: jsc.constant('mintTokens'),
     account: accountGen,
     beneficiary: accountGen,
     eth: jsc.nat

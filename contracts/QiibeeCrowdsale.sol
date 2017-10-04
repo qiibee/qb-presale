@@ -23,7 +23,7 @@ import "./QiibeeToken.sol";
    by the originating addresses.
  */
 
-contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale {
+contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale, Pausable {
 
     using SafeMath for uint256;
 
@@ -92,7 +92,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         bool withinPeriod = now >= startPreTime && now <= endPreTime;
 
         // whitelisted buyers can purchase at preferential price during pre-ico event
-        if (isWhitelisted(msg.sender) && withinPeriod) {
+        if (withinPeriod && isWhitelisted(msg.sender)) {
             // some early buyers are offered a different rate rather than the preferential rate
             if (buyerRate[msg.sender] != 0) {
                 return buyerRate[msg.sender];
@@ -103,6 +103,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
         if (tokensSold >= goal) {
             return initialRate.mul(1000).div(tokensSold.mul(1000).div(goal));
         }
+
         return initialRate;
     }
 
@@ -134,10 +135,11 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
     */
     function mintTokens(address beneficiary, uint256 tokens) onlyOwner returns (bool) { //does it need payable?
         require(beneficiary != address(0));
-        require(validPurchase());
+        require(now >= startTime && now <= endTime);
+
 
         uint256 rate = getRate();
-        uint256 weiAmount = tokens.mul(rate);
+        uint256 weiAmount = tokens.div(rate);
         uint256 newTokenAmount = tokensSold.add(tokens);
         assert(newTokenAmount <= cap);
 
@@ -149,7 +151,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale 
 
         TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
 
-        toVault(weiAmount, beneficiary); //TODO: check this call
+        // toVault(weiAmount, beneficiary); //TODO: check this call
     }
 
     /**

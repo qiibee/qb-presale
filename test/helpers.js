@@ -74,9 +74,7 @@ module.exports = {
       initialRate, preferentialRate,
       goal, cap, accounts[0]
     );
-    console.log(startPreTime, endPreTime, startTime, endTime,
-      initialRate, preferentialRate,
-      goal, cap, accounts[0]);
+
     await increaseTimeTestRPCTo(latestTime()+1);
     await increaseTimeTestRPCTo(startTime+3);
     for(let i = 0; i < 5; i++) {
@@ -135,7 +133,7 @@ module.exports = {
 
     let withinPeriod = latestTime() >= startPreTime && latestTime() <= endPreTime;
 
-    if (_.includes(whitelist, from) && withinPeriod) {
+    if (withinPeriod && _.includes(whitelist, from)) {
 
       if (buyerRate[from]) {
         return buyerRate[from];
