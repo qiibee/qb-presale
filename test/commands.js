@@ -49,7 +49,7 @@ async function runCheckRateCommand(command, state) {
   assert.equal(expectedRate, rate,
     'expected rate is different! Expected: ' + expectedRate + ', actual: ' + rate + '. blocks: ' + web3.eth.blockTimestamp +
     ', start/initialRate/preferentialRate: ' + state.crowdsaleData.startTime + '/' + state.crowdsaleData.initialRate + '/' + state.crowdsaleData.preferentialRate);
-
+  help.debug(colors.yellow('Expected rate:', expectedRate, 'rate:', rate));
   return state;
 }
 
@@ -64,7 +64,7 @@ async function runBuyTokensCommand(command, state) {
     nextTime = latestTime(),
     account = gen.getAccount(command.account),
     beneficiaryAccount = gen.getAccount(command.beneficiary),
-    rate = help.getCrowdsaleExpectedRate(state, account),
+    rate = help.getCrowdsaleExpectedRate(state, account, weiCost),
     tokens = new BigNumber(command.eth).mul(rate),
     hasZeroAddress = _.some([account, beneficiaryAccount], isZeroAddress);
 
@@ -72,7 +72,7 @@ async function runBuyTokensCommand(command, state) {
 
   let capExceeded = state.tokensSold.plus(help.qbx2sqbx(tokens)).gt(crowdsale.cap);
 
-  let shouldThrow = (inPreTGE && !state.whitelist[account]) ||
+  let shouldThrow = (inPreTGE && !_.includes(state.whitelist, account)) ||
     (nextTime < startPreTime) ||
     (nextTime > endPreTime && nextTime < startTime) ||
     (nextTime > endTime) ||
@@ -108,9 +108,9 @@ async function runSendTransactionCommand(command, state) {
     { startTime, endTime } = crowdsale,
     weiCost = parseInt(web3.toWei(command.eth, 'ether')),
     nextTimestamp = latestTime(),
-    rate = help.getCrowdsaleExpectedRate(state),
-    tokens = new BigNumber(command.eth).mul(rate),
-    account = gen.getAccount(command.account);
+    account = gen.getAccount(command.account)
+    rate = help.getCrowdsaleExpectedRate(state, account, weiCost),
+    tokens = new BigNumber(command.eth).mul(rate);
 
   let inTGE = nextTimestamp >= startTime && nextTimestamp <= endTime,
     hasZeroAddress = isZeroAddress(account);
@@ -164,7 +164,7 @@ async function runAddToWhitelistCommand(command, state) {
     await state.crowdsaleContract.addToWhitelist(whitelistedAccount, {from: account});
     assert.equal(false, shouldThrow, 'add to whitelist should have thrown but it did not');
 
-    state.whitelist[whitelistedAccount] = true;
+    state.whitelist.push(whitelistedAccount);
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
@@ -497,8 +497,9 @@ async function runFundCrowdsaleBelowSoftCap(command, state) {
     //   state = await runPauseCrowdsaleCommand({pause: false, fromAccount: state.owner}, state);
     // }
 
-    let goal = await state.crowdsaleContract.goal.call(),
-      tokensSold = state.tokensSold;
+    let goal = await state.crowdsaleData.goal,
+      tokensSold = state.tokensSold,
+      from = command.account;
 
     if (goal > tokensSold) {
       // wait for crowdsale startTime
@@ -508,7 +509,7 @@ async function runFundCrowdsaleBelowSoftCap(command, state) {
 
       // buy enough tokens to exactly reach the minCap (which is less than softCap)
       let tokens = goal.minus(tokensSold),
-        ethAmount = help.sqbx2qbx(tokens).div(help.getCrowdsaleExpectedRate(state)),
+        ethAmount = help.sqbx2qbx(tokens).div(help.getCrowdsaleExpectedRate(state, from)),
         // ethAmount = help.sqbx2qbx(tokens).div(state.crowdsaleData.getRate()), //TODO: CHECK IF RATE HAS TO BE CALLED TO THE HELPER OR TO THE CONTRACT
         buyTokensCommand = {account: command.account, eth: ethAmount, beneficiary: command.account};
 

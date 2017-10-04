@@ -454,13 +454,14 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  it('should NOT add special rate to whitelisted investor if pre TGE has already started', async function () {
+  it('should NOT add differential rate to whitelisted investor if pre TGE has already started', async function () {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
         { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0, minimum: 2000 },
         { type: 'checkRate', fromAccount: 4 },
+        { type: 'buyTokens', beneficiary: 4, account: 4, eth: 5000 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
@@ -469,13 +470,14 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  it('should add special rate and minimum investment to whitelisted investor', async function () {
+  it('whitelisted investor should be able to buy at differential rate', async function () {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         // { type: 'waitTime','seconds':duration.days(5)},
         { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
         { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0, minimum: 2000 },
-        { type: 'checkRate', fromAccount: 4 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'buyTokens', beneficiary: 4, account: 4, eth: 5000 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
@@ -483,4 +485,20 @@ contract('QiibeeCrowdsale Property-based test', function() {
       }
     });
   });
+
+  it('whitelisted investor should NOT be able to buy at differential rate but preferential', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0, minimum: 2000 },
+        { type: 'buyTokens', beneficiary: 4, account: 4, eth: 5000 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
 });

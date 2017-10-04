@@ -1,3 +1,4 @@
+var _ = require('lodash');
 var BigNumber = web3.BigNumber;
 
 var QiibeeToken = artifacts.require('./QiibeeToken.sol');
@@ -128,18 +129,19 @@ module.exports = {
     }
   },
 
-  getCrowdsaleExpectedRate: function(state, from) {
+  getCrowdsaleExpectedRate: function(state, from, amount) {
     let { startPreTime, endPreTime, initialRate, preferentialRate, goal } = state.crowdsaleData,
-      { tokensSold, buyerRate, whitelist } = state; //TODO: add buyerMinimum
+      { tokensSold, buyerRate, buyerMinimum, whitelist } = state; //TODO: add buyerMinimum
 
     let withinPeriod = latestTime() >= startPreTime && latestTime() <= endPreTime;
 
-    if (buyerRate.length > 0 && buyerRate[from] != 0) { //TODO: add && msg.value >= buyerMinimum[msg.sender]
-      return buyerRate[from];
-    }
+    if (_.includes(whitelist, from) && withinPeriod) {
 
-    if (withinPeriod && whitelist[from]) {
-      return preferentialRate;
+      if (buyerRate[from] && amount >= buyerMinimum[from]) {
+        return buyerRate[from];
+      } else {
+        return preferentialRate;
+      }
     }
 
     if (tokensSold.gt(goal)) {
