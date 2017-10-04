@@ -162,6 +162,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
         returnedWeiForBurnedTokens: new BigNumber(0),
         vault: {},
         vaultState: 0,
+        lastCallTime: [],
         buyerRate: [],
         whitelist: [],
       };
@@ -195,6 +196,27 @@ contract('QiibeeCrowdsale Property-based test', function() {
     return true;
   };
 
+  // SPAM TESTS
+  
+  it('should block the second of two transactions within 10 Minutes', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+        { type: 'waitTime','seconds':700},
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+        { type: 'waitTime','seconds':590},
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+  
+  
+  
   // CROWDSALE TESTS
   it('does not fail on some specific examples that once failed', async function() {
 

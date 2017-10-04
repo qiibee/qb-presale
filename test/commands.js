@@ -84,7 +84,9 @@ async function runBuyTokensCommand(command, state) {
     (crowdsale.cap == 0) ||
     (state.crowdsaleFinalized) ||
     hasZeroAddress ||
-    (command.eth == 0) || capExceeded;
+    (command.eth == 0) || 
+    (state.lastCallTime[command.beneficiary] && (nextTime - state.lastCallTime[command.beneficiary]) < 600) ||
+    capExceeded;
 
   try {
     help.debug(colors.yellow('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.endTime, 'blockTimestamp:', nextTime));
@@ -93,6 +95,7 @@ async function runBuyTokensCommand(command, state) {
     state.purchases = _.concat(state.purchases,
       {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
     );
+    state.lastCallTime[command.beneficiary] = nextTime;
     state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(help.qbx2sqbx(tokens));
     state.weiRaised = state.weiRaised.plus(weiCost);
     state.tokensSold = state.tokensSold.plus(help.qbx2sqbx(tokens));
