@@ -129,7 +129,7 @@ module.exports = {
     }
   },
 
-  getCrowdsaleExpectedRate: function(state, from, amount) {
+  getCrowdsaleExpectedRate: function(state, from) {
     let { startPreTime, endPreTime, initialRate, preferentialRate, goal } = state.crowdsaleData,
       { tokensSold, buyerRate, whitelist } = state;
 

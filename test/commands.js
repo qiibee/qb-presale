@@ -108,7 +108,7 @@ async function runSendTransactionCommand(command, state) {
     { startTime, endTime } = crowdsale,
     weiCost = parseInt(web3.toWei(command.eth, 'ether')),
     nextTimestamp = latestTime(),
-    account = gen.getAccount(command.account)
+    account = gen.getAccount(command.account),
     rate = help.getCrowdsaleExpectedRate(state, account, weiCost),
     tokens = new BigNumber(command.eth).mul(rate);
 
@@ -129,13 +129,11 @@ async function runSendTransactionCommand(command, state) {
     await state.crowdsaleContract.sendTransaction({value: weiCost, from: account});
     assert.equal(false, shouldThrow, 'sendTransaction should have thrown but it did not');
     if (inTGE) {
-
       state.purchases = _.concat(state.purchases,
         {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
       );
       state.weiRaised = state.weiRaised.plus(weiCost);
       state.tokensSold = state.tokensSold.plus(tokens);
-
     } else {
       throw(new Error('sendTransaction not in TGE should have thrown'));
     }
