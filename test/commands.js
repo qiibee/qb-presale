@@ -283,9 +283,9 @@ async function runPauseTokenCommand(command, state) {
   help.debug(colors.yellow('pausing token, previous state:', state.tokenPaused, 'new state:', command.pause));
   try {
     if (command.pause) {
-      await state.token.pause({from: account});
+      await state.crowdsaleContract.pauseToken({from: account});
     } else {
-      await state.token.unpause({from: account});
+      await state.crowdsaleContract.unpauseToken({from: account});
     }
     assert.equal(false, shouldThrow);
     state.tokenPaused = command.pause;
