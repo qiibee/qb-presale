@@ -131,13 +131,13 @@ module.exports = {
 
   getCrowdsaleExpectedRate: function(state, from, amount) {
     let { startPreTime, endPreTime, initialRate, preferentialRate, goal } = state.crowdsaleData,
-      { tokensSold, buyerRate, buyerMinimum, whitelist } = state; //TODO: add buyerMinimum
+      { tokensSold, buyerRate, whitelist } = state;
 
     let withinPeriod = latestTime() >= startPreTime && latestTime() <= endPreTime;
 
     if (_.includes(whitelist, from) && withinPeriod) {
 
-      if (buyerRate[from] && amount >= buyerMinimum[from]) {
+      if (buyerRate[from]) {
         return buyerRate[from];
       } else {
         return preferentialRate;

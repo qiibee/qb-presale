@@ -177,22 +177,20 @@ async function runSetBuyerRateCommand(command, state) {
     account = gen.getAccount(command.fromAccount),
     nextTimestamp = latestTime(),
     whitelistedAccount = gen.getAccount(command.whitelistedAccount),
-    rate = command.rate,
-    minimum = command.minimum;
+    rate = command.rate;
 
   let hasZeroAddress = _.some([account, whitelistedAccount], isZeroAddress);
 
   let shouldThrow = hasZeroAddress ||
     rate == 0 ||
-    minimum == 0 ||
     command.fromAccount != state.owner ||
-    nextTimestamp > startPreTime;
+    nextTimestamp > startPreTime ||
+    !_.includes(state.whitelist, account);
 
   try {
-    await state.crowdsaleContract.setBuyerRate(whitelistedAccount, rate, minimum, {from: account});
+    await state.crowdsaleContract.setBuyerRate(whitelistedAccount, rate, {from: account});
     assert.equal(false, shouldThrow, 'add to whitelist should have thrown but it did not');
     state.buyerRate[whitelistedAccount] = rate;
-    state.buyerMinimum[whitelistedAccount] = minimum;
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }

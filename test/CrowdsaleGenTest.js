@@ -163,7 +163,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
         vault: {},
         vaultState: 0,
         buyerRate: [],
-        buyerMinimum: [],
         whitelist: [],
       };
       for (let commandParams of input.commands) {
@@ -459,9 +458,21 @@ contract('QiibeeCrowdsale Property-based test', function() {
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
-        { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0, minimum: 2000 },
+        { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0 },
         { type: 'checkRate', fromAccount: 4 },
-        { type: 'buyTokens', beneficiary: 4, account: 4, eth: 5000 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('should NOT add differential rate to a non-whitelisted investor', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0 },
+        { type: 'checkRate', fromAccount: 4 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
@@ -473,9 +484,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
   it('whitelisted investor should be able to buy at differential rate', async function () {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        // { type: 'waitTime','seconds':duration.days(5)},
         { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
-        { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0, minimum: 2000 },
+        { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0 },
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'buyTokens', beneficiary: 4, account: 4, eth: 5000 },
       ],
@@ -491,7 +501,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
       commands: [
         { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
         { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0, minimum: 2000 },
+        { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0 },
         { type: 'buyTokens', beneficiary: 4, account: 4, eth: 5000 },
       ],
       crowdsale: {
