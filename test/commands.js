@@ -183,7 +183,7 @@ async function runSetBuyerRateCommand(command, state) {
     rate == 0 ||
     command.fromAccount != state.owner ||
     nextTimestamp > startPreTime ||
-    !_.includes(state.whitelist, account);
+    !_.includes(state.whitelist, whitelistedAccount);
 
   try {
     await state.crowdsaleContract.setBuyerRate(whitelistedAccount, rate, {from: account});
