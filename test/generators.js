@@ -45,6 +45,10 @@ module.exports = {
     type: jsc.constant('checkRate')
   }),
 
+  setWalletCommandGen: jsc.record({
+    type: jsc.constant('setWallet')
+  }),
+
   checkVaultCommandGen: jsc.record({
     type: jsc.constant('checkVault')
   }),

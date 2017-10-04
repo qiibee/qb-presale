@@ -38,6 +38,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
 
   let checkCrowdsaleState = async function(state, crowdsaleData, crowdsale) {
 
+    assert.equal(state.wallet, await crowdsale.wallet());
     assert.equal(state.crowdsalePaused, await crowdsale.paused());
 
     let tokensInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.tokens));
@@ -166,6 +167,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
         lastCallTime: [],
         buyerRate: [],
         whitelist: [],
+        wallet: crowdsaleData.foundationWallet
       };
       for (let commandParams of input.commands) {
         let command = commands.findCommand(commandParams.type);
@@ -198,7 +200,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
   };
 
   // SPAM TESTS
-
   it('should block the second of two transactions within 10 Minutes', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
@@ -562,6 +563,30 @@ contract('QiibeeCrowdsale Property-based test', function() {
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0 },
         { type: 'buyTokens', beneficiary: 4, account: 4, eth: 5000 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('owner should be able to change wallet', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'setWallet', newAccount: 4, fromAccount: 0 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('non-owner should not be able to change wallet', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'setWallet', newAccount: 4, fromAccount: 1 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,

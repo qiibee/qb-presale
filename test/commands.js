@@ -58,6 +58,25 @@ async function runCheckRateCommand(command, state) {
   return state;
 }
 
+async function runSetWalletCommand(command, state) {
+  let from = gen.getAccount(command.fromAccount),
+    newAccount = gen.getAccount(command.newAccount),
+    hasZeroAddress = _.some([from, newAccount], isZeroAddress);
+
+  let shouldThrow = hasZeroAddress ||
+    command.fromAccount != state.owner;
+
+  try {
+    help.debug(colors.yellow('setWallet fromAccount:', from, 'newAccount:', newAccount));
+    await state.crowdsaleContract.setWallet(newAccount, {from: from});
+    assert.equal(false, shouldThrow, 'setWallet should have thrown but it didn\'t');
+    state.wallet = newAccount;
+  } catch(e) {
+    assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
+  }
+  return state;
+}
+
 async function runBuyTokensCommand(command, state) {
   let crowdsale = state.crowdsaleData,
     { startPreTime, endPreTime, startTime, endTime} = crowdsale,
@@ -596,6 +615,7 @@ async function runFundCrowdsaleBelowSoftCap(command, state) {
 const commands = {
   waitTime: {gen: gen.waitTimeCommandGen, run: runWaitTimeCommand},
   checkRate: {gen: gen.checkRateCommandGen, run: runCheckRateCommand},
+  setWallet: {gen: gen.setWalletCommandGen, run: runSetWalletCommand},
   sendTransaction: {gen: gen.sendTransactionCommandGen, run: runSendTransactionCommand},
   buyTokens: {gen: gen.buyTokensCommandGen, run: runBuyTokensCommand},
   mintTokens: {gen: gen.mintTokensCommandGen, run: runMintTokensCommand},
