@@ -491,7 +491,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  it('should NOT add differential rate to whitelisted investor if pre TGE has already started', async function () {
+  it('should NOT add special rate to whitelisted investor if pre TGE has already started', async function () {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
@@ -506,7 +506,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  it('should NOT add differential rate to a non-whitelisted investor', async function () {
+  it('should NOT add special rate to a non-whitelisted investor', async function () {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0 },
@@ -519,7 +519,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  it('whitelisted investor should be able to buy at differential rate', async function () {
+  it('whitelisted investor should be able to buy at special rate', async function () {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
@@ -534,7 +534,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  it('whitelisted investor should NOT be able to buy at differential rate but preferential', async function () {
+  it('whitelisted investor should NOT be able to buy at special rate but preferential', async function () {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },

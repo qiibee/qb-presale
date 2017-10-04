@@ -42,10 +42,11 @@ contract WhitelistedPreCrowdsale is Crowdsale, Ownable {
         whitelist[buyer] = true;
     }
 
-    function removeFromWhitelist(address buyer) public onlyOwner {
-        require(buyer != address(0));
-        whitelist[buyer] = false;
-    }
+    //TODO: do we need this function? If we do, add tests for it
+    // function removeFromWhitelist(address buyer) public onlyOwner {
+    //     require(buyer != address(0));
+    //     whitelist[buyer] = false;
+    // }
 
     function isWhitelisted(address buyer) public constant returns (bool) {
         return whitelist[buyer];
