@@ -125,57 +125,6 @@ async function runBuyTokensCommand(command, state) {
   return state;
 }
 
-async function runMintTokensCommand(command, state) {
-  let crowdsale = state.crowdsaleData,
-    { startPreTime, endPreTime, startTime, endTime} = crowdsale,
-    tokens = new BigNumber(command.tokens),
-    nextTime = latestTime(),
-    account = gen.getAccount(command.account),
-    beneficiaryAccount = gen.getAccount(command.beneficiary),
-    rate = help.getCrowdsaleExpectedRate(state, account),
-    weiCost = new BigNumber(help.qbx2sqbx(tokens)).div(rate),
-    hasZeroAddress = _.some([account, beneficiaryAccount], isZeroAddress);
-
-  let inPreTGE = nextTime >= startPreTime && nextTime <= endPreTime;
-
-  let capExceeded = state.tokensSold.plus(tokens).gt(crowdsale.cap);
-
-  let shouldThrow = (inPreTGE && !_.includes(state.whitelist, account)) ||
-    nextTime < startPreTime ||
-    nextTime > endPreTime & nextTime < startTime ||
-    nextTime > endTime ||
-    state.crowdsalePaused ||
-    state.crowdsaleFinalized ||
-    rate == 0 ||
-    crowdsale.goal == 0 ||
-    crowdsale.cap == 0 ||
-    hasZeroAddress ||
-    tokens == 0 ||
-    weiCost == 0 ||
-    capExceeded ||
-    command.account != state.owner;
-
-  try {
-    help.debug(colors.yellow('buyTokens rate:', rate, 'tokens:', command.tokens, 'endBlocks:', crowdsale.endTime, 'blockTimestamp:', nextTime));
-
-    await state.crowdsaleContract.mintTokens(beneficiaryAccount, help.qbx2sqbx(tokens), {from: account});
-
-    assert.equal(false, shouldThrow, 'mintTokens should have thrown but it didn\'t');
-
-    state.purchases = _.concat(state.purchases,
-      {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
-    );
-
-    state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(help.qbx2sqbx(tokens));
-    state.weiRaised = state.weiRaised.plus(weiCost);
-    state.tokensSold = state.tokensSold.plus(help.qbx2sqbx(tokens));
-    state.crowdsaleSupply = state.crowdsaleSupply.plus(help.qbx2sqbx(tokens));
-  } catch(e) {
-    assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
-  }
-  return state;
-}
-
 async function runSendTransactionCommand(command, state) {
 
   let crowdsale = state.crowdsaleData,
@@ -580,7 +529,6 @@ const commands = {
   setWallet: {gen: gen.setWalletCommandGen, run: runSetWalletCommand},
   sendTransaction: {gen: gen.sendTransactionCommandGen, run: runSendTransactionCommand},
   buyTokens: {gen: gen.buyTokensCommandGen, run: runBuyTokensCommand},
-  mintTokens: {gen: gen.mintTokensCommandGen, run: runMintTokensCommand},
   burnTokens: {gen: gen.burnTokensCommandGen, run: runBurnTokensCommand},
   pauseCrowdsale: {gen: gen.pauseCrowdsaleCommandGen, run: runPauseCrowdsaleCommand},
   pauseToken: {gen: gen.pauseTokenCommandGen, run: runPauseTokenCommand},

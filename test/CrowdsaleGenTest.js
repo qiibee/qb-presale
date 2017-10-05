@@ -295,41 +295,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
     await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
   });
 
-  it('should be able to mint tokens directly', async function() {
-    let crowdsaleAndCommands = {
-      commands: [
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'mintTokens', beneficiary: 3, account: 0, tokens: 6000 },
-      ],
-      crowdsale: {
-        initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-      }
-    };
-
-    await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
-  });
-
-  //TODO
-  // it('should NOT be able to claim their funds if tokens were minted by qiibee', async function() {
-  //   let crowdsaleAndCommands = {
-  //     commands: [
-  //       { type: 'checkRate', fromAccount: 3 },
-  //       { type: 'waitTime','seconds':duration.days(3)},
-  //       { type: 'mintTokens', beneficiary: 3, account: 0, tokens: 6000 },
-  //       { type: 'finalizeCrowdsale', fromAccount: 0 },
-  //       { type: 'claimRefund', fromAccount: 3 },
-  //     ],
-  //     crowdsale: {
-  //       initialRate: 6000, preferentialRate: 8000,
-  //       foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-  //     }
-  //   };
-
-  //   await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
-  // });
-
   it('should handle the exception correctly when trying to pause the token during and after the crowdsale', async function() {
     let crowdsaleAndCommands = {
       commands: [

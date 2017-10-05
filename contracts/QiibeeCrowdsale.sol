@@ -139,32 +139,6 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         forwardFunds();
     }
 
-    /**
-        @dev Directly mint tokens (used for non ETH investments).Can only be called by the owner.
-
-        @param beneficiary Address to which qbx will be sent
-    */
-    function mintTokens(address beneficiary, uint256 tokens) onlyOwner returns (bool) { //does it need payable?
-        require(beneficiary != address(0));
-        require(now >= startTime && now <= endTime);
-
-
-        uint256 rate = getRate();
-        uint256 weiAmount = tokens.div(rate);
-        uint256 newTokenAmount = tokensSold.add(tokens);
-        assert(newTokenAmount <= cap);
-
-        //update state
-        weiRaised = weiRaised.add(weiAmount);
-        tokensSold = newTokenAmount;
-
-        token.mint(beneficiary, tokens);
-
-        TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
-
-        // toVault(weiAmount, beneficiary); //TODO: check this call
-    }
-
     function setWallet(address _wallet) onlyOwner public {
         require(_wallet != 0x0);
         wallet = _wallet;
