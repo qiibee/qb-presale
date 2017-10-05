@@ -21,8 +21,8 @@ npm install
 
 ## Main Contracts
 
-- [QiibeeToken](blob/master/contracts/QiibeeToken.sol)
-- [QiibeeCrowdsale](blob/master/contracts/QiibeeCrowdsale.sol)
+- [QiibeeToken](contracts/QiibeeToken.sol)
+- [QiibeeCrowdsale](contracts/QiibeeCrowdsale.sol)
 
 ## Test
 

@@ -11,9 +11,7 @@ import "./QiibeeToken.sol";
    Implementation of the QBX Token Generation Event (TGE): A 4-week, fixed token supply with a
    fixed rate until the goal (soft cap) is reached and then a dynamic rate linked to the amount of
    tokens sold is applied. TGE has a cap on the amount of token (hard cap).
-
-   Tokens bought in the private presale will be added before the pre-TGE starts.
-
+   
    There is pre-TGE for whitelisted investors with global a preferential rate. They can also
    have a special rate (different for each whiteslisted investor) that will apply only if they buy
    a determined amount of ETH (if not, they just get the global preferential rate).
@@ -157,9 +155,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
 
     function finalization() internal {
         uint256 crowdsaleSupply = token.totalSupply();
-        uint256 restSupply = CROWDSALE_SUPPLY.sub(crowdsaleSupply);
-        //TODO: do the restSupply go to the foundation? If they go, just simplify the calculation with TOTAL_SUPPLY.sub(crowdsaleSupply).
-        uint256 foundationSupply = FOUNDATION_SUPPLY.add(restSupply);
+        uint256 foundationSupply = TOTAL_SUPPLY.sub(crowdsaleSupply);
         token.mint(wallet, foundationSupply);
 
         super.finalization();
@@ -177,7 +173,8 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         unpauseToken();
 
         // transfer the ownership of the token to the foundation
-        token.transferOwnership(owner);
+        // token.transferOwnership(owner);
+        token.transferOwnership(wallet); //TODO: check this
     }
 
     // overrides Crowdsale#hasEnded to add cap logic

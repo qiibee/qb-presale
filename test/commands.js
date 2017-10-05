@@ -286,39 +286,22 @@ async function runFinalizeCrowdsaleCommand(command, state) {
     help.debug(colors.yellow('finishing crowdsale on block', nextTimestamp, ', from address:', gen.getAccount(command.fromAccount), ', funded:', goalReached));
 
     await state.crowdsaleContract.finalize({from: account});
-    // let fundsRaised = state.weiRaised.div(await state.crowdsaleContract.getRate());
 
     if (goalReached) {
-
-      let totalSupplyBeforeFinalize = state.crowdsaleSupply;
-
-      //TODO: check this
+      //TODO: CHECK CHANGE OF OWNERSHIP
       console.log('foundation wallet', state.crowdsaleData.foundationWallet);
       console.log('owner', await state.crowdsaleContract.owner());
-      console.log('totalSupplyBeforeFinalize', totalSupplyBeforeFinalize);
-
-      //TODO: CHECK CHANGE OF OWNERSHIP
+      console.log('owner', await state.token.owner());
       // assert.equal(state.crowdsaleData.foundationWallet, await state.crowdsaleContract.owner());
-      // assert.equal(state.crowdsaleData.foundationWallet, await vestedPaymentFoundation.owner());
+      // assert.equal(state.crowdsaleData.foundationWallet, await state.token.owner());
 
-      //TODO: CHECK TOKENS IN FOUNDATION WALLET ARE THE CORRESPONDING ONES
-      // totalSupplyBeforeFinalize.mul(0.128).floor().should.be.bignumber.equal(
-      //   await state.token.balanceOf(vestedPaymentFounders.address)
-      // );
+      let foundationWallet = await state.crowdsaleContract.wallet(),
+        totalSupply = new BigNumber(state.crowdsaleData.TOTAL_SUPPLY);
 
-      // totalSupplyBeforeFinalize.mul(0.05).floor().should.be.bignumber.equal(
-      //   await state.token.balanceOf(vestedPaymentFoundation.address)
-      // );
+      totalSupply.sub(state.crowdsaleSupply).should.be.bignumber.equal(
+        await state.token.balanceOf(foundationWallet)
+      );
 
-      // add founders, team and foundation long-term reserve to the totalSupply
-      // in separate steps to round after each of them, exactly as in the contract
-      // let foundersVestingTokens = state.totalSupply.mul(0.128).floor(),
-      //   longTermReserve = state.totalSupply.mul(0.05).floor(),
-      //   teamTokens = state.totalSupply.mul(0.072).floor();
-
-      //TODO: SET NEW TOTAL SUPPLY
-      // state.totalSupply = state.totalSupply.plus(foundersVestingTokens).
-      //   plus(longTermReserve).plus(teamTokens);
       state.vaultState = 2;
     } else {
       state.vaultState = 1;
