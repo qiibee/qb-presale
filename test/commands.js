@@ -387,44 +387,6 @@ async function runFinalizeCrowdsaleCommand(command, state) {
   return state;
 }
 
-async function runAddPrivatePresaleTokensCommand(command, state) {
-
-  let { startPreTime } = state.crowdsaleData,
-    nextTimestamp = latestTime(),
-    tokens = command.tokens,
-    rate = command.rate,
-    account = gen.getAccount(command.account),
-    beneficiary = gen.getAccount(command.beneficiary),
-    hasZeroAddress = _.some([account, beneficiary], isZeroAddress);
-
-  let shouldThrow = (nextTimestamp >= startPreTime) ||
-    // (state.crowdsalePaused) ||
-    (account != gen.getAccount(state.owner)) ||
-    (tokens == 0) ||
-    (rate == 0) ||
-    (state.crowdsaleFinalized) ||
-    hasZeroAddress;
-
-  try {
-    help.debug(colors.yellow('Adding presale private tokens for account:', command.beneficiary, 'tokens:', tokens, 'fromAccount:', command.account, 'blockTimestamp:', nextTimestamp));
-
-    await state.crowdsaleContract.addPrivatePresaleTokens(beneficiary, help.qbx2sqbx(tokens), rate, {from: account});
-
-    assert.equal(false, shouldThrow, 'buyTokens should have thrown but it did not');
-
-    let weiCost = new BigNumber(help.qbx2sqbx(tokens)).mul(rate);
-    state.purchases = _.concat(state.purchases,
-      {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
-    );
-    state.weiRaised = state.weiRaised.plus(weiCost);
-    state.crowdsaleSupply = state.crowdsaleSupply.plus(help.qbx2sqbx(tokens));
-    // state.totalPresaleWei = state.totalPresaleWei.plus(weiToSend);
-  } catch(e) {
-    assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
-  }
-  return state;
-}
-
 async function runClaimRefundCommand(command, state) {
 
   let account = gen.getAccount(command.fromAccount),
@@ -623,7 +585,6 @@ const commands = {
   pauseCrowdsale: {gen: gen.pauseCrowdsaleCommandGen, run: runPauseCrowdsaleCommand},
   pauseToken: {gen: gen.pauseTokenCommandGen, run: runPauseTokenCommand},
   finalizeCrowdsale: {gen: gen.finalizeCrowdsaleCommandGen, run: runFinalizeCrowdsaleCommand},
-  addPrivatePresaleTokens: {gen: gen.addPrivatePresaleTokensCommandGen, run: runAddPrivatePresaleTokensCommand},
   claimRefund: {gen: gen.claimRefundCommandGen, run: runClaimRefundCommand},
   transfer: {gen: gen.transferCommandGen, run: runTransferCommand},
   approve: {gen: gen.approveCommandGen, run: runApproveCommand},

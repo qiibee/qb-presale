@@ -2,7 +2,6 @@ pragma solidity ^0.4.11;
 
 import "zeppelin-solidity/contracts/token/PausableToken.sol";
 import "zeppelin-solidity/contracts/token/MintableToken.sol";
-// import "zeppelin-solidity/contracts/token/VestedToken.sol";
 import "./BurnableToken.sol";
 
 /**

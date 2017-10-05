@@ -165,36 +165,6 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         // toVault(weiAmount, beneficiary); //TODO: check this call
     }
 
-    /**
-        @dev Allows to add the address and the amount of wei sent by a contributor
-        in the private presale. Can only be called by the owner before the beginning
-        of TGE
-
-        @param beneficiary Address to which qbx will be sent
-        @param tokens Amount of tokens sold
-        @param rate Rate of the tokens sold
-    */
-    function addPrivatePresaleTokens(address beneficiary, uint256 tokens, uint256 rate) onlyOwner {
-        require(now < startPreTime);
-        require(beneficiary != address(0));
-        require(tokens > 0);
-        require(rate > 0);
-
-        uint256 tokensAmount = tokens * (1 wei); //converts qbx to sqbx
-        uint256 weiAmount = tokensAmount.mul(rate);
-
-        //update state
-        weiRaised = weiRaised.add(weiAmount);
-        tokensSold = tokensSold.add(tokensAmount);
-
-        token.mint(beneficiary, tokensAmount);
-
-        PrivatePresalePurchase(msg.sender, beneficiary, rate, weiAmount, tokensAmount);
-
-        //TODO: forwardFunds?
-        // toVault(weiAmount, beneficiary);
-    }
-
     function setWallet(address _wallet) onlyOwner public {
         require(_wallet != 0x0);
         wallet = _wallet;
@@ -221,7 +191,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         super.finalization();
     }
 
-    function finalize() onlyOwner { //make it public? redistribute tokens to other pools?
+    function finalize() onlyOwner { //TODO: make it public? redistribute tokens to other pools?
         require(!isFinalized);
         require(hasEnded());
 

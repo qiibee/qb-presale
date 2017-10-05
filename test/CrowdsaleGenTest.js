@@ -434,34 +434,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  //PRIVATE PRESALE TESTS
-  it('should be able to add tokens of the private presale before pre TGE starts', async function () {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'addPrivatePresaleTokens', rate: 10000, beneficiary: 3, account: 0, tokens: 1000 },
-      ],
-      crowdsale: {
-        initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-      }
-    });
-  });
-
-  it('should NOT be able to add tokens of the private presale after pre TGE starts', async function () {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addPrivatePresaleTokens', rate: 10000, beneficiary: 3, account: 0, tokens: 1000 },
-      ],
-      crowdsale: {
-        initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-      }
-    });
-  });
-
   //WHITELIST TESTS
   it('should allow whitelisted investors to buy tokens during pre crowdsale', async function () {
     await runGeneratedCrowdsaleAndCommands({
