@@ -41,8 +41,14 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
     // maximal Gas Price per transaction
     uint256 constant public maxGasPrice = 50000000000;
 
-    // max frequency for purchases from a single source (in seconds)
+
+
+    // maximal call frequency / max. buys per x Blocks.
     uint256 constant public maxCallFrequency = 600;
+
+    // min and max Invest in QBX per transaction
+    uint256 constant public MIN_INVEST = 6000000000000000000000;
+    uint256 constant public MAX_INVEST = 12000000000000000000000;
 
      /**
      * event for change wallet logging
@@ -115,12 +121,24 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
 
     // low level token purchase function
     function buyTokens(address beneficiary) payable {
+        require(tx.gasprice <= maxGasPrice);
         require(beneficiary != address(0));
         require(now.sub(lastCallTime[msg.sender]) >= maxCallFrequency);
         require(validPurchase());
 
         uint256 rate = getRate();
         uint256 tokens = msg.value.mul(rate);
+        uint256 currentBalance = token.balanceOf(beneficiary);
+        require(currentBalance <= 1);
+   //  uint256 currentBalance = token.balances[beneficiary];
+      //  uint256 currentBalance = balances[beneficiary];
+      //  require(currentBalance.add(tokens.div(1000000000000000000)) >= 6000);
+//        require(currentBalance.add(tokens.div(1000000000000000000)) <= 12000);
+//        require(currentBalance.div(1000000000000000000).add(tokens) >= 6000000000000000000000);
+//        require(currentBalance.add(tokens.mul(1000000000000000000)) >= MIN_INVEST);
+     //   require(currentBalance.add(tokens) >= MIN_INVEST && currentBalance.add(tokens) <= MAX_INVEST);
+    //    require(tokens <= MAX_INVEST && tokens >= MIN_INVEST);
+
         uint256 newTokenAmount = tokensSold.add(tokens);
         assert(newTokenAmount <= cap);
 

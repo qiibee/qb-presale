@@ -105,11 +105,17 @@ async function runBuyTokensCommand(command, state) {
     hasZeroAddress ||
     (command.eth == 0) ||
     (state.lastCallTime[command.beneficiary] && (nextTime - state.lastCallTime[command.beneficiary]) < state.crowdsaleData.maxCallFrequency) ||
+    command.gasPrice > state.crowdsaleData.maxGasPrice ||
     capExceeded;
-
+  
+  console.log('balance:', state.balances[command.beneficiary]);
+  console.log('tokens:', tokens);
+  
   try {
     help.debug(colors.yellow('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.endTime, 'blockTimestamp:', nextTime));
-    await state.crowdsaleContract.buyTokens(beneficiaryAccount, {value: weiCost, from: account});
+    //await state.crowdsaleContract.buyTokens(beneficiaryAccount, {value: weiCost, from: account});
+    //gasPrice price (in ether) of one unit of gas specified in the transaction
+    await state.crowdsaleContract.buyTokens(beneficiaryAccount, {value: weiCost, from: account, gasPrice: (command.gasPrice ? command.gasPrice : state.crowdsaleData.maxGasPrice)});
     assert.equal(false, shouldThrow, 'buyTokens should have thrown but it didn\'t');
     state.purchases = _.concat(state.purchases,
       {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
