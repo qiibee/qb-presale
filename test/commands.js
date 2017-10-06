@@ -108,8 +108,8 @@ async function runBuyTokensCommand(command, state) {
     (state.lastCallTime[command.beneficiary] && (nextTime - state.lastCallTime[command.beneficiary]) < state.crowdsaleData.maxCallFrequency) ||
     command.gasPrice > state.crowdsaleData.maxGasPrice ||
     //  (newBalance <= state.crowdsaleData.maxInvest && help.qbx2sqbx(tokens) >= state.crowdsaleData.minInvest && !inPreTGE) ||
-    (newBalance >= state.crowdsaleData.maxInvest && !inPreTGE) ||
-    (help.qbx2sqbx(tokens) <= state.crowdsaleData.minInvest && !inPreTGE) ||
+    (newBalance > state.crowdsaleData.maxInvest && nextTime >= startTime) ||
+    (help.qbx2sqbx(tokens) < state.crowdsaleData.minInvest && nextTime >= startTime) ||
     capExceeded;
   
   console.log('balance:', state.balances[command.beneficiary]);
