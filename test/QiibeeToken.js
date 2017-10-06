@@ -22,13 +22,17 @@ contract('qiibeeToken', function(accounts) {
     const preferentialRate = 8000;
     const goal = 360000000;
     const cap = 2400000000;
+    const minInvest = 200000;
+    const maxInvest = 1000000;
     const crowdsale = await help.simulateCrowdsale(
       initialRate,
       preferentialRate,
       new BigNumber(help.toAtto(goal)),
       new BigNumber(help.toAtto(cap)),
+      new BigNumber(help.toAtto(minInvest)),
+      new BigNumber(help.toAtto(maxInvest)),
       accounts,
-      [4,3,1,0]
+      [140,100,80,0]
     );
     token = QiibeeToken.at(await crowdsale.token());
 

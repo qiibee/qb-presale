@@ -63,7 +63,7 @@ module.exports = {
     return this.waitToBlock(parseInt(web3.eth.blockNumber) + toWait, accounts);
   },
 
-  simulateCrowdsale: async function(initialRate, preferentialRate, goal, cap, accounts, balances) {
+  simulateCrowdsale: async function(initialRate, preferentialRate, goal, cap, minInvest, maxInvest, accounts, balances) {
     await increaseTimeTestRPC(1);
     var startPreTime = latestTime() + 5;
     var endPreTime = startPreTime + 10;
@@ -72,7 +72,8 @@ module.exports = {
     var crowdsale = await QiibeeCrowdsale.new(
       startPreTime, endPreTime, startTime, endTime,
       initialRate, preferentialRate,
-      goal, cap, accounts[0]
+      goal, cap,
+      minInvest, maxInvest, accounts[0]
     );
 
     await increaseTimeTestRPCTo(latestTime()+1);
