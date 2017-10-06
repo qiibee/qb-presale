@@ -87,7 +87,7 @@ async function runBuyTokensCommand(command, state) {
     rate = help.getCrowdsaleExpectedRate(state, account, weiCost),
     tokens = new BigNumber(command.eth).mul(rate),
     hasZeroAddress = _.some([account, beneficiaryAccount], isZeroAddress),
-    newBalance = getBalance(state, command.beneficiary).plus(help.qbx2sqbx(tokens));
+    newBalance = getBalance(state, command.beneficiary).plus(help.toAtto(tokens));
 
   let inPreTGE = nextTime >= startPreTime && nextTime <= endPreTime;
 
@@ -107,14 +107,10 @@ async function runBuyTokensCommand(command, state) {
     (command.eth == 0) ||
     (state.lastCallTime[command.beneficiary] && (nextTime - state.lastCallTime[command.beneficiary]) < state.crowdsaleData.maxCallFrequency) ||
     command.gasPrice > state.crowdsaleData.maxGasPrice ||
-    //  (newBalance <= state.crowdsaleData.maxInvest && help.qbx2sqbx(tokens) >= state.crowdsaleData.minInvest && !inPreTGE) ||
     (newBalance > state.crowdsaleData.maxInvest && nextTime >= startTime) ||
-    (help.qbx2sqbx(tokens) < state.crowdsaleData.minInvest && nextTime >= startTime) ||
+    (help.toAtto(tokens) < state.crowdsaleData.minInvest && nextTime >= startTime) ||
     capExceeded;
-  
-  console.log('balance:', state.balances[command.beneficiary]);
-  console.log('tokens:', tokens);
-  
+
   try {
     help.debug(colors.yellow('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.endTime, 'blockTimestamp:', nextTime));
     //await state.crowdsaleContract.buyTokens(beneficiaryAccount, {value: weiCost, from: account});

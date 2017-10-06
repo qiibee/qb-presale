@@ -202,10 +202,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
     return true;
   };
 
-  // SPAM TESTS
-  
-  
-  it('should NOT block multiple transactions that are in total over the limit for whitelisted investor', async function() {
+  // SPAM PREVENETION TESTS
+  it('whitelisted investor should be able to buy tokens even though the amount of qbx exceeds the max limit, during pre-tge', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
@@ -220,14 +218,13 @@ contract('QiibeeCrowdsale Property-based test', function() {
       }
     });
   });
-  
-  it('should block multiple transactions that are after crowdsale start in total over the limit for whitelisted', async function() {
+
+  it('whitelisted investor should NOT be able to buy tokens if they exceed the amount of qbx exceeds the max limit, during tge', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'buyTokens', beneficiary: 2, account: 4, eth: 100 },
-        { type: 'waitTime','seconds':duration.minutes(20)},
         { type: 'buyTokens', beneficiary: 2, account: 4, eth: 100 },
         { type: 'waitTime','seconds':duration.days(2)},
         { type: 'buyTokens', beneficiary: 2, account: 4, eth: 1 },
@@ -239,7 +236,35 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  it('should block multiple transactions that are in total over the limit', async function() {
+  it('should NOT buy tokens if amount of qbx is below the min limit', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 0.5 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('should buy tokens if amount of qbx is within the limits', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+        { type: 'waitTime','seconds':duration.minutes(12)},
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('should NOT buy tokens if amount of qbx exceeds the max limit', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(3)},
@@ -258,50 +283,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  
-  it('should allow transaction within limit', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
-        { type: 'waitTime','seconds':duration.minutes(12)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
-      ],
-      crowdsale: {
-        initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-      }
-    });
-  });
-    
-  it('should block transaction below min limit', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 0.5 },
-      ],
-      crowdsale: {
-        initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-      }
-    });
-  });
-
-  it('should block transaction over max limit', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 3 },
-      ],
-      crowdsale: {
-        initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
-      }
-    });
-  });
-
- 
-  it('should block transactions with exceeding gasPrice limit', async function() {
+  it('should NOT buy tokens with exceeding gasPrice limit', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(3)},
@@ -313,13 +295,15 @@ contract('QiibeeCrowdsale Property-based test', function() {
       }
     });
   });
-  
-  it('should block the second of two transactions within 10 Minutes', async function() {
+
+  it('should allow whitelisted investors to buy tokens with exceeding gasPrice limit', async function() {
+
+  });
+
+  it('should NOT allow buyTokens if execution is made before the allowed frequency', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
-        { type: 'waitTime','seconds':duration.minutes(12)},
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
         { type: 'waitTime','seconds':duration.minutes(9)},
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
@@ -330,6 +314,11 @@ contract('QiibeeCrowdsale Property-based test', function() {
       }
     });
   });
+
+  it('should allow whitelisted investors to buyTokens if execution is made before the allowed frequency, during pre-tge', async function() {
+
+  });
+
 /*
   // CROWDSALE TESTS
   it('does not fail on some specific examples that once failed', async function() {

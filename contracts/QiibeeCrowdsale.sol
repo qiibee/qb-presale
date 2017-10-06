@@ -44,9 +44,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
     // maximal Gas Price per transaction
     uint256 constant public maxGasPrice = 50000000000;
 
-
-
-    // maximal call frequency / max. buys per x Blocks.
+    // max frequency for purchases from a single source (in seconds)
     uint256 constant public maxCallFrequency = 600;
 
     // min and max Invest in QBX per transaction
@@ -134,7 +132,6 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         uint256 tokens = msg.value.mul(rate);
 
         if (now >= startTime) {
-
             uint256 newBalance = token.balanceOf(beneficiary).add(tokens);
             require(newBalance <= MAX_INVEST && tokens >= MIN_INVEST);
         }
