@@ -32,6 +32,9 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
     // initial rate of ether to QBX
     uint256 public initialRate;
 
+    // startTime of crowdsale
+    uint256 public startTime;
+
     // maximum amount of qbx (in atto) that can be minted
     uint256 public cap;
 
@@ -90,6 +93,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         require(_endPreTime < _startTime);
 
         initialRate = _initialRate;
+        startTime = _startTime;
         cap = _cap;
 
         QiibeeToken(token).pause();
@@ -128,16 +132,12 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
 
         uint256 rate = getRate();
         uint256 tokens = msg.value.mul(rate);
-        uint256 currentBalance = token.balanceOf(beneficiary);
-        require(currentBalance <= 1);
-   //  uint256 currentBalance = token.balances[beneficiary];
-      //  uint256 currentBalance = balances[beneficiary];
-      //  require(currentBalance.add(tokens.div(1000000000000000000)) >= 6000);
-//        require(currentBalance.add(tokens.div(1000000000000000000)) <= 12000);
-//        require(currentBalance.div(1000000000000000000).add(tokens) >= 6000000000000000000000);
-//        require(currentBalance.add(tokens.mul(1000000000000000000)) >= MIN_INVEST);
-     //   require(currentBalance.add(tokens) >= MIN_INVEST && currentBalance.add(tokens) <= MAX_INVEST);
-    //    require(tokens <= MAX_INVEST && tokens >= MIN_INVEST);
+
+        if (now >= startTime) {
+
+            uint256 newBalance = token.balanceOf(beneficiary).add(tokens);
+            require(newBalance <= MAX_INVEST && tokens >= MIN_INVEST);
+        }
 
         uint256 newTokenAmount = tokensSold.add(tokens);
         assert(newTokenAmount <= cap);

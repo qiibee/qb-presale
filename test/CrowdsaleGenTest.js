@@ -203,16 +203,52 @@ contract('QiibeeCrowdsale Property-based test', function() {
   };
 
   // SPAM TESTS
-  it('should block multiple transactions over the limit', async function() {
+  
+  
+  it('should NOT block multiple transactions that are in total over the limit for whitelisted investor', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'buyTokens', beneficiary: 2, account: 4, eth: 100 },
+        { type: 'waitTime','seconds':duration.minutes(20)},
+        { type: 'buyTokens', beneficiary: 2, account: 4, eth: 100 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+  
+  it('should block multiple transactions that are after crowdsale start in total over the limit for whitelisted', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'buyTokens', beneficiary: 2, account: 4, eth: 100 },
+        { type: 'waitTime','seconds':duration.minutes(20)},
+        { type: 'buyTokens', beneficiary: 2, account: 4, eth: 100 },
+        { type: 'waitTime','seconds':duration.days(2)},
+        { type: 'buyTokens', beneficiary: 2, account: 4, eth: 1 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+      }
+    });
+  });
+
+  it('should block multiple transactions that are in total over the limit', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+        { type: 'waitTime','seconds':duration.minutes(12)},
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+        { type: 'waitTime','seconds':duration.minutes(12)},
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 2 },
-        { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 0.5 },
-        { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 2 },
-        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'waitTime','seconds':duration.minutes(12)},
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 20 },
       ],
       crowdsale: {
@@ -227,7 +263,9 @@ contract('QiibeeCrowdsale Property-based test', function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1.5 },
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+        { type: 'waitTime','seconds':duration.minutes(12)},
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
