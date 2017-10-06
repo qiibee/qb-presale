@@ -16,7 +16,7 @@ contract('qbxToken Crowdsale', function(accounts) {
       startPreTime, endPreTime,
       startTime, endTime,
       100, 150, 5000, 10000,
-      accounts[0]
+      1000, 2500, accounts[0]
     );
 
     assert.equal(startPreTime, parseInt(await crowdsale.startPreTime.call()));
