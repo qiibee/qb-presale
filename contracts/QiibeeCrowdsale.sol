@@ -47,9 +47,9 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
     // max frequency for purchases from a single source (in seconds)
     uint256 constant public maxCallFrequency = 600;
 
-    // min and max Invest in QBX per transaction
+    // min and max invest in atto per transaction
     uint256 constant public MIN_INVEST = 6000000000000000000000;
-    uint256 constant public MAX_INVEST = 12000000000000000000000;
+    uint256 constant public MAX_INVEST = 48000000000000000000000;
 
      /**
      * event for change wallet logging

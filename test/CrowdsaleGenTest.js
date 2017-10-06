@@ -319,7 +319,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
 
   });
 
-/*
   // CROWDSALE TESTS
   it('does not fail on some specific examples that once failed', async function() {
 
@@ -635,5 +634,5 @@ contract('QiibeeCrowdsale Property-based test', function() {
       }
     });
   });
-*/
+
 });

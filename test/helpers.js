@@ -78,11 +78,9 @@ module.exports = {
     await increaseTimeTestRPCTo(latestTime()+1);
     await increaseTimeTestRPCTo(startTime+3);
     for(let i = 0; i < 5; i++) {
-      if (balances[i] > 0)
-        //TODO: check rate to use the correspondin rate?
+      if (balances[i] > 0) {
         await crowdsale.sendTransaction({ value: web3.toWei(balances[i], 'ether'), from: accounts[i + 1]});
-      // console.log(web3.toWei(balances[i]/initialRate, 'ether'));
-
+      }
     }
     await increaseTimeTestRPCTo(endTime+1);
     await crowdsale.finalize();

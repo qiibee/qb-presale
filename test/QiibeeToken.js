@@ -22,18 +22,17 @@ contract('qiibeeToken', function(accounts) {
     const preferentialRate = 8000;
     const goal = 360000000;
     const cap = 2400000000;
-
     const crowdsale = await help.simulateCrowdsale(
       initialRate,
       preferentialRate,
       new BigNumber(help.toAtto(goal)),
       new BigNumber(help.toAtto(cap)),
       accounts,
-      [40,30,20,10,0]
+      [4,3,1,0]
     );
     token = QiibeeToken.at(await crowdsale.token());
 
-    //TODO: do we need to add something else here? PrivatePresale? Whitelist?
+    //TODO: do we need to add something else here? Whitelist?
     eventsWatcher = token.allEvents();
 
     eventsWatcher.watch(function(error, log){
