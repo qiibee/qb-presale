@@ -126,9 +126,8 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
 
     // low level token purchase function
     function buyTokens(address beneficiary) payable {
-        require(tx.gasprice <= maxGasPrice);
         require(beneficiary != address(0));
-        require(now.sub(lastCallTime[msg.sender]) >= maxCallFrequency);
+        // require(tx.origin != msg.sender); //TODO: do we want this?
         require(validPurchase());
 
         uint256 rate = getRate();
@@ -137,10 +136,12 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         if (now >= startTime) {
             uint256 newBalance = token.balanceOf(beneficiary).add(tokens);
             require(newBalance <= maxInvest && tokens >= minInvest);
+            require(now.sub(lastCallTime[msg.sender]) >= maxCallFrequency);
+            require(tx.gasprice <= maxGasPrice);
         }
 
         uint256 newTokenAmount = tokensSold.add(tokens);
-        assert(newTokenAmount <= cap);
+        require(newTokenAmount <= cap);
 
         lastCallTime[msg.sender] = now;
 

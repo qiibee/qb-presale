@@ -89,28 +89,33 @@ async function runBuyTokensCommand(command, state) {
     hasZeroAddress = _.some([account, beneficiaryAccount], isZeroAddress),
     newBalance = getBalance(state, command.beneficiary).plus(help.toAtto(tokens));
 
-  let inPreTGE = nextTime >= startPreTime && nextTime <= endPreTime;
+  let inTGE = nextTime >= startTime && nextTime <= endTime,
+    inPreTGE = nextTime >= startPreTime && nextTime <= endPreTime,
+    isWhitelisted = _.includes(state.whitelist, account),
+    capExceeded = state.tokensSold.plus(help.toAtto(tokens)).gt(crowdsale.cap),
+    gasExceeded = (command.gasPrice > state.crowdsaleData.maxGasPrice) && inTGE && !isWhitelisted,
+    frequencyExceeded = state.lastCallTime[command.beneficiary] && ((nextTime - state.lastCallTime[command.beneficiary]) < state.crowdsaleData.maxCallFrequency) && inTGE && !isWhitelisted,
+    maxExceeded = newBalance.gt(state.crowdsaleData.maxInvest) && inTGE,
+    minNotReached = help.toAtto(tokens).lt(state.crowdsaleData.minInvest) && inTGE;
 
-  let capExceeded = state.tokensSold.plus(help.toAtto(tokens)).gt(crowdsale.cap);
-
-  let shouldThrow = (inPreTGE && !_.includes(state.whitelist, account)) ||
+  let shouldThrow = (inPreTGE && !isWhitelisted) ||
     (nextTime < startPreTime) ||
     (nextTime > endPreTime && nextTime < startTime) ||
     (nextTime > endTime) ||
     (state.crowdsalePaused) ||
     //TODO: add reuqirements for TOTAL SUPPLY, FOUNDATION, etc
-    (crowdsale.initialRate == 0) ||
-    (crowdsale.goal == 0) ||
-    (crowdsale.cap == 0) ||
-    (crowdsale.minInvest == 0) ||
-    (crowdsale.maxInvest == 0) ||
-    (state.crowdsaleFinalized) ||
+    crowdsale.initialRate == 0 ||
+    crowdsale.goal == 0 ||
+    crowdsale.cap == 0 ||
+    crowdsale.minInvest == 0 ||
+    crowdsale.maxInvest == 0 ||
+    state.crowdsaleFinalized ||
     hasZeroAddress ||
-    (command.eth == 0) ||
-    (state.lastCallTime[command.beneficiary] && (nextTime - state.lastCallTime[command.beneficiary]) < state.crowdsaleData.maxCallFrequency) ||
-    command.gasPrice > state.crowdsaleData.maxGasPrice ||
-    (newBalance.gt(state.crowdsaleData.maxInvest) && nextTime >= startTime) ||
-    (help.toAtto(tokens).lt(state.crowdsaleData.minInvest) && nextTime >= startTime) ||
+    weiCost == 0 ||
+    maxExceeded ||
+    minNotReached ||
+    frequencyExceeded ||
+    gasExceeded ||
     capExceeded;
 
   try {

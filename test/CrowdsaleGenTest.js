@@ -306,8 +306,34 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  it('should allow whitelisted investors to buy tokens with exceeding gasPrice limit', async function() {
+  it('should allow whitelisted investors to buy tokens with exceeding gasPrice limit, during pre-tge', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1, gasPrice: 50000000001},
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
+      }
+    });
+  });
 
+  it('should NOT allow whitelisted investors to buy tokens with exceeding gasPrice limit, during tge', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
+        { type: 'waitTime','seconds':duration.days(3)},
+        // { type: 'buyTokens', beneficiary: 3, account: 4, eth: 1, gasPrice: 50000000001},
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
+      }
+    });
   });
 
   it('should NOT allow buyTokens if execution is made before the allowed frequency', async function() {
@@ -327,7 +353,37 @@ contract('QiibeeCrowdsale Property-based test', function() {
   });
 
   it('should allow whitelisted investors to buyTokens if execution is made before the allowed frequency, during pre-tge', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'buyTokens', beneficiary: 2, account: 4, eth: 100 },
+        { type: 'waitTime','seconds':duration.minutes(5)},
+        { type: 'buyTokens', beneficiary: 2, account: 4, eth: 100 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
+      }
+    });
+  });
 
+  it('should allow whitelisted investors to buyTokens if execution is made before the allowed frequency, during tge', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'buyTokens', beneficiary: 2, account: 4, eth: 100 },
+        { type: 'waitTime','seconds':duration.minutes(5)},
+        { type: 'buyTokens', beneficiary: 2, account: 4, eth: 100 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
+      }
+    });
   });
 
   // CROWDSALE TESTS
