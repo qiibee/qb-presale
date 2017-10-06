@@ -78,7 +78,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     let endTime = startTime + duration.days(1);
     help.debug(colors.yellow('crowdsaleTestInput data:\n', JSON.stringify(input), startTime, endTime));
 
-    let {initialRate, goal, cap, preferentialRate, owner} = input.crowdsale,
+    let {initialRate, goal, cap, minInvest, maxInvest, preferentialRate, owner} = input.crowdsale,
       ownerAddress = gen.getAccount(input.crowdsale.owner),
       foundationWallet = gen.getAccount(input.crowdsale.foundationWallet);
 
@@ -90,6 +90,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       (preferentialRate == 0) ||
       (goal == 0) ||
       (cap == 0) ||
+      (minInvest == 0) ||
+      (maxInvest == 0) ||
       (goal >= cap) ||
       (ownerAddress == 0) ||
       (foundationWallet == 0);
@@ -108,8 +110,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
         cap: new BigNumber(help.toAtto(input.crowdsale.cap)),
         maxCallFrequency: 600,
         maxGasPrice: 50000000000,
-        maxInvest: 12000000000000000000000,
-        minInvest: 6000000000000000000000,
+        minInvest: new BigNumber(help.toAtto(input.crowdsale.minInvest)),
+        maxInvest: new BigNumber(help.toAtto(input.crowdsale.maxInvest)),
         foundationWallet: gen.getAccount(input.crowdsale.foundationWallet),
         TOTAL_SUPPLY: 10000000000000000000000000000,
         FOUNDATION_SUPPLY: 7600000000000000000000000000,
@@ -125,6 +127,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
         crowdsaleData.preferentialRate,
         crowdsaleData.goal,
         crowdsaleData.cap,
+        crowdsaleData.minInvest,
+        crowdsaleData.maxInvest,
         crowdsaleData.foundationWallet,
         {from: ownerAddress}
       );
@@ -214,7 +218,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -231,7 +236,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -244,7 +250,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -259,7 +266,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -278,7 +286,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -291,7 +300,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -310,7 +320,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -329,7 +340,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 1, tokensSold: 0, goal: 360000000, cap: 2400000000, owner: 7
+        foundationWallet: 1, tokensSold: 0, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 7
       }
     });
 
@@ -341,7 +353,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 30, preferentialRate: 33,
-        foundationWallet: 8, goal: 50, cap: 60, owner: 9
+        foundationWallet: 8, goal: 50, cap: 60,
+        minInvest: 6000, maxInvest: 48000, owner: 9
       }
     });
 
@@ -351,7 +364,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 360000000, owner: 0
       }
     });
   });
@@ -370,7 +384,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     };
 
@@ -390,7 +405,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     };
 
@@ -412,7 +428,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     };
 
@@ -424,7 +441,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       commands: [{ type:'approve','atto':0,'fromAccount':3,'spenderAccount':5}],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -436,7 +454,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 360000000, owner: 0
       }
     });
   });
@@ -448,7 +467,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 360000000, owner: 0
       }
     });
   });
@@ -479,7 +499,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -497,7 +518,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -518,7 +540,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -532,7 +555,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -548,7 +572,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -563,7 +588,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -576,7 +602,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -591,7 +618,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -606,7 +634,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -618,7 +647,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });
@@ -630,7 +660,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
       }
     });
   });

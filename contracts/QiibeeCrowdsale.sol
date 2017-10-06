@@ -32,9 +32,6 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
     // initial rate of ether to QBX
     uint256 public initialRate;
 
-    // startTime of crowdsale
-    uint256 public startTime;
-
     // maximum amount of qbx (in atto) that can be minted
     uint256 public cap;
 
@@ -48,8 +45,8 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
     uint256 constant public maxCallFrequency = 600;
 
     // min and max invest in atto per transaction
-    uint256 constant public MIN_INVEST = 6000000000000000000000;
-    uint256 constant public MAX_INVEST = 48000000000000000000000;
+    uint256 public minInvest;
+    uint256 public maxInvest;
 
      /**
      * event for change wallet logging
@@ -79,6 +76,8 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         uint256 _preferentialRate,
         uint256 _goal,
         uint256 _cap,
+        uint256 _minInvest,
+        uint256 _maxInvest,
         address _wallet
     )
         WhitelistedPreCrowdsale(_preferentialRate, _startPreTime, _endPreTime)
@@ -88,11 +87,15 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         require(_initialRate > 0);
         require(_cap > 0);
         require(_goal <= _cap);
+        require(_minInvest > 0);
+        require(_maxInvest > 0);
         require(_endPreTime < _startTime);
 
         initialRate = _initialRate;
         startTime = _startTime;
         cap = _cap;
+        minInvest = _minInvest;
+        maxInvest = _maxInvest;
 
         QiibeeToken(token).pause();
     }
@@ -133,7 +136,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
 
         if (now >= startTime) {
             uint256 newBalance = token.balanceOf(beneficiary).add(tokens);
-            require(newBalance <= MAX_INVEST && tokens >= MIN_INVEST);
+            require(newBalance <= maxInvest && tokens >= minInvest);
         }
 
         uint256 newTokenAmount = tokensSold.add(tokens);

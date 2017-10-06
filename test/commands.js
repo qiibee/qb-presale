@@ -102,13 +102,15 @@ async function runBuyTokensCommand(command, state) {
     (crowdsale.initialRate == 0) ||
     (crowdsale.goal == 0) ||
     (crowdsale.cap == 0) ||
+    (crowdsale.minInvest == 0) ||
+    (crowdsale.maxInvest == 0) ||
     (state.crowdsaleFinalized) ||
     hasZeroAddress ||
     (command.eth == 0) ||
     (state.lastCallTime[command.beneficiary] && (nextTime - state.lastCallTime[command.beneficiary]) < state.crowdsaleData.maxCallFrequency) ||
     command.gasPrice > state.crowdsaleData.maxGasPrice ||
-    (newBalance > state.crowdsaleData.maxInvest && nextTime >= startTime) ||
-    (help.toAtto(tokens) < state.crowdsaleData.minInvest && nextTime >= startTime) ||
+    (newBalance.gt(state.crowdsaleData.maxInvest) && nextTime >= startTime) ||
+    (help.toAtto(tokens).lt(state.crowdsaleData.minInvest) && nextTime >= startTime) ||
     capExceeded;
 
   try {
@@ -117,6 +119,7 @@ async function runBuyTokensCommand(command, state) {
     //gasPrice price (in ether) of one unit of gas specified in the transaction
     await state.crowdsaleContract.buyTokens(beneficiaryAccount, {value: weiCost, from: account, gasPrice: (command.gasPrice ? command.gasPrice : state.crowdsaleData.maxGasPrice)});
     assert.equal(false, shouldThrow, 'buyTokens should have thrown but it didn\'t');
+
     state.purchases = _.concat(state.purchases,
       {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
     );
@@ -335,22 +338,20 @@ async function runClaimRefundCommand(command, state) {
   let account = gen.getAccount(command.fromAccount),
     purchases = _.filter(state.purchases, (p) => p.account == command.fromAccount),
     hasZeroAddress = isZeroAddress(account),
-    investedWei = new BigNumber(web3.toWei(command.investedEth, 'ether'));
+    investedWei = _.sumBy(purchases, (p) => p.wei);
 
   let shouldThrow = !state.crowdsaleFinalized ||
     state.goalReached ||
-    (purchases.length == 0) ||
     hasZeroAddress ||
-    state.vault[command.fromAccount] > 0 ||
-    investedWei == 0;
+    state.vault[command.fromAccount] > 0;
 
-  console.log('shouldThrow', (purchases.length == 0));
+  console.log('investedWei', _.sumBy(purchases, (p) => p.wei));
+
   try {
     let currentBalance = web3.eth.getBalance(account);
 
     await state.crowdsaleContract.claimRefund({from: account, gasPrice: 0});
     assert.equal(false, shouldThrow, 'claimRefund should have thrown but it did not');
-    // state.vault[command.fromAccount] = _.sumBy(purchases, (p) => p.wei);
     let balanceAfterClaimRefund = web3.eth.getBalance(account);
     assert.equal((balanceAfterClaimRefund.sub(currentBalance)).eq(investedWei), true);
 
@@ -471,6 +472,7 @@ async function runBurnTokensCommand(command, state) {
 }
 
 async function runFundCrowdsaleBelowSoftCap(command, state) {
+
   if (!state.crowdsaleFinalized) {
     // unpause the crowdsale if needed
     if (state.crowdsalePaused) {
@@ -505,10 +507,9 @@ async function runFundCrowdsaleBelowSoftCap(command, state) {
 
       state = await runFinalizeCrowdsaleCommand({fromAccount: command.account}, state);
 
-      // verify that the crowdsale is finalized and funded, but there's no MVM
+      // verify that the crowdsale is finalized and funded
       assert.equal(true, state.crowdsaleFinalized);
       assert.equal(true, state.goalReached);
-      assert(state.MVM === undefined);
     }
   }
 
