@@ -15,7 +15,7 @@ contract RefundableOnTokenCrowdsale is FinalizableCrowdsale {
 
   enum State { Active, Refunding, Closed }
 
-  // minimum amount of qbx (in sqbx) to be sold
+  // minimum amount of qbx (in atto) to be sold
   uint256 public goal;
 
   // refund vault used to hold funds while crowdsale is running

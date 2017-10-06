@@ -42,7 +42,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     assert.equal(state.crowdsalePaused, await crowdsale.paused());
 
     let tokensInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.tokens));
-    tokensInPurchases.should.be.bignumber.equal(help.sqbx2qbx(await crowdsale.tokensSold()));
+    tokensInPurchases.should.be.bignumber.equal(help.fromAtto(await crowdsale.tokensSold()));
 
     // let presaleWei = sumBigNumbers(_.map(state.presalePurchases, (p) => p.wei));
     // presaleWei.should.be.bignumber.equal(await crowdsale.totalPresaleWei.call());
@@ -104,8 +104,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
         endTime: endTime,
         initialRate: input.crowdsale.initialRate,
         preferentialRate: input.crowdsale.preferentialRate,
-        goal: new BigNumber(help.qbx2sqbx(input.crowdsale.goal)),
-        cap: new BigNumber(help.qbx2sqbx(input.crowdsale.cap)),
+        goal: new BigNumber(help.toAtto(input.crowdsale.goal)),
+        cap: new BigNumber(help.toAtto(input.crowdsale.cap)),
         maxCallFrequency: 600,
         foundationWallet: gen.getAccount(input.crowdsale.foundationWallet),
         TOTAL_SUPPLY: 10000000000000000000000000000,
@@ -300,12 +300,13 @@ contract('QiibeeCrowdsale Property-based test', function() {
       commands: [
         { type: 'checkRate', fromAccount: 3 },
         { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'pauseToken', 'pause':true, 'fromAccount':1 },
-        { type: 'pauseToken', 'pause':false, 'fromAccount':1 },
+        { type: 'pauseToken', 'pause':true, 'fromAccount':0 },
+        { type: 'pauseToken', 'pause':false, 'fromAccount':0 },
+        { type: 'pauseToken', 'pause':true, 'fromAccount':0 },
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 60000 },
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'finalizeCrowdsale', fromAccount: 0 },
-        { type: 'pauseToken', 'pause':true, 'fromAccount':1 }
+        // { type: 'pauseToken', 'pause':true, 'fromAccount':0 }
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
@@ -318,7 +319,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
 
   it('should handle the thrown exc. when trying to approve on the paused token', async function() {
     await runGeneratedCrowdsaleAndCommands({
-      commands: [{ type:'approve','sqbx':0,'fromAccount':3,'spenderAccount':5}],
+      commands: [{ type:'approve','atto':0,'fromAccount':3,'spenderAccount':5}],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
         foundationWallet: 10, goal: 360000000, cap: 2400000000, owner: 0

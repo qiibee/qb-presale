@@ -90,7 +90,7 @@ async function runBuyTokensCommand(command, state) {
 
   let inPreTGE = nextTime >= startPreTime && nextTime <= endPreTime;
 
-  let capExceeded = state.tokensSold.plus(help.qbx2sqbx(tokens)).gt(crowdsale.cap);
+  let capExceeded = state.tokensSold.plus(help.toAtto(tokens)).gt(crowdsale.cap);
 
   let shouldThrow = (inPreTGE && !_.includes(state.whitelist, account)) ||
     (nextTime < startPreTime) ||
@@ -115,10 +115,10 @@ async function runBuyTokensCommand(command, state) {
       {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
     );
     state.lastCallTime[command.beneficiary] = nextTime;
-    state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(help.qbx2sqbx(tokens));
+    state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(help.toAtto(tokens));
     state.weiRaised = state.weiRaised.plus(weiCost);
-    state.tokensSold = state.tokensSold.plus(help.qbx2sqbx(tokens));
-    state.crowdsaleSupply = state.crowdsaleSupply.plus(help.qbx2sqbx(tokens));
+    state.tokensSold = state.tokensSold.plus(help.toAtto(tokens));
+    state.crowdsaleSupply = state.crowdsaleSupply.plus(help.toAtto(tokens));
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
@@ -160,7 +160,7 @@ async function runSendTransactionCommand(command, state) {
       throw(new Error('sendTransaction not in TGE should have thrown'));
     }
 
-    state.crowdsaleSupply = state.crowdsaleSupply.plus(help.qbx2sqbx(tokens));
+    state.crowdsaleSupply = state.crowdsaleSupply.plus(help.toAtto(tokens));
 
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
@@ -244,11 +244,13 @@ async function runPauseTokenCommand(command, state) {
     hasZeroAddress = isZeroAddress(account);
 
   let shouldThrow = (state.tokenPaused == command.pause) ||
+    // (state.crowdsaleFinalized && state.tokenPaused != command.pause) ||
     !state.crowdsaleFinalized ||
     (command.fromAccount != state.owner) ||
     hasZeroAddress;
 
   help.debug(colors.yellow('pausing token, previous state:', state.tokenPaused, 'new state:', command.pause));
+
   try {
     if (command.pause) {
       await state.crowdsaleContract.pauseToken({from: account});
@@ -285,6 +287,8 @@ async function runFinalizeCrowdsaleCommand(command, state) {
 
     help.debug(colors.yellow('finishing crowdsale on block', nextTimestamp, ', from address:', gen.getAccount(command.fromAccount), ', funded:', goalReached));
 
+    console.log('token owner before finalize', await state.token.owner());
+
     await state.crowdsaleContract.finalize({from: account});
 
     if (goalReached) {
@@ -313,6 +317,7 @@ async function runFinalizeCrowdsaleCommand(command, state) {
     state.crowdsaleFinalized = true;
     state.goalReached = goalReached;
     state.tokenPaused = false;
+    //TODO: change state.owner or token owner??
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
@@ -354,19 +359,19 @@ async function runTransferCommand(command, state) {
   let fromAddress = gen.getAccount(command.fromAccount),
     toAddress = gen.getAccount(command.toAccount),
     fromBalance = getBalance(state, command.fromAccount),
-    lifWei = help.qbx2sqbx(command.lif),
+    atto = help.toAtto(command.lif),
     hasZeroAddress = _.some([fromAddress], isZeroAddress),
-    shouldThrow = state.tokenPaused || fromBalance.lt(lifWei) ||
-      (hasZeroAddress &  new BigNumber(lifWei).gt(0));
+    shouldThrow = state.tokenPaused || fromBalance.lt(atto) ||
+      (hasZeroAddress &  new BigNumber(atto).gt(0));
 
   try {
-    await state.token.transfer(toAddress, lifWei, {from: fromAddress});
+    await state.token.transfer(toAddress, atto, {from: fromAddress});
 
     assert.equal(false, shouldThrow, 'transfer should have thrown but it did not');
 
     // TODO: take spent gas into account?
-    state.balances[command.fromAccount] = fromBalance.minus(lifWei);
-    state.balances[command.toAccount] = getBalance(state, command.toAccount).plus(lifWei);
+    state.balances[command.fromAccount] = fromBalance.minus(atto);
+    state.balances[command.toAccount] = getBalance(state, command.toAccount).plus(atto);
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
@@ -389,17 +394,17 @@ async function runApproveCommand(command, state) {
 
   let fromAddress = gen.getAccount(command.fromAccount),
     spenderAddress = gen.getAccount(command.spenderAccount),
-    sqbx = help.qbx2sqbx(command.qbx),
+    atto = help.toAtto(command.qbx),
     hasZeroAddress = _.some([fromAddress], isZeroAddress),
-    shouldThrow = state.tokenPaused || (hasZeroAddress &  new BigNumber(sqbx).gt(0));
+    shouldThrow = state.tokenPaused || (hasZeroAddress &  new BigNumber(atto).gt(0));
 
   try {
-    await state.token.approve(spenderAddress, sqbx, {from: fromAddress});
+    await state.token.approve(spenderAddress, atto, {from: fromAddress});
 
     assert.equal(false, shouldThrow, 'approve should have thrown but it did not');
 
     // TODO: take spent gas into account?
-    setAllowance(state, command.fromAccount, command.spenderAccount, sqbx);
+    setAllowance(state, command.fromAccount, command.spenderAccount, atto);
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
@@ -412,25 +417,25 @@ async function runTransferFromCommand(command, state) {
     fromAddress = gen.getAccount(command.fromAccount),
     toAddress = gen.getAccount(command.toAccount),
     fromBalance = getBalance(state, command.fromAccount),
-    lifWei = help.qbx2sqbx(command.lif),
+    atto = help.toAtto(command.lif),
     allowance = getAllowance(state, command.senderAccount, command.fromAccount),
     hasZeroAddress = _.some([fromAddress], isZeroAddress);
 
   let shouldThrow = state.tokenPaused ||
-    fromBalance.lt(lifWei) ||
-    (isZeroAddress(senderAddress) & new BigNumber(lifWei).gt(0)) ||
+    fromBalance.lt(atto) ||
+    (isZeroAddress(senderAddress) & new BigNumber(atto).gt(0)) ||
     hasZeroAddress ||
-    (allowance < lifWei);
+    (allowance < atto);
 
   try {
-    await state.token.transferFrom(senderAddress, toAddress, lifWei, {from: fromAddress});
+    await state.token.transferFrom(senderAddress, toAddress, atto, {from: fromAddress});
 
     assert.equal(false, shouldThrow, 'transferFrom should have thrown but it did not');
 
     // TODO: take spent gas into account?
-    state.balances[command.fromAccount] = fromBalance.minus(lifWei);
-    state.balances[command.toAccount] = getBalance(state, command.toAccount).plus(lifWei);
-    setAllowance(state, command.senderAccount, command.fromAccount, allowance.minus(lifWei));
+    state.balances[command.fromAccount] = fromBalance.minus(atto);
+    state.balances[command.toAccount] = getBalance(state, command.toAccount).plus(atto);
+    setAllowance(state, command.senderAccount, command.fromAccount, allowance.minus(atto));
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
@@ -478,8 +483,7 @@ async function runFundCrowdsaleBelowSoftCap(command, state) {
 
       // buy enough tokens to exactly reach the minCap (which is less than softCap)
       let tokens = goal.minus(tokensSold),
-        ethAmount = help.sqbx2qbx(tokens).div(help.getCrowdsaleExpectedRate(state, from)),
-        // ethAmount = help.sqbx2qbx(tokens).div(state.crowdsaleData.getRate()), //TODO: CHECK IF RATE HAS TO BE CALLED TO THE HELPER OR TO THE CONTRACT
+        ethAmount = help.fromAtto(tokens).div(help.getCrowdsaleExpectedRate(state, from)),
         buyTokensCommand = {account: command.account, eth: ethAmount, beneficiary: command.account};
 
       state = await runBuyTokensCommand(buyTokensCommand, state);

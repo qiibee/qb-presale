@@ -47,11 +47,11 @@ module.exports = {
     return back;
   },
 
-  sqbx2qbx: function(value){
+  fromAtto: function(value){
     return web3.fromWei(value, 'ether');
   },
 
-  qbx2sqbx: function(value){
+  toAtto: function(value){
     return web3.toWei(value, 'ether');
   },
 
@@ -107,23 +107,23 @@ module.exports = {
       ])
     ]);
 
-    debug('Total Supply:', this.sqbx2qbx(parseFloat(tokenTotalSupply)));
+    debug('Total Supply:', this.fromAtto(parseFloat(tokenTotalSupply)));
     for(let i = 0; i < 5; i++) {
       debug(
         'Account[' + (i + 1) + ']',
         accounts[i + 1],
-        ', Balance:', this.sqbx2qbx(tokenAccountBalances[i])
+        ', Balance:', this.fromAtto(tokenAccountBalances[i])
       );
     }
 
     if (totalSupply)
-      assert.equal(this.sqbx2qbx(parseFloat(tokenTotalSupply)), totalSupply);
+      assert.equal(this.fromAtto(parseFloat(tokenTotalSupply)), totalSupply);
     if (balances){
-      assert.equal(this.sqbx2qbx(tokenAccountBalances[0]), balances[0]);
-      assert.equal(this.sqbx2qbx(tokenAccountBalances[1]), balances[1]);
-      assert.equal(this.sqbx2qbx(tokenAccountBalances[2]), balances[2]);
-      assert.equal(this.sqbx2qbx(tokenAccountBalances[3]), balances[3]);
-      assert.equal(this.sqbx2qbx(tokenAccountBalances[4]), balances[4]);
+      assert.equal(this.fromAtto(tokenAccountBalances[0]), balances[0]);
+      assert.equal(this.fromAtto(tokenAccountBalances[1]), balances[1]);
+      assert.equal(this.fromAtto(tokenAccountBalances[2]), balances[2]);
+      assert.equal(this.fromAtto(tokenAccountBalances[3]), balances[3]);
+      assert.equal(this.fromAtto(tokenAccountBalances[4]), balances[4]);
     }
   },
 

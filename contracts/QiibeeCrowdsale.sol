@@ -11,7 +11,7 @@ import "./QiibeeToken.sol";
    Implementation of the QBX Token Generation Event (TGE): A 4-week, fixed token supply with a
    fixed rate until the goal (soft cap) is reached and then a dynamic rate linked to the amount of
    tokens sold is applied. TGE has a cap on the amount of token (hard cap).
-   
+
    There is pre-TGE for whitelisted investors with global a preferential rate. They can also
    have a special rate (different for each whiteslisted investor) that will apply only if they buy
    a determined amount of ETH (if not, they just get the global preferential rate).
@@ -25,14 +25,14 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
 
     using SafeMath for uint256;
 
-    uint256 public constant TOTAL_SUPPLY = 10000000000000000000000000000; //in sqbx
-    uint256 public constant FOUNDATION_SUPPLY = 7600000000000000000000000000; //in sqbx
-    uint256 public constant CROWDSALE_SUPPLY = 2400000000000000000000000000; //in sqbx
+    uint256 public constant TOTAL_SUPPLY = 10000000000000000000000000000; //in atto
+    uint256 public constant FOUNDATION_SUPPLY = 7600000000000000000000000000; //in atto
+    uint256 public constant CROWDSALE_SUPPLY = 2400000000000000000000000000; //in atto
 
     // initial rate of ether to QBX
     uint256 public initialRate;
 
-    // maximum amount of qbx (in sqbx) that can be minted
+    // maximum amount of qbx (in atto) that can be minted
     uint256 public cap;
 
     // list of all last call times by address
