@@ -350,8 +350,6 @@ async function runClaimRefundCommand(command, state) {
     hasZeroAddress ||
     state.vault[command.fromAccount] > 0;
 
-  console.log('investedWei', _.sumBy(purchases, (p) => p.wei));
-
   try {
     let currentBalance = web3.eth.getBalance(account);
 
