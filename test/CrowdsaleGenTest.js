@@ -433,15 +433,15 @@ contract('QiibeeCrowdsale Property-based test', function() {
         { type: 'checkRate', fromAccount: 3 },
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 60001 },
         { type: 'checkRate', fromAccount: 3 },
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 100000 },
+        { type: 'buyTokens', beneficiary: 3, account: 3, eth: 100000 },
         { type: 'checkRate', fromAccount: 3 },
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 150000 },
+        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 150000 },
         { type: 'checkRate', fromAccount: 3 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
         foundationWallet: 10, goal: 360000000, cap: 2400000000,
-        minInvest: 6000, maxInvest: 48000, owner: 0
+        minInvest: 6000, maxInvest: 2400000000, owner: 0
       }
     };
 
@@ -480,7 +480,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 60000 },
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'finalizeCrowdsale', fromAccount: 0 },
-        // { type: 'pauseToken', 'pause':true, 'fromAccount':0 }
+        { type: 'pauseToken', 'pause':false, 'fromAccount':0 }
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,

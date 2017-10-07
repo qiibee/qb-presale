@@ -94,7 +94,7 @@ async function runBuyTokensCommand(command, state) {
     isWhitelisted = _.includes(state.whitelist, account),
     capExceeded = state.tokensSold.plus(help.toAtto(tokens)).gt(crowdsale.cap),
     gasExceeded = (command.gasPrice > state.crowdsaleData.maxGasPrice) && inTGE && !isWhitelisted,
-    frequencyExceeded = state.lastCallTime[command.beneficiary] && ((nextTime - state.lastCallTime[command.beneficiary]) < state.crowdsaleData.maxCallFrequency) && inTGE && !isWhitelisted,
+    frequencyExceeded = state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.crowdsaleData.maxCallFrequency) && inTGE && !isWhitelisted, //TODO: account or beneficiary?
     maxExceeded = newBalance.gt(state.crowdsaleData.maxInvest) && inTGE,
     minNotReached = help.toAtto(tokens).lt(state.crowdsaleData.minInvest) && inTGE;
 
@@ -128,7 +128,7 @@ async function runBuyTokensCommand(command, state) {
     state.purchases = _.concat(state.purchases,
       {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
     );
-    state.lastCallTime[command.beneficiary] = nextTime;
+    state.lastCallTime[command.account] = nextTime; //TODO: account or beneficiary?
     state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(help.toAtto(tokens));
     state.weiRaised = state.weiRaised.plus(weiCost);
     state.tokensSold = state.tokensSold.plus(help.toAtto(tokens));
