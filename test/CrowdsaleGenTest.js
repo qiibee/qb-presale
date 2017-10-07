@@ -487,17 +487,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
     await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
   });
 
-  it('should handle the thrown exc. when trying to approve on the paused token', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [{ type:'approve','atto':0,'fromAccount':3,'spenderAccount':5}],
-      crowdsale: {
-        initialRate: 6000, preferentialRate: 8000,
-        foundationWallet: 10, goal: 360000000, cap: 2400000000,
-        minInvest: 6000, maxInvest: 48000, owner: 0
-      }
-    });
-  });
-
   it('should run the fund and finalize crowdsale command fine', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
