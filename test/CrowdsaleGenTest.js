@@ -1,6 +1,6 @@
 var _ = require('lodash');
 var colors = require('colors');
-// var jsc = require('jsverify');
+var jsc = require('jsverify');
 
 var BigNumber = web3.BigNumber;
 
@@ -29,10 +29,10 @@ contract('QiibeeCrowdsale Property-based test', function() {
   const zero = new BigNumber(0);
 
   //TODO: fix
-  // let crowdsaleTestInputGen = jsc.record({
-  //   commands: jsc.array(jsc.nonshrink(commands.commandsGen)),
-  //   crowdsale: jsc.nonshrink(gen.crowdsaleGen)
-  // });
+  let crowdsaleTestInputGen = jsc.record({
+    commands: jsc.array(jsc.nonshrink(commands.commandsGen)),
+    crowdsale: jsc.nonshrink(gen.crowdsaleGen)
+  });
 
   let sumBigNumbers = (arr) => _.reduce(arr, (accum, x) => accum.plus(x), zero);
 
@@ -70,7 +70,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
   };
 
   let runGeneratedCrowdsaleAndCommands = async function(input) {
-
     await increaseTimeTestRPC(60);
     let startPreTime = latestTime() + duration.days(1);
     let endPreTime = startPreTime + duration.days(1);
@@ -157,16 +156,12 @@ contract('QiibeeCrowdsale Property-based test', function() {
         purchases: [],
         weiRaised: zero,
         tokensSold: zero,
-        // totalPresaleWei: zero,
         crowdsalePaused: false,
         tokenPaused: true,
         crowdsaleFinalized: false,
-        // weiPerUSDinTGE: 0,
         goalReached: false,
         owner: owner,
         crowdsaleSupply: zero,
-        // MVMBuyPrice: new BigNumber(0),
-        // MVMBurnedTokens: new BigNumber(0),
         burnedTokens: zero,
         returnedWeiForBurnedTokens: new BigNumber(0),
         vault: {},
@@ -387,7 +382,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
   });
 
   // CROWDSALE TESTS
-  it('does not fail on some specific examples that once failed', async function() {
+  it('does not fail on some specific examples', async function() {
 
     await runGeneratedCrowdsaleAndCommands({
       commands: [
@@ -416,7 +411,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
 
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        { 'type':'fundCrowdsaleBelowSoftCap','account':7,'finalize':false}
+        { 'type':'fundCrowdsaleBelowCap','account':7,'finalize':false}
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
@@ -506,7 +501,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
   it('should run the fund and finalize crowdsale command fine', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        {'type':'fundCrowdsaleBelowSoftCap','account':0,'finalize':true}
+        {'type':'fundCrowdsaleBelowCap','account':0,'finalize':true}
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
@@ -519,7 +514,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
   it('should run the fund crowdsale below cap without finalize command fine', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        {'type':'fundCrowdsaleBelowSoftCap','account':0,'finalize':false}
+        {'type':'fundCrowdsaleBelowCap','account':0,'finalize':false}
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
@@ -529,18 +524,69 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  //TODO: FIX!
-  // it('distributes tokens correctly on any combination of bids', async function() {
-  //   // stateful prob based tests can take a long time to finish when shrinking...
-  //   this.timeout(GEN_TESTS_TIMEOUT * 1000);
-
-  //   let property = jsc.forall(crowdsaleTestInputGen, async function(crowdsaleAndCommands) {
-  //     return await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
+  //CHECK BELOW TESTS!
+  // it('should handle fund, finalize and burn with 0 tokens', async function() {
+  //   await runGeneratedCrowdsaleAndCommands({
+  //     commands: [
+  //       {'type':'fundCrowdsaleBelowSoftCap','account':3,'finalize':true},
+  //       {'type':'burnTokens','account':4,'tokens':0}
+  //     ],
+  //     crowdsale: {
+  //       rate1: 11, rate2: 13, foundationWallet: 3, foundersWallet: 2,
+  //       setWeiLockSeconds: 2273, owner: 1
+  //     }
   //   });
-
-  //   console.log('Generative tests to run:', GEN_TESTS_QTY);
-  //   return jsc.assert(property, {tests: GEN_TESTS_QTY});
   // });
+
+  // it('should run the fund over soft cap and finalize crowdsale command fine', async function() {
+  //   await runGeneratedCrowdsaleAndCommands({
+  //     commands: [
+  //       {'type':'fundCrowdsaleOverSoftCap','account':3,'softCapExcessWei':10,'finalize':true}
+  //     ],
+  //     crowdsale: {
+  //       rate1: 20, rate2: 46,
+  //       foundationWallet: 4, foundersWallet: 2,
+  //       setWeiLockSeconds: 521, owner: 0
+  //     }
+  //   });
+  // });
+
+  // it('should run fund and finalize crowdsale below cap, the burn tokens fine', async function() {
+  //   await runGeneratedCrowdsaleAndCommands({
+  //     commands: [
+  //       {'type':'fundCrowdsaleBelowSoftCap','account':8,'finalize':true},
+  //       {'type':'burnTokens','account':5,'tokens':44}
+  //     ],
+  //     crowdsale: {
+  //       rate1: 1, rate2: 6, foundationWallet: 5, foundersWallet: 2, setWeiLockSeconds: 2176, owner: 10
+  //     }
+  //   });
+  // });
+
+  // it('should run the fund and finalize below and over soft cap sequence fine', async function() {
+  //   await runGeneratedCrowdsaleAndCommands({
+  //     commands: [
+  //       {'type':'fundCrowdsaleBelowSoftCap','account':3,'finalize':false},
+  //       {'type':'fundCrowdsaleOverSoftCap','account':10,'softCapExcessWei':15,'finalize':false}
+  //     ],
+  //     crowdsale: {
+  //       rate1: 26, rate2: 28, foundationWallet: 9, foundersWallet: 2,
+  //       setWeiLockSeconds: 2696, owner: 6
+  //     }
+  //   });
+  // });
+  //CHECK UNTIL HERE
+
+  it('distributes tokens correctly on any combination of bids', async function() {
+    // stateful prob based tests can take a long time to finish when shrinking...
+    this.timeout(GEN_TESTS_TIMEOUT * 1000);
+
+    let property = jsc.forall(crowdsaleTestInputGen, async function(crowdsaleAndCommands) {
+      return await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
+    });
+
+    return jsc.assert(property, {tests: GEN_TESTS_QTY});
+  });
 
   //REFUNDABLE TESTS
   it('should have vault state set to Active when crowdsale is finished and did not reach the goal', async function () {

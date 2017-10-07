@@ -366,94 +366,6 @@ async function runClaimRefundCommand(command, state) {
   return state;
 }
 
-async function runTransferCommand(command, state) {
-
-  let fromAddress = gen.getAccount(command.fromAccount),
-    toAddress = gen.getAccount(command.toAccount),
-    fromBalance = getBalance(state, command.fromAccount),
-    atto = help.toAtto(command.lif),
-    hasZeroAddress = _.some([fromAddress], isZeroAddress),
-    shouldThrow = state.tokenPaused || fromBalance.lt(atto) ||
-      (hasZeroAddress &  new BigNumber(atto).gt(0));
-
-  try {
-    await state.token.transfer(toAddress, atto, {from: fromAddress});
-
-    assert.equal(false, shouldThrow, 'transfer should have thrown but it did not');
-
-    // TODO: take spent gas into account?
-    state.balances[command.fromAccount] = fromBalance.minus(atto);
-    state.balances[command.toAccount] = getBalance(state, command.toAccount).plus(atto);
-  } catch(e) {
-    assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
-  }
-  return state;
-}
-
-function getAllowance(state, sender, from) {
-  if (!state.allowances[sender])
-    state.allowances[sender] = {};
-  return state.allowances[sender][from] || new BigNumber(0);
-}
-
-function setAllowance(state, sender, from, allowance) {
-  if (!state.allowances[sender])
-    state.allowances[sender] = {};
-  return state.allowances[sender][from] = allowance;
-}
-
-async function runApproveCommand(command, state) {
-
-  let fromAddress = gen.getAccount(command.fromAccount),
-    spenderAddress = gen.getAccount(command.spenderAccount),
-    atto = help.toAtto(command.qbx),
-    hasZeroAddress = _.some([fromAddress], isZeroAddress),
-    shouldThrow = state.tokenPaused || (hasZeroAddress &  new BigNumber(atto).gt(0));
-
-  try {
-    await state.token.approve(spenderAddress, atto, {from: fromAddress});
-
-    assert.equal(false, shouldThrow, 'approve should have thrown but it did not');
-
-    // TODO: take spent gas into account?
-    setAllowance(state, command.fromAccount, command.spenderAccount, atto);
-  } catch(e) {
-    assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
-  }
-  return state;
-}
-
-async function runTransferFromCommand(command, state) {
-
-  let senderAddress = gen.getAccount(command.senderAccount),
-    fromAddress = gen.getAccount(command.fromAccount),
-    toAddress = gen.getAccount(command.toAccount),
-    fromBalance = getBalance(state, command.fromAccount),
-    atto = help.toAtto(command.lif),
-    allowance = getAllowance(state, command.senderAccount, command.fromAccount),
-    hasZeroAddress = _.some([fromAddress], isZeroAddress);
-
-  let shouldThrow = state.tokenPaused ||
-    fromBalance.lt(atto) ||
-    (isZeroAddress(senderAddress) & new BigNumber(atto).gt(0)) ||
-    hasZeroAddress ||
-    (allowance < atto);
-
-  try {
-    await state.token.transferFrom(senderAddress, toAddress, atto, {from: fromAddress});
-
-    assert.equal(false, shouldThrow, 'transferFrom should have thrown but it did not');
-
-    // TODO: take spent gas into account?
-    state.balances[command.fromAccount] = fromBalance.minus(atto);
-    state.balances[command.toAccount] = getBalance(state, command.toAccount).plus(atto);
-    setAllowance(state, command.senderAccount, command.fromAccount, allowance.minus(atto));
-  } catch(e) {
-    assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
-  }
-  return state;
-}
-
 async function runBurnTokensCommand(command, state) {
   let account = gen.getAccount(command.account),
     balance = getBalance(state, command.account),
@@ -476,7 +388,7 @@ async function runBurnTokensCommand(command, state) {
   return state;
 }
 
-async function runFundCrowdsaleBelowSoftCap(command, state) {
+async function runFundCrowdsaleBelowCap(command, state) {
 
   if (!state.crowdsaleFinalized) {
     // unpause the crowdsale if needed
@@ -494,7 +406,7 @@ async function runFundCrowdsaleBelowSoftCap(command, state) {
         await increaseTimeTestRPCTo(state.crowdsaleData.startTime);
       }
 
-      // buy enough tokens to exactly reach the minCap (which is less than softCap)
+      // buy enough tokens to reach the goal
       let tokens = goal.minus(tokensSold),
         ethAmount = help.fromAtto(tokens).div(help.getCrowdsaleExpectedRate(state, from)),
         buyTokensCommand = {account: command.account, eth: ethAmount, beneficiary: command.account};
@@ -526,19 +438,16 @@ const commands = {
   waitTime: {gen: gen.waitTimeCommandGen, run: runWaitTimeCommand},
   checkRate: {gen: gen.checkRateCommandGen, run: runCheckRateCommand},
   setWallet: {gen: gen.setWalletCommandGen, run: runSetWalletCommand},
-  sendTransaction: {gen: gen.sendTransactionCommandGen, run: runSendTransactionCommand},
   buyTokens: {gen: gen.buyTokensCommandGen, run: runBuyTokensCommand},
   burnTokens: {gen: gen.burnTokensCommandGen, run: runBurnTokensCommand},
+  sendTransaction: {gen: gen.sendTransactionCommandGen, run: runSendTransactionCommand},
   pauseCrowdsale: {gen: gen.pauseCrowdsaleCommandGen, run: runPauseCrowdsaleCommand},
   pauseToken: {gen: gen.pauseTokenCommandGen, run: runPauseTokenCommand},
   finalizeCrowdsale: {gen: gen.finalizeCrowdsaleCommandGen, run: runFinalizeCrowdsaleCommand},
   claimRefund: {gen: gen.claimRefundCommandGen, run: runClaimRefundCommand},
-  transfer: {gen: gen.transferCommandGen, run: runTransferCommand},
-  approve: {gen: gen.approveCommandGen, run: runApproveCommand},
-  transferFrom: {gen: gen.transferFromCommandGen, run: runTransferFromCommand},
-  fundCrowdsaleBelowSoftCap: {gen: gen.fundCrowdsaleBelowSoftCap, run: runFundCrowdsaleBelowSoftCap},
-  addToWhitelist: { gen: gen.addToWhitelistGen, run: runAddToWhitelistCommand},
-  setBuyerRate: { gen: gen.setBuyerRateGen, run: runSetBuyerRateCommand},
+  fundCrowdsaleBelowCap: {gen: gen.fundCrowdsaleBelowCapCommandGen, run: runFundCrowdsaleBelowCap},
+  addToWhitelist: { gen: gen.addToWhitelistCommandGen, run: runAddToWhitelistCommand},
+  setBuyerRate: { gen: gen.setBuyerRateCommandGen, run: runSetBuyerRateCommand},
 };
 
 module.exports = {
