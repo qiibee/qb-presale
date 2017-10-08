@@ -2,19 +2,6 @@ var QiibeeCrowdsale = artifacts.require('./QiibeeCrowdsale.sol');
 
 var latestTime = require('./helpers/latestTime');
 var {duration} = require('./helpers/increaseTime');
-// var help = require('./helpers');
-
-// function ExceptionRunningCommand(e) {
-//   this.error = e;
-// }
-
-// function assertExpectedException(e, shouldThrow) {
-//   let isKnownException = help.isInvalidOpcodeEx(e);
-//   if (!shouldThrow || !isKnownException) {
-//     throw(new ExceptionRunningCommand(e));
-//   }
-// }
-
 
 contract('qbxToken Crowdsale', function(accounts) {
 
@@ -41,42 +28,5 @@ contract('qbxToken Crowdsale', function(accounts) {
     assert.equal(10000, parseInt(await crowdsale.cap.call()));
     assert.equal(accounts[0], parseInt(await crowdsale.wallet.call()));
   });
-
-  // it('can NOT create a Crowdsale', async function() {
-  //   const startPreTime = latestTime() - duration.days(1),
-  //     endPreTime = startPreTime + duration.days(1),
-  //     startTime = endPreTime + duration.days(1),
-  //     endTime = startTime + duration.days(1);
-
-  //   const initialRate = 100,
-  //     preferentialRate = 150,
-  //     goal = 5000,
-  //     cap = 10000,
-  //     minInvest = 1000,
-  //     maxInvest = 2500;
-
-  //   let shouldThrow = endPreTime >= startTime ||
-  //     startPreTime < latestTime() ||
-  //     initialRate == 0 ||
-  //     preferentialRate == 0 ||
-  //     cap == 0 ||
-  //     goal == 0 ||
-  //     goal > cap ||
-  //     minInvest == 0 ||
-  //     maxInvest == 0;
-
-  //   try {
-  //     await QiibeeCrowdsale.new(
-  //       startPreTime, endPreTime,
-  //       startTime, endTime,
-  //       initialRate, preferentialRate, goal, cap,
-  //       minInvest, maxInvest, accounts[0]
-  //     );
-  //     assert.equal(false, shouldThrow, 'new QiibeeCrowdsale should have thrown but it didn\'t');
-  //   } catch (e) {
-  //     assertExpectedException(e, shouldThrow);
-  //   }
-
-  // });
 
 });

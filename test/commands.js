@@ -293,7 +293,7 @@ async function runFinalizeCrowdsaleCommand(command, state) {
     state.crowdsalePaused ||
     !preTGEDone ||
     hasZeroAddress ||
-    (nextTimestamp <= state.crowdsaleData.endTime);
+    nextTimestamp <= state.crowdsaleData.endTime;
 
   try {
 
@@ -371,12 +371,12 @@ async function runBurnTokensCommand(command, state) {
 
   let shouldThrow = state.tokenPaused ||
     (balance < command.tokens) ||
+    command.tokens == 0 ||
     hasZeroAddress;
 
   try {
     await state.token.burn(command.tokens, {from: account});
     assert.equal(false, shouldThrow, 'burn should have thrown but it did not');
-
     state.balances[account] = balance.minus(command.tokens);
     state.totalSupply = state.totalSupply.minus(command.tokens);
 
@@ -419,12 +419,11 @@ async function runFundCrowdsaleBelowCap(command, state) {
       if (latestTime() < state.crowdsaleData.endTime) {
         await increaseTimeTestRPCTo(state.crowdsaleData.endTime + 1);
       }
-
       state = await runFinalizeCrowdsaleCommand({fromAccount: command.account}, state);
-
       // verify that the crowdsale is finalized and funded
       assert.equal(true, state.crowdsaleFinalized);
       assert.equal(true, state.goalReached);
+
     }
   }
 

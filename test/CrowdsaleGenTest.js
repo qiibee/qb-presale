@@ -513,20 +513,21 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  //CHECK BELOW TESTS!
-  // it('should handle fund, finalize and burn with 0 tokens', async function() {
-  //   await runGeneratedCrowdsaleAndCommands({
-  //     commands: [
-  //       {'type':'fundCrowdsaleBelowSoftCap','account':3,'finalize':true},
-  //       {'type':'burnTokens','account':4,'tokens':0}
-  //     ],
-  //     crowdsale: {
-  //       rate1: 11, rate2: 13, foundationWallet: 3, foundersWallet: 2,
-  //       setWeiLockSeconds: 2273, owner: 1
-  //     }
-  //   });
-  // });
+  it('should handle fund, finalize and burn with 0 tokens', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        {'type':'fundCrowdsaleBelowCap','account':0,'finalize':true},
+        {'type':'burnTokens','account':4,'tokens':0}
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 360000000, owner: 0
+      }
+    });
+  });
 
+  //TODO: add this test
   // it('should run the fund over soft cap and finalize crowdsale command fine', async function() {
   //   await runGeneratedCrowdsaleAndCommands({
   //     commands: [
@@ -540,18 +541,21 @@ contract('QiibeeCrowdsale Property-based test', function() {
   //   });
   // });
 
-  // it('should run fund and finalize crowdsale below cap, the burn tokens fine', async function() {
-  //   await runGeneratedCrowdsaleAndCommands({
-  //     commands: [
-  //       {'type':'fundCrowdsaleBelowSoftCap','account':8,'finalize':true},
-  //       {'type':'burnTokens','account':5,'tokens':44}
-  //     ],
-  //     crowdsale: {
-  //       rate1: 1, rate2: 6, foundationWallet: 5, foundersWallet: 2, setWeiLockSeconds: 2176, owner: 10
-  //     }
-  //   });
-  // });
+  it('should run fund and finalize crowdsale below cap, then burn tokens fine', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        {'type':'fundCrowdsaleBelowCap','account':0,'finalize':true},
+        {'type':'burnTokens','account':5,'tokens':44}
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 360000000, owner: 0
+      }
+    });
+  });
 
+  //TODO: ADD THIS TEST
   // it('should run the fund and finalize below and over soft cap sequence fine', async function() {
   //   await runGeneratedCrowdsaleAndCommands({
   //     commands: [
@@ -564,7 +568,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
   //     }
   //   });
   // });
-  //CHECK UNTIL HERE
 
   it('distributes tokens correctly on any combination of bids', async function() {
     // stateful prob based tests can take a long time to finish when shrinking...
