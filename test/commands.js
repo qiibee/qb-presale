@@ -50,7 +50,6 @@ async function runCheckRateCommand(command, state) {
   let from = gen.getAccount(command.fromAccount);
   let expectedRate = help.getCrowdsaleExpectedRate(state, from);
   let rate = await state.crowdsaleContract.getRate({from: from});
-
   assert.equal(expectedRate, rate,
     'expected rate is different! Expected: ' + expectedRate + ', actual: ' + rate + '. blocks: ' + web3.eth.blockTimestamp +
     ', start/initialRate/preferentialRate: ' + state.crowdsaleData.startTime + '/' + state.crowdsaleData.initialRate + '/' + state.crowdsaleData.preferentialRate);
@@ -109,6 +108,7 @@ async function runBuyTokensCommand(command, state) {
     crowdsale.cap == 0 ||
     crowdsale.minInvest == 0 ||
     crowdsale.maxInvest == 0 ||
+    crowdsale.minInvest > state.maxInvest ||
     state.crowdsaleFinalized ||
     hasZeroAddress ||
     weiCost == 0 ||
@@ -142,24 +142,45 @@ async function runBuyTokensCommand(command, state) {
 async function runSendTransactionCommand(command, state) {
 
   let crowdsale = state.crowdsaleData,
-    { startTime, endTime } = crowdsale,
-    weiCost = parseInt(web3.toWei(command.eth, 'ether')),
-    nextTimestamp = latestTime(),
+    { startPreTime, endPreTime, startTime, endTime} = crowdsale,
+    weiCost = web3.toWei(command.eth, 'ether'),
+    nextTime = latestTime(),
     account = gen.getAccount(command.account),
-    rate = help.getCrowdsaleExpectedRate(state, account),
-    tokens = new BigNumber(command.eth).mul(rate);
+    beneficiaryAccount = gen.getAccount(command.beneficiary),
+    rate = help.getCrowdsaleExpectedRate(state, account, weiCost),
+    tokens = new BigNumber(command.eth).mul(rate),
+    hasZeroAddress = _.some([account, beneficiaryAccount], isZeroAddress),
+    newBalance = getBalance(state, command.beneficiary).plus(help.toAtto(tokens));
 
-  let inTGE = nextTimestamp >= startTime && nextTimestamp <= endTime,
-    hasZeroAddress = isZeroAddress(account);
+  let inTGE = nextTime >= startTime && nextTime <= endTime,
+    inPreTGE = nextTime >= startPreTime && nextTime <= endPreTime,
+    isWhitelisted = _.includes(state.whitelist, account),
+    capExceeded = state.tokensSold.plus(help.toAtto(tokens)).gt(crowdsale.cap),
+    gasExceeded = (command.gasPrice > state.crowdsaleData.maxGasPrice) && inTGE && !isWhitelisted,
+    frequencyExceeded = state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.crowdsaleData.maxCallFrequency) && inTGE && !isWhitelisted, //TODO: account or beneficiary?
+    maxExceeded = newBalance.gt(state.crowdsaleData.maxInvest) && inTGE,
+    minNotReached = help.toAtto(tokens).lt(state.crowdsaleData.minInvest) && inTGE;
 
-  let shouldThrow = (!inTGE) ||
-    (inTGE && crowdsale.initialRate == 0) || //TODO: below
+  let shouldThrow = (inPreTGE && !isWhitelisted) ||
+    (nextTime < startPreTime) ||
+    (nextTime > endPreTime && nextTime < startTime) ||
+    (nextTime > endTime) ||
     (state.crowdsalePaused) ||
-    (crowdsale.goal == 0) ||
-    (crowdsale.cap == 0) ||
-    (state.crowdsaleFinalized) ||
-    (command.eth == 0) ||
-    hasZeroAddress;
+    //TODO: add reuqirements for TOTAL SUPPLY, FOUNDATION, etc
+    crowdsale.initialRate == 0 ||
+    crowdsale.goal == 0 ||
+    crowdsale.cap == 0 ||
+    crowdsale.minInvest == 0 ||
+    crowdsale.maxInvest == 0 ||
+    crowdsale.minInvest > state.maxInvest ||
+    state.crowdsaleFinalized ||
+    hasZeroAddress ||
+    weiCost == 0 ||
+    maxExceeded ||
+    minNotReached ||
+    frequencyExceeded ||
+    gasExceeded ||
+    capExceeded;
   try {
     // help.debug(colors.yellow('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.end1Timestamp, end2Timestamp, 'blockTimestamp:', nextTimestamp));
     await state.crowdsaleContract.sendTransaction({value: weiCost, from: account});
@@ -293,7 +314,8 @@ async function runFinalizeCrowdsaleCommand(command, state) {
     state.crowdsalePaused ||
     !preTGEDone ||
     hasZeroAddress ||
-    nextTimestamp <= state.crowdsaleData.endTime;
+    nextTimestamp <= state.crowdsaleData.endTime ||
+    command.fromAccount != state.owner;
 
   try {
 

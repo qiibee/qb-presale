@@ -24,19 +24,19 @@ module.exports = {
   getAccount: getAccount,
 
   crowdsaleGen: jsc.record({
-    initialRate: jsc.nat,
-    preferentialRate: jsc.nat,
-    goal: jsc.nat,
-    cap: jsc.nat,
-    minInvest: jsc.nat,
-    maxInvest: jsc.nat,
+    initialRate: jsc.integer(0, 20000),
+    preferentialRate: jsc.integer(0, 20000),
+    goal: jsc.integer(0, 1000000000),
+    cap: jsc.integer(0, 1000000000),
+    minInvest: jsc.integer(0, 1000000000),
+    maxInvest: jsc.integer(0, 1000000000),
     foundationWallet: accountGen,
     owner: accountGen
   }),
 
   waitTimeCommandGen: jsc.record({
     type: jsc.constant('waitTime'),
-    seconds: jsc.nat
+    seconds: jsc.integer(0, 1000000000)
   }),
 
   checkRateCommandGen: jsc.record({
@@ -54,20 +54,20 @@ module.exports = {
     type: jsc.constant('buyTokens'),
     account: accountGen,
     beneficiary: accountGen,
-    eth: jsc.nat
+    eth: jsc.nat(0, 200)
   }),
 
   burnTokensCommandGen: jsc.record({
     type: jsc.constant('burnTokens'),
     account: accountGen,
-    tokens: jsc.nat
+    tokens: jsc.integer(0, 1000000000)
   }),
 
   sendTransactionCommandGen: jsc.record({
     type: jsc.constant('sendTransaction'),
     account: accountGen,
     beneficiary: accountGen,
-    eth: jsc.nat
+    eth: jsc.integer(0, 1000000000)
   }),
 
   pauseCrowdsaleCommandGen: jsc.record({
@@ -107,7 +107,7 @@ module.exports = {
 
   setBuyerRateCommandGen: jsc.record({
     type: jsc.constant('setBuyerRate'),
-    rate: jsc.nat,
+    rate: jsc.integer(0, 20000),
     whitelistedAccount: knownAccountGen,
     fromAccount: accountGen,
   })

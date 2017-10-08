@@ -89,6 +89,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         require(_goal <= _cap);
         require(_minInvest > 0);
         require(_maxInvest > 0);
+        require(_minInvest <= _maxInvest);
         require(_endPreTime < _startTime);
 
         initialRate = _initialRate;

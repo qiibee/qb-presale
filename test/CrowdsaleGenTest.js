@@ -91,6 +91,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
       (cap == 0) ||
       (minInvest == 0) ||
       (maxInvest == 0) ||
+      (minInvest > maxInvest) ||
       (goal >= cap) ||
       (ownerAddress == 0) ||
       (foundationWallet == 0);
@@ -131,6 +132,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
         crowdsaleData.foundationWallet,
         {from: ownerAddress}
       );
+
       assert.equal(false, shouldThrow, 'create Crowdsale should have thrown but it did not');
 
       let token = QiibeeToken.at(await crowdsale.token());
@@ -555,7 +557,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     });
   });
 
-  //TODO: ADD THIS TEST
+  // TODO: ADD THIS TEST
   // it('should run the fund and finalize below and over soft cap sequence fine', async function() {
   //   await runGeneratedCrowdsaleAndCommands({
   //     commands: [
@@ -609,6 +611,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'finalizeCrowdsale', fromAccount: 0 },
         { type: 'claimRefund', fromAccount: 4, investedEth: 50000 },
+        { type: 'claimRefund', fromAccount: 2, investedEth: 50000 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
