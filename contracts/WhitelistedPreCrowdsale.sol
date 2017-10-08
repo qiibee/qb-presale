@@ -37,7 +37,7 @@ contract WhitelistedPreCrowdsale is Crowdsale, Ownable {
 
     function addToWhitelist(address buyer) public onlyOwner {
         require(buyer != address(0));
-        require(now <= startPreTime);
+        require(now < startPreTime);
 
         whitelist[buyer] = true;
     }

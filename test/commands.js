@@ -214,7 +214,8 @@ async function runAddToWhitelistCommand(command, state) {
 
   let shouldThrow = hasZeroAddress ||
     command.fromAccount != state.owner ||
-    nextTimestamp > startPreTime;
+    nextTimestamp >= startPreTime;
+
   try {
     await state.crowdsaleContract.addToWhitelist(whitelistedAccount, {from: account});
     assert.equal(false, shouldThrow, 'add to whitelist should have thrown but it did not');
@@ -279,9 +280,8 @@ async function runPauseTokenCommand(command, state) {
     hasZeroAddress = isZeroAddress(account);
 
   let shouldThrow = (state.tokenPaused == command.pause) ||
-    // (state.crowdsaleFinalized && state.tokenPaused != command.pause) ||
     !state.crowdsaleFinalized ||
-    (command.fromAccount != state.owner) ||
+    command.fromAccount != state.owner ||
     hasZeroAddress;
 
   help.debug(colors.yellow('pausing token, previous state:', state.tokenPaused, 'new state:', command.pause));

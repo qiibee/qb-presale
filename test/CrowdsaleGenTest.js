@@ -28,7 +28,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
 
   const zero = new BigNumber(0);
 
-  //TODO: fix
   let crowdsaleTestInputGen = jsc.record({
     commands: jsc.array(jsc.nonshrink(commands.commandsGen)),
     crowdsale: jsc.nonshrink(gen.crowdsaleGen)
@@ -473,11 +472,11 @@ contract('QiibeeCrowdsale Property-based test', function() {
         { type: 'waitTime','seconds':duration.days(3)},
         { type: 'pauseToken', 'pause':true, 'fromAccount':0 },
         { type: 'pauseToken', 'pause':false, 'fromAccount':0 },
-        { type: 'pauseToken', 'pause':true, 'fromAccount':0 },
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 60000 },
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'finalizeCrowdsale', fromAccount: 0 },
-        { type: 'pauseToken', 'pause':false, 'fromAccount':0 }
+        { type: 'pauseToken', 'pause':false, 'fromAccount':0 },
+        { type: 'pauseToken', 'pause':true, 'fromAccount':10 }
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
