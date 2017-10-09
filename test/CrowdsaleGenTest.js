@@ -596,7 +596,8 @@ contract('QiibeeCrowdsale Property-based test', function() {
       if(_.find(crowdsaleAndCommands.commands, {type: 'fundCrowdsaleBelowCap'})) {
         //TODO: change this fix to something cleaner
         let crowdsaleAndCommandsFixed = crowdsaleAndCommands;
-        crowdsaleAndCommandsFixed.crowdsale.maxInvest = crowdsaleAndCommandsFixed.crowdsale.goal + 100;
+        crowdsaleAndCommandsFixed.crowdsale.maxInvest = crowdsaleAndCommandsFixed.crowdsale.goal +
+          crowdsaleAndCommandsFixed.crowdsale.initialRate;
         return await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommandsFixed);
       } else {
         return await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
@@ -630,12 +631,63 @@ contract('QiibeeCrowdsale Property-based test', function() {
       commands: [
         { type: 'checkRate', fromAccount: 3 },
         { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 50000, gasPrice: 0 },
+        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 5, gasPrice: 0 },
         { type: 'checkRate', fromAccount: 3 },
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'finalizeCrowdsale', fromAccount: 0 },
-        { type: 'claimRefund', fromAccount: 4, investedEth: 50000 },
-        { type: 'claimRefund', fromAccount: 2, investedEth: 50000 },
+        { type: 'claimRefund', fromAccount: 4, investedEth: 5 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
+      }
+    });
+  });
+
+  it('should refund investor with NOTHING if crowdsale did not reach the goal and he never purchased', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 5, gasPrice: 0 },
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'finalizeCrowdsale', fromAccount: 0 },
+        { type: 'claimRefund', fromAccount: 7, investedEth: 5 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
+      }
+    });
+  });
+
+  it('should NOT refund investor if crowdsale reached the goal', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'fundCrowdsaleBelowCap','account':7,'finalize':false},
+        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 5, gasPrice: 0 },
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'finalizeCrowdsale', fromAccount: 2 },
+        { type: 'claimRefund', fromAccount: 4, investedEth: 5 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 360000000, owner: 0
+      }
+    });
+  });
+
+  it('should NOT refund investor if crowdsale during TGE', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'checkRate', fromAccount: 3 },
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 5, gasPrice: 0 },
+        { type: 'claimRefund', fromAccount: 4, investedEth: 5 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,

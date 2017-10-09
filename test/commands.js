@@ -375,9 +375,11 @@ async function runClaimRefundCommand(command, state) {
 
     await state.crowdsaleContract.claimRefund({from: account, gasPrice: 0});
     assert.equal(false, shouldThrow, 'claimRefund should have thrown but it did not');
-    let balanceAfterClaimRefund = web3.eth.getBalance(account);
-    assert.equal((balanceAfterClaimRefund.sub(currentBalance)).eq(investedWei), true);
 
+    let balanceAfterClaimRefund = web3.eth.getBalance(account);
+    assert.equal(balanceAfterClaimRefund.sub(currentBalance), investedWei);
+
+    help.debug(colors.yellow('investedEth: ', investedWei, 'balance before claiming: ', currentBalance, ', balance after claiming:', balanceAfterClaimRefund, 'vault state:', JSON.stringify(state.vault)));
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
