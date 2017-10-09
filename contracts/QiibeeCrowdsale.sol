@@ -2,7 +2,7 @@ pragma solidity ^0.4.11;
 
 import "./RefundableOnTokenCrowdsale.sol";
 import "zeppelin-solidity/contracts/crowdsale/Crowdsale.sol";
-import "./WhitelistedPreCrowdsale.sol";
+import "./WhitelistedPresale.sol";
 import "./QiibeeToken.sol";
 
 /**
@@ -21,7 +21,7 @@ import "./QiibeeToken.sol";
    by the originating addresses.
  */
 
-contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale, Pausable {
+contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Pausable {
 
     using SafeMath for uint256;
 
@@ -80,7 +80,7 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         uint256 _maxInvest,
         address _wallet
     )
-        WhitelistedPreCrowdsale(_preferentialRate, _startPreTime, _endPreTime)
+        WhitelistedPresale(_preferentialRate, _startPreTime, _endPreTime)
         RefundableOnTokenCrowdsale(_goal)
         Crowdsale(_startTime, _endTime, _initialRate, _wallet)
     {

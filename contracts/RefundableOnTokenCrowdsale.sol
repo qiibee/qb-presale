@@ -24,24 +24,36 @@ contract RefundableOnTokenCrowdsale is FinalizableCrowdsale {
   // Amount of qbx minted and transferred during the TGE
   uint256 public tokensSold;
 
+  /*
+   * @dev Constructor. Sets the goal (soft cap) for the crowdsale.
+   * @param _goal goal (soft cap) that crowdsale has.
+  */
   function RefundableOnTokenCrowdsale(uint256 _goal) {
     require(_goal > 0);
     vault = new RefundVault(wallet);
     goal = _goal;
   }
 
-  // We're overriding the fund forwarding from Crowdsale.
-  // In addition to sending the funds, we want to call
-  // the RefundVault deposit function
+  /*
+   * @dev Forward funds to a RefundVault so as a mechanism to be able to claim funds later.
+   * Overrides Crowdsale#forwardFunds() so it deposits funds in the RefundVault.
+  */
   function forwardFunds() internal {
     vault.deposit.value(msg.value)(msg.sender);
   }
 
+  /*
+   * @dev Gets the current state of the RefundVault.
+   * @return 0, 1 or 2 according the current state of the RefundVault.
+  */
   function getVaultState() public constant returns (RefundVault.State) {
     return vault.state();
   }
 
-  // if crowdsale is unsuccessful, investors can claim refunds here
+  /*
+   * @dev Function to claim funds made by the sender. It can be called only if the crowdsale is
+   * finalized and the goal has not been reached.
+  */
   function claimRefund() {
     require(isFinalized);
     require(!goalReached());
@@ -49,7 +61,10 @@ contract RefundableOnTokenCrowdsale is FinalizableCrowdsale {
     vault.refund(msg.sender);
   }
 
-  // vault finalization task, called when owner calls finalize()
+  /*
+   * @dev Finalization task, called when finalize() is called. Checks if goal has been reached or
+   * not and closes or enables refunding accordingly.
+  */
   function finalization() internal {
     if (goalReached()) {
       vault.close();
@@ -60,6 +75,10 @@ contract RefundableOnTokenCrowdsale is FinalizableCrowdsale {
     super.finalization();
   }
 
+  /*
+   * @dev Checks if the goal has been reached (this means if tokensSold is greater of equal than
+   the goal).
+  */
   function goalReached() public constant returns (bool) {
     return tokensSold >= goal; //TODO: is it okay >= or i have to use .gt()
   }
