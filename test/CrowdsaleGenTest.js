@@ -596,7 +596,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
       if(_.find(crowdsaleAndCommands.commands, {type: 'fundCrowdsaleBelowCap'})) {
         //TODO: change this fix to something cleaner
         let crowdsaleAndCommandsFixed = crowdsaleAndCommands;
-        crowdsaleAndCommandsFixed.crowdsale.maxInvest = crowdsaleAndCommandsFixed.crowdsale.goal;
+        crowdsaleAndCommandsFixed.crowdsale.maxInvest = crowdsaleAndCommandsFixed.crowdsale.goal + 100;
         return await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommandsFixed);
       } else {
         return await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);

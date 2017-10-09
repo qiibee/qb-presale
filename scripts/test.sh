@@ -43,5 +43,7 @@ else
   testrpc_pid=$!
 fi
 
+rm -f .node-xmlhttprequest-sync-[0-9]*
+rm -f .node-xmlhttprequest-content-[0-9]*
 ./node_modules/.bin/truffle compile
 ./node_modules/.bin/truffle test $@

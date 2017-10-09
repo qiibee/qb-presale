@@ -322,17 +322,16 @@ async function runFinalizeCrowdsaleCommand(command, state) {
 
     help.debug(colors.yellow('finishing crowdsale on block', nextTimestamp, ', from address:', gen.getAccount(command.fromAccount), ', funded:', goalReached));
 
-    console.log('token owner before finalize', await state.token.owner());
+    let ownerBeforeFinalize = await state.token.owner();
 
     await state.crowdsaleContract.finalize({from: account});
 
+    let ownerAfterFinalize = await state.token.owner();
+
     if (goalReached) {
-      //TODO: CHECK CHANGE OF OWNERSHIP
-      console.log('foundation wallet', state.crowdsaleData.foundationWallet);
-      console.log('owner', await state.crowdsaleContract.owner());
-      console.log('owner', await state.token.owner());
-      // assert.equal(state.crowdsaleData.foundationWallet, await state.crowdsaleContract.owner());
-      // assert.equal(state.crowdsaleData.foundationWallet, await state.token.owner());
+      //check token ownership change
+      assert.notEqual(ownerBeforeFinalize, ownerAfterFinalize);
+      assert.equal(state.crowdsaleData.foundationWallet, ownerAfterFinalize);
 
       let foundationWallet = await state.crowdsaleContract.wallet(),
         totalSupply = new BigNumber(state.crowdsaleData.TOTAL_SUPPLY);
@@ -426,13 +425,12 @@ async function runFundCrowdsaleBelowCap(command, state) {
 
       // buy enough tokens to reach the goal
       let tokens = goal.minus(tokensSold),
-        ethAmount = Math.ceil(help.fromAtto(tokens).div(help.getCrowdsaleExpectedRate(state, from))),
+        ethAmount = Math.floor(help.fromAtto(tokens).div(help.getCrowdsaleExpectedRate(state, from))),
         buyTokensCommand = {account: command.account, eth: ethAmount, beneficiary: command.account};
-
       state = await runBuyTokensCommand(buyTokensCommand, state);
     }
 
-    goal.should.be.bignumber.equal(new BigNumber(state.tokensSold));
+    new BigNumber(state.tokensSold).should.be.bignumber.gte(goal);
 
     if (command.finalize) {
       // wait for crowdsale endTime

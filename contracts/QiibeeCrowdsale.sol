@@ -26,7 +26,7 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
     using SafeMath for uint256;
 
     // total amount of tokens in atto
-    uint256 public constant TOTAL_SUPPLY = 10000000000000000000000000000;
+    uint256 public constant TOTAL_SUPPLY = 10e27;
 
     // initial rate of ether to qbx
     uint256 public initialRate;
@@ -219,7 +219,7 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
         QiibeeToken(token).unpause();
 
         // transfer the ownership of the token to the foundation
-        token.transferOwnership(wallet); //TODO: check if here is thas to be `owner` or `wallet`
+        token.transferOwnership(wallet);
     }
 
     /*
