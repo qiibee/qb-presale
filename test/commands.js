@@ -281,7 +281,7 @@ async function runPauseTokenCommand(command, state) {
 
   let shouldThrow = (state.tokenPaused == command.pause) ||
     !state.crowdsaleFinalized ||
-    command.fromAccount != state.owner ||
+    command.fromAccount != state.tokenOwner ||
     hasZeroAddress;
 
   help.debug(colors.yellow('pausing token, previous state:', state.tokenPaused, 'new state:', command.pause));
@@ -351,7 +351,7 @@ async function runFinalizeCrowdsaleCommand(command, state) {
     state.crowdsaleFinalized = true;
     state.goalReached = goalReached;
     state.tokenPaused = false;
-    //TODO: change state.owner or token owner??
+    state.owner = state.wallet; //TODO: change state.owner or token owner??
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }

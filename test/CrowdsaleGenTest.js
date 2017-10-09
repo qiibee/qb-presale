@@ -18,11 +18,11 @@ const LOG_EVENTS = true;
 
 let GEN_TESTS_QTY = parseInt(process.env.GEN_TESTS_QTY);
 if (isNaN(GEN_TESTS_QTY))
-  GEN_TESTS_QTY = 50;
+  GEN_TESTS_QTY = 100;
 
 let GEN_TESTS_TIMEOUT = parseInt(process.env.GEN_TESTS_TIMEOUT);
 if (isNaN(GEN_TESTS_TIMEOUT))
-  GEN_TESTS_TIMEOUT = 240;
+  GEN_TESTS_TIMEOUT = 480;
 
 contract('QiibeeCrowdsale Property-based test', function() {
 
@@ -168,7 +168,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
         owner: owner,
         crowdsaleSupply: zero,
         burnedTokens: zero,
-        returnedWeiForBurnedTokens: new BigNumber(0),
         vault: {},
         vaultState: 0,
         lastCallTime: [],
@@ -526,6 +525,26 @@ contract('QiibeeCrowdsale Property-based test', function() {
     await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
   });
 
+  it('should pause or handle exceptions fine', async function() {
+    let crowdsaleAndCommands = {
+      commands: [
+        { 'type': 'fundCrowdsaleBelowCap','account':0,'finalize':true},
+        { 'type': 'pauseToken', 'pause':false, 'fromAccount':0 },
+        { 'type': 'pauseToken', 'pause':true, 'fromAccount':0 },
+        { 'type': 'pauseToken', 'pause':true, 'fromAccount':10 }
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 360000000,
+        maxGasPrice: 50000000000, maxCallFrequency: 600,
+        owner: 0
+      }
+    };
+
+    await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
+  });
+
   it('should handle the exception correctly when trying to finalize the crowdsale before the crowdsale has ended', async function() {
     let crowdsaleAndCommands = {
       commands: [
@@ -825,6 +844,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'addToWhitelist', whitelistedAccount: 4, fromAccount: 0 },
+        { type: 'setBuyerRate', rate: 0, whitelistedAccount: 4, fromAccount: 0 },
         { type: 'setBuyerRate', rate: 15000, whitelistedAccount: 4, fromAccount: 0 },
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'buyTokens', beneficiary: 4, account: 4, eth: 5000 },
