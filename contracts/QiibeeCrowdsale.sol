@@ -108,6 +108,17 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
         return new QiibeeToken();
     }
 
+    /*
+     * @dev Returns the rate according different scenarios:
+     * 1. If current period is presale and the address trying to buy is whitelisted, the
+     * preferential rate is applied (unless there is a special rate assigned to it).
+     * 2. If current period is crowdsale, the `initalRate` is applied until the goal is reached.
+     * Afterwards, a dynamic rate is applied according to the total amount of tokens sold so far
+     * (see formula in code).
+     * NOTE: if current period is the crowdsale, no preferential rate nor spcial rate is applied
+     * no matter if the user is whitelisted or not.
+     * @return rate accordingly
+     */
     function getRate() public constant returns(uint256) {
         // preiod of the pre TGE
         bool withinPeriod = now >= startPreTime && now <= endPreTime;
@@ -224,6 +235,7 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
 
     /*
      * @dev Checks if the crowdsale has ended. Overrides Crowdsale#hasEnded to add cap logic.
+     * @return true if cap was reached or if TGE period is over.
      */
     function hasEnded() public constant returns (bool) {
         bool capReached = tokensSold >= cap;
