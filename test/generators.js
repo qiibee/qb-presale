@@ -30,6 +30,8 @@ module.exports = {
     cap: jsc.integer(0, 1000000000),
     minInvest: jsc.integer(0, 1000000000),
     maxInvest: jsc.integer(0, 1000000000),
+    maxGasPrice: jsc.integer(0, 100000000000),
+    maxCallFrequency: jsc.integer(0, 10000),
     foundationWallet: accountGen,
     owner: accountGen
   }),

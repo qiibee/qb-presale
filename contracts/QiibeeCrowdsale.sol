@@ -38,10 +38,10 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
     mapping (address => uint256) public lastCallTime;
 
     // maximum gas price per transaction
-    uint256 constant public maxGasPrice = 50000000000;
+    uint256 public maxGasPrice;
 
     // maximum frequency for purchases from a single source (in seconds)
-    uint256 constant public maxCallFrequency = 600;
+    uint256 public maxCallFrequency;
 
     // minimum and maximum invest in atto per address
     uint256 public minInvest;
@@ -78,6 +78,8 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
         uint256 _cap,
         uint256 _minInvest,
         uint256 _maxInvest,
+        uint256 _maxGasPrice,
+        uint256 _maxCallFrequency,
         address _wallet
     )
         WhitelistedPresale(_preferentialRate, _startPreTime, _endPreTime)
@@ -90,6 +92,8 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
         require(_minInvest > 0);
         require(_maxInvest > 0);
         require(_minInvest <= _maxInvest);
+        require(_maxGasPrice > 0);
+        require(_maxCallFrequency > 0);
         require(_endPreTime < _startTime);
 
         initialRate = _initialRate;
@@ -97,6 +101,8 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
         cap = _cap;
         minInvest = _minInvest;
         maxInvest = _maxInvest;
+        maxGasPrice = _maxGasPrice;
+        maxCallFrequency = _maxCallFrequency;
 
         QiibeeToken(token).pause();
     }

@@ -162,10 +162,10 @@ async function runSendTransactionCommand(command, state) {
     minNotReached = help.toAtto(tokens).lt(state.crowdsaleData.minInvest) && inTGE;
 
   let shouldThrow = (inPreTGE && !isWhitelisted) ||
-    (nextTime < startPreTime) ||
+    nextTime < startPreTime ||
     (nextTime > endPreTime && nextTime < startTime) ||
-    (nextTime > endTime) ||
-    (state.crowdsalePaused) ||
+    nextTime > endTime ||
+    state.crowdsalePaused ||
     //TODO: add reuqirements for TOTAL SUPPLY, FOUNDATION, etc
     crowdsale.initialRate == 0 ||
     crowdsale.goal == 0 ||
