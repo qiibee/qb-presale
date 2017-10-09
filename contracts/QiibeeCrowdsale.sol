@@ -25,48 +25,48 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
 
     using SafeMath for uint256;
 
-    uint256 public constant TOTAL_SUPPLY = 10000000000000000000000000000; //in atto
-    uint256 public constant FOUNDATION_SUPPLY = 7600000000000000000000000000; //in atto
-    uint256 public constant CROWDSALE_SUPPLY = 2400000000000000000000000000; //in atto
+    // total amount of tokens in atto
+    uint256 public constant TOTAL_SUPPLY = 10000000000000000000000000000;
 
-    // initial rate of ether to QBX
+    // initial rate of ether to qbx
     uint256 public initialRate;
 
     // maximum amount of qbx (in atto) that can be minted
     uint256 public cap;
 
-    // list of all last call times by address
+    // last call times by address
     mapping (address => uint256) public lastCallTime;
 
-    // maximal Gas Price per transaction
+    // maximum gas price per transaction
     uint256 constant public maxGasPrice = 50000000000;
 
-    // max frequency for purchases from a single source (in seconds)
+    // maximum frequency for purchases from a single source (in seconds)
     uint256 constant public maxCallFrequency = 600;
 
-    // min and max invest in atto per transaction
+    // minimum and maximum invest in atto per address
     uint256 public minInvest;
     uint256 public maxInvest;
 
-     /**
+    /*
      * event for change wallet logging
      * @param wallet new wallet address
      */
     event WalletChange(address wallet);
 
     /**
-     * event for adding tokens from the private sale
-     * @param purchaser who paid for the tokens
-     * @param beneficiary who got the tokens
-     * @param value weis paid for purchase
-     * @param amount amount of tokens purchased
+       @dev Constructor. Creates the token in a paused state
+       @param _startPreTime see `startPreTime`
+       @param _endPreTime see `endPreTime`
+       @param _startTime see `startTimestamp`
+       @param _endTime see `endTimestamp`
+       @param _initialRate see `initialRate`
+       @param _preferentialRate see `preferentialRate`
+       @param _goal see `see goal`
+       @param _cap see `see cap`
+       @param _minInvest see `see minInvest`
+       @param _maxInvest see `see maxInvest`
+       @param _wallet see `wallet`
      */
-    event PrivatePresalePurchase(address indexed purchaser,
-      address indexed beneficiary,
-      uint256 rate,
-      uint256 value,
-      uint256 amount);
-
     function QiibeeCrowdsale(
         uint256 _startPreTime,
         uint256 _endPreTime,
@@ -101,6 +101,9 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         QiibeeToken(token).pause();
     }
 
+    /*
+     * @dev Creates the token to be sold. Override this method to have crowdsale of a specific mintable token.
+     */
     function createTokenContract() internal returns(MintableToken) {
         return new QiibeeToken();
     }
@@ -125,8 +128,11 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         return initialRate;
     }
 
-    // low level token purchase function
-    function buyTokens(address beneficiary) payable {
+    /*
+     * @dev Low level token purchase function.
+     * @param beneficiary benficiary address where tokens are sent to
+     */
+    function buyTokens(address beneficiary) public payable {
         require(beneficiary != address(0));
         // require(tx.origin != msg.sender); //TODO: do we want this?
         require(validPurchase());
@@ -157,22 +163,35 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         forwardFunds();
     }
 
+    /*
+     * @dev Changes the current wallet for a new one. Only the owner can call this function.
+     * @param _wallet new wallet
+     */
     function setWallet(address _wallet) onlyOwner public {
         require(_wallet != 0x0);
         wallet = _wallet;
         WalletChange(_wallet);
     }
 
+    /*
+     * @dev Unpauses the token. Only the owner can call this function.
+     */
     function unpauseToken() onlyOwner {
         require(isFinalized);
         QiibeeToken(token).unpause();
     }
 
+    /*
+     * @dev Pauses the token. Only the owner can call this function.
+     */
     function pauseToken() onlyOwner {
         require(isFinalized);
         QiibeeToken(token).pause();
     }
 
+    /*
+     * @dev Pauses the token. Only the owner can call this function.
+     */
     function finalization() internal {
         uint256 crowdsaleSupply = token.totalSupply();
         uint256 foundationSupply = TOTAL_SUPPLY.sub(crowdsaleSupply);
@@ -181,7 +200,12 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
         super.finalization();
     }
 
-    function finalize() onlyOwner { //TODO: make it public? redistribute tokens to other pools?
+    /**
+      @dev Finalizes the crowdsale, calls finalization method (see `finalization()`),
+      unpauses the token and transfers the token ownership to the foundation.
+      This function can be called only by the owner and when the crowdsale has ended.
+    */
+    function finalize() public {
         require(!isFinalized);
         require(hasEnded());
 
@@ -190,14 +214,17 @@ contract QiibeeCrowdsale is WhitelistedPreCrowdsale, RefundableOnTokenCrowdsale,
 
         isFinalized = true;
 
-        unpauseToken();
+        // finish the minting of the token
+        token.finishMinting();
+        QiibeeToken(token).unpause();
 
         // transfer the ownership of the token to the foundation
-        // token.transferOwnership(owner);
-        token.transferOwnership(wallet); //TODO: check this
+        token.transferOwnership(wallet); //TODO: check if here is thas to be `owner` or `wallet`
     }
 
-    // overrides Crowdsale#hasEnded to add cap logic
+    /*
+     * @dev Checks if the crowdsale has ended. Overrides Crowdsale#hasEnded to add cap logic.
+     */
     function hasEnded() public constant returns (bool) {
         bool capReached = tokensSold >= cap;
         return super.hasEnded() || capReached;

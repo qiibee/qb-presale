@@ -453,7 +453,7 @@ contract('QiibeeCrowdsale Property-based test', function() {
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 23000 },
         { type: 'waitTime','seconds':duration.days(1)},
         { type: 'buyTokens', beneficiary: 3, account: 4, eth: 50000 },
-        { type: 'finalizeCrowdsale', fromAccount: 0 }
+        { type: 'finalizeCrowdsale', fromAccount: 2 }
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
@@ -477,6 +477,24 @@ contract('QiibeeCrowdsale Property-based test', function() {
         { type: 'finalizeCrowdsale', fromAccount: 0 },
         { type: 'pauseToken', 'pause':false, 'fromAccount':0 },
         { type: 'pauseToken', 'pause':true, 'fromAccount':10 }
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000, owner: 0
+      }
+    };
+
+    await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
+  });
+
+  it('should handle the exception correctly when trying to finalize the crowdsale before the crowdsale has ended', async function() {
+    let crowdsaleAndCommands = {
+      commands: [
+        { type: 'waitTime','seconds':duration.days(3)},
+        { type: 'finalizeCrowdsale', fromAccount: 1 },
+        { type: 'waitTime','seconds':duration.days(5)},
+        { type: 'finalizeCrowdsale', fromAccount: 1 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
@@ -575,7 +593,14 @@ contract('QiibeeCrowdsale Property-based test', function() {
     this.timeout(GEN_TESTS_TIMEOUT * 1000);
 
     let property = jsc.forall(crowdsaleTestInputGen, async function(crowdsaleAndCommands) {
-      return await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
+      if(_.find(crowdsaleAndCommands.commands, {type: 'fundCrowdsaleBelowCap'})) {
+        //TODO: change this fix to something cleaner
+        let crowdsaleAndCommandsFixed = crowdsaleAndCommands;
+        crowdsaleAndCommandsFixed.crowdsale.maxInvest = crowdsaleAndCommandsFixed.crowdsale.goal;
+        return await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommandsFixed);
+      } else {
+        return await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
+      }
     });
 
     return jsc.assert(property, {tests: GEN_TESTS_QTY});

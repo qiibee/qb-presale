@@ -314,8 +314,7 @@ async function runFinalizeCrowdsaleCommand(command, state) {
     state.crowdsalePaused ||
     !preTGEDone ||
     hasZeroAddress ||
-    nextTimestamp <= state.crowdsaleData.endTime ||
-    command.fromAccount != state.owner;
+    nextTimestamp <= state.crowdsaleData.endTime;
 
   try {
 
@@ -409,7 +408,6 @@ async function runBurnTokensCommand(command, state) {
 }
 
 async function runFundCrowdsaleBelowCap(command, state) {
-
   if (!state.crowdsaleFinalized) {
     // unpause the crowdsale if needed
     if (state.crowdsalePaused) {
@@ -428,7 +426,7 @@ async function runFundCrowdsaleBelowCap(command, state) {
 
       // buy enough tokens to reach the goal
       let tokens = goal.minus(tokensSold),
-        ethAmount = help.fromAtto(tokens).div(help.getCrowdsaleExpectedRate(state, from)),
+        ethAmount = Math.ceil(help.fromAtto(tokens).div(help.getCrowdsaleExpectedRate(state, from))),
         buyTokensCommand = {account: command.account, eth: ethAmount, beneficiary: command.account};
 
       state = await runBuyTokensCommand(buyTokensCommand, state);
