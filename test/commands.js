@@ -415,7 +415,8 @@ async function runFundCrowdsaleBelowCap(command, state) {
       state = await runPauseCrowdsaleCommand({pause: false, fromAccount: state.owner}, state);
     }
 
-    let goal = await state.crowdsaleData.goal,
+    let goal = state.crowdsaleData.goal,
+      cap = state.crowdsaleData.cap,
       tokensSold = state.tokensSold,
       from = command.account;
 
@@ -425,8 +426,9 @@ async function runFundCrowdsaleBelowCap(command, state) {
         await increaseTimeTestRPCTo(state.crowdsaleData.startTime);
       }
 
-      // buy enough tokens to reach the goal
-      let tokens = goal.minus(tokensSold),
+      // buy enough tokens to be over the goal
+      let leftToGoal = goal.minus(tokensSold),
+        tokens = leftToGoal.plus(cap.minus(goal).mul(0.10)),
         ethAmount = Math.floor(help.fromAtto(tokens).div(help.getCrowdsaleExpectedRate(state, from))),
         buyTokensCommand = {account: command.account, eth: ethAmount, beneficiary: command.account};
       state = await runBuyTokensCommand(buyTokensCommand, state);
