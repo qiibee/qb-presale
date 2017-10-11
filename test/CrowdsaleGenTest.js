@@ -266,8 +266,6 @@ contract('QiibeeCrowdsale Property-based test', function() {
       commands: [
         { type: 'waitTime','seconds':duration.days(3)},
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
-        // { type: 'waitTime','seconds':duration.minutes(12)},
-        // { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
@@ -525,6 +523,27 @@ contract('QiibeeCrowdsale Property-based test', function() {
     await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
   });
 
+  it('should NOT buy tokens if amount exceeds the cap', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { 'type': 'waitTime','seconds':duration.days(3)},
+        { 'type': 'fundCrowdsaleBelowCap','account':0,'finalize':false},
+        { type: 'buyTokens', beneficiary: 2, account: 2, eth: 500000 },
+        { type: 'waitTime','seconds':duration.minutes(12)},
+        { type: 'buyTokens', beneficiary: 3, account: 3, eth: 800000 },
+        { type: 'waitTime','seconds':duration.minutes(12)},
+        { type: 'buyTokens', beneficiary: 4, account: 4, eth: 200000 },
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 2400000000,
+        maxGasPrice: 50000000000, maxCallFrequency: 600,
+        owner: 0
+      }
+    });
+  });
+
   it('should pause or handle exceptions fine', async function() {
     let crowdsaleAndCommands = {
       commands: [
@@ -569,6 +588,22 @@ contract('QiibeeCrowdsale Property-based test', function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         {'type':'fundCrowdsaleBelowCap','account':0,'finalize':true}
+      ],
+      crowdsale: {
+        initialRate: 6000, preferentialRate: 8000,
+        foundationWallet: 10, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 2400000000,
+        maxGasPrice: 50000000000, maxCallFrequency: 600,
+        owner: 0
+      }
+    });
+  });
+
+  it('should handle exception fine when trying to finalize and is already finalized', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        {'type':'fundCrowdsaleBelowCap','account':0,'finalize':true},
+        {'type':'finalizeCrowdsale','fromAccount':3}
       ],
       crowdsale: {
         initialRate: 6000, preferentialRate: 8000,
