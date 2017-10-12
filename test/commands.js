@@ -28,6 +28,31 @@ function assertExpectedException(e, shouldThrow, addressZero, state, command) {
   }
 }
 
+function increaseEthBalance(state, accountIndex, ethDelta) {
+  if (accountIndex == 'zero' )
+    return state;
+  else {
+    state.ethBalances[accountIndex] = state.ethBalances[accountIndex].plus(ethDelta);
+    return state;
+  }
+}
+
+function decreaseEthBalance(state, accountIndex, ethDelta) {
+  return increaseEthBalance(state, accountIndex, - ethDelta);
+}
+
+function trackGasFromLastBlock(state, accountIndex) {
+  if (accountIndex == 'zero')
+    return state;
+  else {
+    const block = web3.eth.getBlock('latest');
+    assert.equal(1, block.transactions.length, 'we track gas from last block only when it had 1 tx');
+    const gasCost = help.gasPrice.mul(block.gasUsed);
+
+    return decreaseEthBalance(state, accountIndex, gasCost);
+  }
+}
+
 async function runWaitTimeCommand(command, state) {
   await increaseTimeTestRPC(command.seconds);
   return state;
@@ -47,13 +72,12 @@ function getBalance(state, account) {
 }
 
 async function runCheckRateCommand(command, state) {
-  let from = gen.getAccount(command.fromAccount);
-  let expectedRate = help.getCrowdsaleExpectedRate(state, from);
-  let rate = await state.crowdsaleContract.getRate({from: from});
+  let expectedRate = help.getCrowdsaleExpectedRate(state);
+  let rate = await state.crowdsaleContract.getRate();
   assert.equal(expectedRate, rate,
     'expected rate is different! Expected: ' + expectedRate + ', actual: ' + rate + '. blocks: ' + web3.eth.blockTimestamp +
     ', start/initialRate/preferentialRate: ' + state.crowdsaleData.startTime + '/' + state.crowdsaleData.initialRate + '/' + state.crowdsaleData.preferentialRate);
-  help.debug(colors.yellow('Expected rate:', expectedRate, 'rate:', rate));
+  help.debug(colors.green('Expected rate:', expectedRate, 'rate:', rate));
   return state;
 }
 
@@ -66,11 +90,12 @@ async function runSetWalletCommand(command, state) {
     command.fromAccount != state.owner;
 
   try {
-    help.debug(colors.yellow('setWallet fromAccount:', from, 'newAccount:', newAccount));
     await state.crowdsaleContract.setWallet(newAccount, {from: from});
     assert.equal(false, shouldThrow, 'setWallet should have thrown but it didn\'t');
-    state.wallet = newAccount;
+    help.debug(colors.green('SUCCESS setting wallet fromAccount:', from, 'newAccount:', newAccount));
+    state.wallet = command.newAccount;
   } catch(e) {
+    help.debug(colors.yellow('FAILED setting wallet fromAccount:', from, 'newAccount:', newAccount));
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
   return state;
@@ -78,7 +103,7 @@ async function runSetWalletCommand(command, state) {
 
 async function runBuyTokensCommand(command, state) {
   let crowdsale = state.crowdsaleData,
-    { startPreTime, endPreTime, startTime, endTime} = crowdsale,
+    { startTime, endTime} = crowdsale,
     weiCost = web3.toWei(command.eth, 'ether'),
     nextTime = latestTime(),
     account = gen.getAccount(command.account),
@@ -89,18 +114,13 @@ async function runBuyTokensCommand(command, state) {
     newBalance = getBalance(state, command.beneficiary).plus(help.toAtto(tokens));
 
   let inTGE = nextTime >= startTime && nextTime <= endTime,
-    inPreTGE = nextTime >= startPreTime && nextTime <= endPreTime,
-    isWhitelisted = _.includes(state.whitelist, account),
     capExceeded = state.tokensSold.plus(help.toAtto(tokens)).gt(crowdsale.cap),
-    gasExceeded = (command.gasPrice > state.crowdsaleData.maxGasPrice) && inTGE && !isWhitelisted,
-    frequencyExceeded = state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.crowdsaleData.maxCallFrequency) && inTGE && !isWhitelisted, //TODO: account or beneficiary?
-    maxExceeded = newBalance.gt(state.crowdsaleData.maxInvest) && inTGE,
-    minNotReached = help.toAtto(tokens).lt(state.crowdsaleData.minInvest) && inTGE;
+    gasExceeded = (command.gasPrice > state.crowdsaleData.maxGasPrice) && inTGE,
+    frequencyExceeded = state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.crowdsaleData.maxCallFrequency),
+    maxExceeded = newBalance.gt(state.crowdsaleData.maxInvest),
+    minNotReached = help.toAtto(tokens).lt(state.crowdsaleData.minInvest);
 
-  let shouldThrow = (inPreTGE && !isWhitelisted) ||
-    (nextTime < startPreTime) ||
-    (nextTime > endPreTime && nextTime < startTime) ||
-    (nextTime > endTime) ||
+  let shouldThrow = (!inTGE) ||
     (state.crowdsalePaused) ||
     //TODO: add reuqirements for TOTAL SUPPLY, FOUNDATION, etc
     crowdsale.initialRate == 0 ||
@@ -119,21 +139,27 @@ async function runBuyTokensCommand(command, state) {
     capExceeded;
 
   try {
-    help.debug(colors.yellow('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.endTime, 'blockTimestamp:', nextTime));
     //await state.crowdsaleContract.buyTokens(beneficiaryAccount, {value: weiCost, from: account});
     //gasPrice price (in ether) of one unit of gas specified in the transaction
-    await state.crowdsaleContract.buyTokens(beneficiaryAccount, {value: weiCost, from: account, gasPrice: (command.gasPrice ? command.gasPrice : state.crowdsaleData.maxGasPrice)});
+    const tx = await state.crowdsaleContract.buyTokens(beneficiaryAccount, {value: weiCost, from: account, gasPrice: (command.gasPrice ? command.gasPrice : state.crowdsaleData.maxGasPrice)});
     assert.equal(false, shouldThrow, 'buyTokens should have thrown but it didn\'t');
+
+    help.debug(colors.green('SUCCESS buying tokens, rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.endTime, 'blockTimestamp:', nextTime));
 
     state.purchases = _.concat(state.purchases,
       {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
     );
-    state.lastCallTime[command.account] = nextTime; //TODO: account or beneficiary?
+    state.lastCallTime[command.account] = nextTime;
     state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(help.toAtto(tokens));
     state.weiRaised = state.weiRaised.plus(weiCost);
     state.tokensSold = state.tokensSold.plus(help.toAtto(tokens));
     state.crowdsaleSupply = state.crowdsaleSupply.plus(help.toAtto(tokens));
+
+    state = decreaseEthBalance(state, command.account, weiCost);
+    state = decreaseEthBalance(state, command.account, help.txGasCost(tx));
   } catch(e) {
+    help.debug(colors.yellow('FAILURE buying tokens, gasExceeded:', gasExceeded, ', minNotReached:', minNotReached, ', maxExceeded:', maxExceeded, ', frequencyExceeded:', frequencyExceeded, ', capExceeded: ', capExceeded));
+    state = trackGasFromLastBlock(state, command.account);
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
   return state;
@@ -142,7 +168,7 @@ async function runBuyTokensCommand(command, state) {
 async function runSendTransactionCommand(command, state) {
 
   let crowdsale = state.crowdsaleData,
-    { startPreTime, endPreTime, startTime, endTime} = crowdsale,
+    { startTime, endTime} = crowdsale,
     weiCost = web3.toWei(command.eth, 'ether'),
     nextTime = latestTime(),
     account = gen.getAccount(command.account),
@@ -153,18 +179,13 @@ async function runSendTransactionCommand(command, state) {
     newBalance = getBalance(state, command.beneficiary).plus(help.toAtto(tokens));
 
   let inTGE = nextTime >= startTime && nextTime <= endTime,
-    inPreTGE = nextTime >= startPreTime && nextTime <= endPreTime,
-    isWhitelisted = _.includes(state.whitelist, account),
     capExceeded = state.tokensSold.plus(help.toAtto(tokens)).gt(crowdsale.cap),
-    gasExceeded = (command.gasPrice > state.crowdsaleData.maxGasPrice) && inTGE && !isWhitelisted,
-    frequencyExceeded = state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.crowdsaleData.maxCallFrequency) && inTGE && !isWhitelisted, //TODO: account or beneficiary?
+    gasExceeded = (command.gasPrice > state.crowdsaleData.maxGasPrice) && inTGE,
+    frequencyExceeded = state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.crowdsaleData.maxCallFrequency) && inTGE, //TODO: account or beneficiary?
     maxExceeded = newBalance.gt(state.crowdsaleData.maxInvest) && inTGE,
     minNotReached = help.toAtto(tokens).lt(state.crowdsaleData.minInvest) && inTGE;
 
-  let shouldThrow = (inPreTGE && !isWhitelisted) ||
-    nextTime < startPreTime ||
-    (nextTime > endPreTime && nextTime < startTime) ||
-    nextTime > endTime ||
+  let shouldThrow = (!inTGE) ||
     state.crowdsalePaused ||
     //TODO: add reuqirements for TOTAL SUPPLY, FOUNDATION, etc
     crowdsale.initialRate == 0 ||
@@ -182,8 +203,8 @@ async function runSendTransactionCommand(command, state) {
     gasExceeded ||
     capExceeded;
   try {
-    // help.debug(colors.yellow('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.end1Timestamp, end2Timestamp, 'blockTimestamp:', nextTimestamp));
-    await state.crowdsaleContract.sendTransaction({value: weiCost, from: account});
+    // help.debug(colors.green('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.end1Timestamp, end2Timestamp, 'blockTimestamp:', nextTimestamp));
+    const tx = await state.crowdsaleContract.sendTransaction({value: weiCost, from: account});
     assert.equal(false, shouldThrow, 'sendTransaction should have thrown but it did not');
     if (inTGE) {
       state.purchases = _.concat(state.purchases,
@@ -197,55 +218,61 @@ async function runSendTransactionCommand(command, state) {
 
     state.crowdsaleSupply = state.crowdsaleSupply.plus(help.toAtto(tokens));
 
+    state = decreaseEthBalance(state, command.account, weiCost);
+    state = decreaseEthBalance(state, command.account, help.txGasCost(tx));
   } catch(e) {
+    state = trackGasFromLastBlock(state, command.account);
+    assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
+  }
+  return state;
+}
+
+async function runPresaleSendTransactionCommand(command, state) {
+  let  weiCost = web3.toWei(new BigNumber(command.eth), 'ether'),
+    account = gen.getAccount(command.account);
+
+  let hasZeroAddress = isZeroAddress(account),
+    isWhitelisted = _.includes(state.whitelist, account),
+    capExceeded = state.weiRaised.plus(weiCost).gt(state.presaleData.cap);
+
+  let shouldThrow = (state.crowdsalePaused) ||
+    (command.eth == 0) ||
+    (!isWhitelisted) ||
+    capExceeded ||
+    hasZeroAddress;
+
+  try {
+    // help.debug('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.end1Timestamp, end2Timestamp, 'blockTimestamp:', nextTimestamp);
+    const tx = await state.crowdsaleContract.sendTransaction({value: weiCost, from: account});
+    assert.equal(false, shouldThrow, 'sendTransaction should have thrown but it did not');
+    if (!state.crowdsalePaused) {
+      state.purchases = _.concat(state.purchases, {wei: weiCost, account: command.account});
+      state.weiRaised = state.weiRaised.plus(weiCost);
+    } else {
+      throw(new Error('sendTransaction should have thrown because presale is paused'));
+    }
+    state = decreaseEthBalance(state, command.account, weiCost);
+    state = decreaseEthBalance(state, command.account, help.txGasCost(tx));
+  } catch(e) {
+    state = trackGasFromLastBlock(state, command.account);
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
   return state;
 }
 
 async function runAddToWhitelistCommand(command, state) {
-
-  let { startPreTime } = state.crowdsaleData,
-    nextTimestamp = latestTime(),
-    account = gen.getAccount(command.fromAccount),
+  let account = gen.getAccount(command.fromAccount),
     whitelistedAccount = gen.getAccount(command.whitelistedAccount);
 
   let hasZeroAddress = _.some([account, whitelistedAccount], isZeroAddress);
 
   let shouldThrow = hasZeroAddress ||
-    command.fromAccount != state.owner ||
-    nextTimestamp >= startPreTime;
-
+    command.fromAccount != state.owner;
   try {
     await state.crowdsaleContract.addToWhitelist(whitelistedAccount, {from: account});
     assert.equal(false, shouldThrow, 'add to whitelist should have thrown but it did not');
 
     state.whitelist.push(whitelistedAccount);
-  } catch(e) {
-    assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
-  }
-  return state;
-}
-
-async function runSetBuyerRateCommand(command, state) {
-
-  let { startPreTime } = state.crowdsaleData,
-    account = gen.getAccount(command.fromAccount),
-    nextTimestamp = latestTime(),
-    whitelistedAccount = gen.getAccount(command.whitelistedAccount),
-    rate = command.rate;
-
-  let hasZeroAddress = _.some([account, whitelistedAccount], isZeroAddress);
-
-  let shouldThrow = hasZeroAddress ||
-    rate == 0 ||
-    command.fromAccount != state.owner ||
-    nextTimestamp > startPreTime ||
-    !_.includes(state.whitelist, whitelistedAccount);
-  try {
-    await state.crowdsaleContract.setBuyerRate(whitelistedAccount, rate, {from: account});
-    assert.equal(false, shouldThrow, 'add to whitelist should have thrown but it did not');
-    state.buyerRate[whitelistedAccount] = rate;
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
@@ -260,16 +287,19 @@ async function runPauseCrowdsaleCommand(command, state) {
     (command.fromAccount != state.owner) ||
     hasZeroAddress;
 
-  help.debug(colors.yellow('pausing crowdsale, previous state:', state.crowdsalePaused, 'new state:', command.pause));
+  help.debug(colors.green('pausing crowdsale, previous state:', state.crowdsalePaused, 'new state:', command.pause));
   try {
+    let tx;
     if (command.pause) {
-      await state.crowdsaleContract.pause({from: account});
+      tx = await state.crowdsaleContract.pause({from: account});
     } else {
-      await state.crowdsaleContract.unpause({from: account});
+      tx = await state.crowdsaleContract.unpause({from: account});
     }
     assert.equal(false, shouldThrow);
     state.crowdsalePaused = command.pause;
+    state = decreaseEthBalance(state, command.fromAccount, help.txGasCost(tx));
   } catch(e) {
+    state = trackGasFromLastBlock(state, command.fromAccount);
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
   return state;
@@ -284,17 +314,21 @@ async function runPauseTokenCommand(command, state) {
     command.fromAccount != state.tokenOwner ||
     hasZeroAddress;
 
-  help.debug(colors.yellow('pausing token, previous state:', state.tokenPaused, 'new state:', command.pause));
-
   try {
+    let tx;
     if (command.pause) {
-      await state.crowdsaleContract.pauseToken({from: account});
+      tx = await state.crowdsaleContract.pauseToken({from: account});
     } else {
-      await state.crowdsaleContract.unpauseToken({from: account});
+      tx = await state.crowdsaleContract.unpauseToken({from: account});
     }
     assert.equal(false, shouldThrow);
+    help.debug(colors.green('SUCCESS pausing token, previous state:', state.tokenPaused, 'new state:', command.pause));
+
     state.tokenPaused = command.pause;
+    state = decreaseEthBalance(state, command.fromAccount, help.txGasCost(tx));
   } catch(e) {
+    help.debug(colors.yellow('FAILURE pausing token, previous state:', state.tokenPaused, 'new state:', command.pause));
+    state = trackGasFromLastBlock(state, command.fromAccount);
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
   return state;
@@ -302,33 +336,34 @@ async function runPauseTokenCommand(command, state) {
 
 async function runFinalizeCrowdsaleCommand(command, state) {
 
-  let crowdsale = state.crowdsaleData,
-    { endPreTime } = crowdsale,
-    nextTimestamp = latestTime(),
+  let nextTimestamp = latestTime(),
     account = gen.getAccount(command.fromAccount),
     hasZeroAddress = isZeroAddress(account);
 
-  let preTGEDone = nextTimestamp >= endPreTime;
-
   let shouldThrow = state.crowdsaleFinalized ||
     state.crowdsalePaused ||
-    !preTGEDone ||
     hasZeroAddress ||
     nextTimestamp <= state.crowdsaleData.endTime;
 
   try {
 
-    let goalReached = state.tokensSold.gte(state.crowdsaleData.goal);
+    let goalReached = state.tokensSold.gte(state.crowdsaleData.goal),
+      ownerBeforeFinalize = await state.token.owner(),
+      tx = await state.crowdsaleContract.finalize({from: account});
 
-    help.debug(colors.yellow('finishing crowdsale on block', nextTimestamp, ', from address:', gen.getAccount(command.fromAccount), ', funded:', goalReached));
+    help.debug(colors.green('SUCCESS: finishing crowdsale on block', nextTimestamp, ', from address:', gen.getAccount(command.fromAccount), ', funded:', goalReached, 'gas used: ', tx.receipt.gasUsed));
 
-    let ownerBeforeFinalize = await state.token.owner();
-
-    await state.crowdsaleContract.finalize({from: account});
+    if (!help.inCoverage()) { // gas cannot be measuyellow correctly when running coverage
+      assert(tx.receipt.gasUsed < 6700000,
+        'gas used in finalize (' + tx.receipt.gasUsed + ') should be less than gas limit in mainnet');
+    }
+    state = decreaseEthBalance(state, command.fromAccount, help.txGasCost(tx));
 
     let ownerAfterFinalize = await state.token.owner();
 
     if (goalReached) {
+      state = increaseEthBalance(state, state.wallet, state.weiRaised); //TODO: check this call
+
       //check token ownership change
       assert.notEqual(ownerBeforeFinalize, ownerAfterFinalize);
       assert.equal(state.crowdsaleData.foundationWallet, ownerAfterFinalize);
@@ -346,13 +381,15 @@ async function runFinalizeCrowdsaleCommand(command, state) {
     }
     assert.equal(false, shouldThrow);
 
-    help.debug(colors.yellow('crowdsale finished on block', nextTimestamp, ', vault state:', state.vaultState, ', vault:', JSON.stringify(state.vault)));
+    let states = ['ACTIVE', 'REFUNDING', 'CLOSED'];
+    help.debug(colors.green('VAULT state:', states[state.vaultState], ', info:', JSON.stringify(state.vault)));
 
     state.crowdsaleFinalized = true;
     state.goalReached = goalReached;
     state.tokenPaused = false;
     state.owner = state.wallet; //TODO: change state.owner or token owner??
   } catch(e) {
+    help.debug(colors.yellow('FAILURE finishing crowdsale, on block', nextTimestamp, ', from address:', gen.getAccount(command.fromAccount), ', funded:'));
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
   return state;
@@ -373,14 +410,18 @@ async function runClaimRefundCommand(command, state) {
   try {
     let currentBalance = web3.eth.getBalance(account);
 
-    await state.crowdsaleContract.claimRefund({from: account, gasPrice: 0});
+    const tx = await state.crowdsaleContract.claimRefund({from: account, gasPrice: 0});
     assert.equal(false, shouldThrow, 'claimRefund should have thrown but it did not');
 
     let balanceAfterClaimRefund = web3.eth.getBalance(account);
     assert.equal(balanceAfterClaimRefund.sub(currentBalance), investedWei);
 
-    help.debug(colors.yellow('investedEth: ', investedWei, 'balance before claiming: ', currentBalance, ', balance after claiming:', balanceAfterClaimRefund, 'vault state:', JSON.stringify(state.vault)));
+    help.debug(colors.green('investedEth: ', investedWei, 'balance before claiming: ', currentBalance, ', balance after claiming:', balanceAfterClaimRefund, 'vault state:', JSON.stringify(state.vault)));
+
+    state = increaseEthBalance(state, command.fromAccount, investedWei);
+    state = decreaseEthBalance(state, command.fromAccount, help.txGasCost(tx));
   } catch(e) {
+    state = trackGasFromLastBlock(state, command.fromAccount);
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
   return state;
@@ -389,7 +430,8 @@ async function runClaimRefundCommand(command, state) {
 async function runBurnTokensCommand(command, state) {
   let account = gen.getAccount(command.account),
     balance = getBalance(state, command.account),
-    hasZeroAddress = isZeroAddress(account);
+    hasZeroAddress = isZeroAddress(account),
+    atto = help.toAtto(command.tokens);
 
   let shouldThrow = state.tokenPaused ||
     (balance < command.tokens) ||
@@ -397,12 +439,17 @@ async function runBurnTokensCommand(command, state) {
     hasZeroAddress;
 
   try {
-    await state.token.burn(command.tokens, {from: account});
+    const tx = await state.token.burn(atto, {from: account});
     assert.equal(false, shouldThrow, 'burn should have thrown but it did not');
-    state.balances[account] = balance.minus(command.tokens);
-    state.totalSupply = state.totalSupply.minus(command.tokens);
+    help.debug(colors.green('SUCCESS burning tokens, balance:', balance, 'tokens: ', command.tokens));
 
+    state.balances[account] = balance.minus(atto);
+    state.totalSupply = state.totalSupply.minus(atto);
+
+    state = decreaseEthBalance(state, command.account, help.txGasCost(tx));
   } catch(e) {
+    help.debug(colors.yellow('FAILURE burning tokens, balance:', balance, 'tokens: ', command.tokens));
+    state = trackGasFromLastBlock(state, command.account);
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
   }
   return state;
@@ -431,6 +478,7 @@ async function runFundCrowdsaleBelowCap(command, state) {
         tokens = leftToGoal.plus(cap.minus(goal).mul(0.10)),
         ethAmount = Math.floor(help.fromAtto(tokens).div(help.getCrowdsaleExpectedRate(state, from))),
         buyTokensCommand = {account: command.account, eth: ethAmount, beneficiary: command.account};
+
       state = await runBuyTokensCommand(buyTokensCommand, state);
     }
 
@@ -441,7 +489,7 @@ async function runFundCrowdsaleBelowCap(command, state) {
       if (latestTime() < state.crowdsaleData.endTime) {
         await increaseTimeTestRPCTo(state.crowdsaleData.endTime + 1);
       }
-      state = await runFinalizeCrowdsaleCommand({fromAccount: command.account}, state);
+      state = await runFinalizeCrowdsaleCommand({fromAccount: from}, state);
       // verify that the crowdsale is finalized and funded
       assert.equal(true, state.crowdsaleFinalized);
       assert.equal(true, state.goalReached);
@@ -452,8 +500,44 @@ async function runFundCrowdsaleBelowCap(command, state) {
   return state;
 }
 
+async function runAddPresalePaymentCommand(command, state) {
 
-const commands = {
+  let { startTimestamp } = state.crowdsaleData,
+    nextTimestamp = latestTime(),
+    weiToSend = web3.toWei(command.eth, 'ether'),
+    tokens = weiToSend * command.rate,
+    account = gen.getAccount(command.fromAccount),
+    beneficiary = gen.getAccount(command.beneficiaryAccount),
+    hasZeroAddress = _.some([account, beneficiary], isZeroAddress);
+
+  let shouldThrow = (nextTimestamp >= startTimestamp) ||
+    (state.crowdsalePaused) ||
+    (account != gen.getAccount(state.owner)) ||
+    (state.crowdsaleFinalized) ||
+    hasZeroAddress ||
+    (weiToSend == 0) ||
+    (command.rate <= state.crowdsaleData.initialRate);
+
+  try {
+    const tx = await state.crowdsaleContract.addPresaleTokens(beneficiary, weiToSend, command.rate, {from: account});
+    assert.equal(false, shouldThrow, 'buyTokens should have thrown but it did not');
+    help.debug(colors.green('SUCCESS adding presale private tokens for account:', command.beneficiaryAccount, 'eth:', command.eth, 'fromAccount:', command.fromAccount, 'blockTimestamp:', nextTimestamp));
+
+    state.tokensSold = state.tokensSold.plus(tokens);
+    state.crowdsaleSupply = state.crowdsaleSupply.plus(tokens);
+    state.purchases = _.concat(state.purchases,
+      {tokens: help.fromAtto(tokens), rate: command.rate, wei: weiToSend, beneficiary: command.beneficiary, account: command.account}
+    );
+    state = decreaseEthBalance(state, command.fromAccount, help.txGasCost(tx));
+  } catch(e) {
+    help.debug(colors.yellow('FAILED adding presale private tokens for account:', command.beneficiaryAccount, 'eth:', command.eth, 'fromAccount:', command.fromAccount, 'blockTimestamp:', nextTimestamp));
+    state = trackGasFromLastBlock(state, command.fromAccount);
+    assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
+  }
+  return state;
+}
+
+const crowdsaleCommands = {
   waitTime: {gen: gen.waitTimeCommandGen, run: runWaitTimeCommand},
   checkRate: {gen: gen.checkRateCommandGen, run: runCheckRateCommand},
   setWallet: {gen: gen.setWalletCommandGen, run: runSetWalletCommand},
@@ -465,14 +549,22 @@ const commands = {
   finalizeCrowdsale: {gen: gen.finalizeCrowdsaleCommandGen, run: runFinalizeCrowdsaleCommand},
   claimRefund: {gen: gen.claimRefundCommandGen, run: runClaimRefundCommand},
   fundCrowdsaleBelowCap: {gen: gen.fundCrowdsaleBelowCapCommandGen, run: runFundCrowdsaleBelowCap},
-  addToWhitelist: { gen: gen.addToWhitelistCommandGen, run: runAddToWhitelistCommand},
-  setBuyerRate: { gen: gen.setBuyerRateCommandGen, run: runSetBuyerRateCommand},
+  addPresalePayment: {gen: gen.addPresalePaymentCommandGen, run: runAddPresalePaymentCommand},
 };
 
-module.exports = {
-  commands: commands,
+const presaleCommands = {
+  presaleSendTransaction: {gen: gen.presaleSendTransactionCommandGen, run: runPresaleSendTransactionCommand},
+  pauseCrowdsale: {gen: gen.pauseCrowdsaleCommandGen, run: runPauseCrowdsaleCommand},
+  addToWhitelist: { gen: gen.addToWhitelistCommandGen, run: runAddToWhitelistCommand},
+};
 
-  commandsGen: jsc.oneof(_.map(commands, (c) => c.gen)),
+const commands = _.merge({}, presaleCommands, crowdsaleCommands);
+
+module.exports = {
+
+  crowdsaleCommandsGen: jsc.oneof(_.map(crowdsaleCommands, (c) => c.gen)),
+  presaleCommandsGen: jsc.oneof(_.map(presaleCommands, (c) => c.gen)),
+  commands: commands,
 
   findCommand: (type) => {
     let command = commands[type];

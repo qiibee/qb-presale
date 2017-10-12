@@ -23,6 +23,12 @@ module.exports = {
 
   getAccount: getAccount,
 
+  presaleGen: jsc.record({
+    cap: jsc.integer(0, 1000000000),
+    foundationWallet: accountGen,
+    owner: accountGen
+  }),
+
   crowdsaleGen: jsc.record({
     initialRate: jsc.integer(0, 20000),
     preferentialRate: jsc.integer(0, 20000),
@@ -72,6 +78,13 @@ module.exports = {
     eth: jsc.integer(0, 1000000000)
   }),
 
+  presaleSendTransactionCommandGen: jsc.record({
+    type: jsc.constant('presaleSendTransaction'),
+    account: accountGen,
+    beneficiary: accountGen,
+    eth: jsc.integer(0, 1000000000)
+  }),
+
   pauseCrowdsaleCommandGen: jsc.record({
     type: jsc.constant('pauseCrowdsale'),
     pause: jsc.bool,
@@ -101,18 +114,19 @@ module.exports = {
     finalize: jsc.bool
   }),
 
+  addPresalePaymentCommandGen: jsc.record({
+    type: jsc.constant('addPresalePayment'),
+    beneficiaryAccount: accountGen,
+    fromAccount: accountGen,
+    eth: jsc.nat,
+    rate: jsc.integer(0, 20000)
+  }),
+
   addToWhitelistCommandGen: jsc.record({
     type: jsc.constant('addToWhitelist'),
     whitelistedAccount: knownAccountGen,
     fromAccount: accountGen,
   }),
-
-  setBuyerRateCommandGen: jsc.record({
-    type: jsc.constant('setBuyerRate'),
-    rate: jsc.integer(0, 20000),
-    whitelistedAccount: knownAccountGen,
-    fromAccount: accountGen,
-  })
 
 };
 

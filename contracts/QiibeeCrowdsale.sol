@@ -21,7 +21,7 @@ import "./QiibeeToken.sol";
    by the originating addresses.
  */
 
-contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Pausable {
+contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
 
     using SafeMath for uint256;
 
@@ -54,26 +54,27 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
     event WalletChange(address wallet);
 
     /**
+        @dev Event triggered every time a presale purchase is done
+    **/
+    event TokenPresalePurchase(address indexed beneficiary, uint256 weiAmount, uint256 rate);
+
+    /**
        @dev Constructor. Creates the token in a paused state
-       @param _startPreTime see `startPreTime`
-       @param _endPreTime see `endPreTime`
        @param _startTime see `startTimestamp`
        @param _endTime see `endTimestamp`
        @param _initialRate see `initialRate`
-       @param _preferentialRate see `preferentialRate`
        @param _goal see `see goal`
        @param _cap see `see cap`
        @param _minInvest see `see minInvest`
        @param _maxInvest see `see maxInvest`
+       @param _maxGasPrice see `see maxGasPrice`
+       @param _maxCallFrequency see `see maxCallFrequency`
        @param _wallet see `wallet`
      */
     function QiibeeCrowdsale(
-        uint256 _startPreTime,
-        uint256 _endPreTime,
         uint256 _startTime,
         uint256 _endTime,
         uint256 _initialRate,
-        uint256 _preferentialRate,
         uint256 _goal,
         uint256 _cap,
         uint256 _minInvest,
@@ -82,7 +83,6 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
         uint256 _maxCallFrequency,
         address _wallet
     )
-        WhitelistedPresale(_preferentialRate, _startPreTime, _endPreTime)
         RefundableOnTokenCrowdsale(_goal)
         Crowdsale(_startTime, _endTime, _initialRate, _wallet)
     {
@@ -94,10 +94,8 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
         require(_minInvest <= _maxInvest);
         require(_maxGasPrice > 0);
         require(_maxCallFrequency > 0);
-        require(_endPreTime < _startTime);
 
         initialRate = _initialRate;
-        startTime = _startTime;
         cap = _cap;
         minInvest = _minInvest;
         maxInvest = _maxInvest;
@@ -126,22 +124,9 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
      * @return rate accordingly
      */
     function getRate() public constant returns(uint256) {
-        // preiod of the pre TGE
-        bool withinPeriod = now >= startPreTime && now <= endPreTime;
-
-        // whitelisted buyers can purchase at preferential price during pre-ico event
-        if (withinPeriod && isWhitelisted(msg.sender)) {
-            // some early buyers are offered a different rate rather than the preferential rate
-            if (buyerRate[msg.sender] != 0) {
-                return buyerRate[msg.sender];
-            }
-            return preferentialRate;
-        }
-
         if (tokensSold >= goal) {
             return initialRate.mul(1000).div(tokensSold.mul(1000).div(goal));
         }
-
         return initialRate;
     }
 
@@ -156,13 +141,11 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
 
         uint256 rate = getRate();
         uint256 tokens = msg.value.mul(rate);
+        uint256 newBalance = token.balanceOf(beneficiary).add(tokens);
 
-        if (now >= startTime) {
-            uint256 newBalance = token.balanceOf(beneficiary).add(tokens);
-            require(newBalance <= maxInvest && tokens >= minInvest);
-            require(now.sub(lastCallTime[msg.sender]) >= maxCallFrequency);
-            require(tx.gasprice <= maxGasPrice);
-        }
+        require(newBalance <= maxInvest && tokens >= minInvest);
+        require(now.sub(lastCallTime[msg.sender]) >= maxCallFrequency);
+        require(tx.gasprice <= maxGasPrice);
 
         uint256 newTokenAmount = tokensSold.add(tokens);
         require(newTokenAmount <= cap);
@@ -176,6 +159,35 @@ contract QiibeeCrowdsale is WhitelistedPresale, RefundableOnTokenCrowdsale, Paus
         token.mint(beneficiary, tokens);
 
         TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
+
+        forwardFunds();
+    }
+
+    /**
+     @dev Allows to add the address and the amount of wei sent by a contributor
+     in the private presale. Can only be called by the owner before the beginning
+     of TGE
+
+     @param beneficiary Address to which qbx will be sent
+     @param weiSent Amount of wei contributed
+     @param rate qbx per ether rate at the moment of the contribution
+   */
+    function addPresaleTokens(address beneficiary, uint256 weiSent, uint256 rate) public onlyOwner {
+        require(now < startTime);
+        require(beneficiary != address(0));
+        require(weiSent > 0);
+
+        // validate that rate is higher than TGE rate
+        require(rate > initialRate);
+
+        //update state
+        uint256 tokens = weiSent.mul(rate);
+        tokensSold = tokensSold.add(tokens);
+        weiRaised = weiRaised.add(weiSent);
+
+        token.mint(beneficiary, tokens);
+
+        TokenPresalePurchase(beneficiary, weiSent, rate);
 
         forwardFunds();
     }

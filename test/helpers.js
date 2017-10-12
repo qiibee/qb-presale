@@ -1,4 +1,5 @@
 var _ = require('lodash');
+
 var BigNumber = web3.BigNumber;
 
 var QiibeeToken = artifacts.require('./QiibeeToken.sol');
@@ -15,9 +16,9 @@ const DEBUG_MODE = (process.env.npm_config_qb_debug == 'true') || false;
 let gasPriceFromEnv = parseInt(process.env.GAS_PRICE);
 let gasPrice;
 if (isNaN(gasPriceFromEnv))
-  gasPrice = 21000000000;
+  gasPrice = new BigNumber(21000000000);
 else
-  gasPrice = gasPriceFromEnv;
+  gasPrice = new BigNumber(gasPriceFromEnv);
 
 module.exports = {
 
@@ -25,7 +26,18 @@ module.exports = {
 
   abiDecoder: abiDecoder,
 
-  gasPrice: new BigNumber(gasPrice),
+  inCoverage: () => process.env.SOLIDITY_COVERAGE == 'true',
+
+  gasPrice: gasPrice,
+
+  txGasCost: (tx) => gasPrice.mul(new BigNumber(tx.receipt.gasUsed)),
+
+  getAccountsBalances: (accounts) => {
+    return _.reduce(accounts, (balances, account) => {
+      balances[accounts.indexOf(account)] = web3.eth.getBalance(account);
+      return balances;
+    }, {});
+  },
 
   hexEncode: function(str){
     var hex, i;
@@ -65,13 +77,11 @@ module.exports = {
 
   simulateCrowdsale: async function(initialRate, preferentialRate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, accounts, balances) {
     await increaseTimeTestRPC(1);
-    var startPreTime = latestTime() + 5;
-    var endPreTime = startPreTime + 10;
-    var startTime = endPreTime + 5;
-    var endTime = startTime + 20;
+    var startTime = latestTime() + 5;
+    var endTime = startTime + 10;
     var crowdsale = await QiibeeCrowdsale.new(
-      startPreTime, endPreTime, startTime, endTime,
-      initialRate, preferentialRate,
+      startTime, endTime,
+      initialRate,
       goal, cap,
       minInvest, maxInvest,
       maxGasPrice, maxCallFrequency,
@@ -128,25 +138,23 @@ module.exports = {
     }
   },
 
-  getCrowdsaleExpectedRate: function(state, from) {
-    let { startPreTime, endPreTime, initialRate, preferentialRate, goal } = state.crowdsaleData,
-      { tokensSold, buyerRate, whitelist } = state;
+  getCrowdsaleExpectedRate: function(state) {
+    let { initialRate, goal } = state.crowdsaleData,
+      { tokensSold } = state;
 
-    let withinPeriod = latestTime() >= startPreTime && latestTime() <= endPreTime;
-
-    if (withinPeriod && _.includes(whitelist, from)) {
-
-      if (buyerRate[from]) {
-        return buyerRate[from];
-      } else {
-        return preferentialRate;
-      }
-    }
-
-    if (tokensSold.gt(goal)) {
+    if (state.tokensSold.gt(goal)) {
       return parseInt(initialRate * 1000 / parseInt((tokensSold * 1000) / goal));
     }
     return initialRate;
+  },
+
+  getExpectedPresaleRate: function(state, from) {
+    let { preferentialRate } = state.crowdsaleData,
+      { buyerRate } = state;
+    if (buyerRate[from]) {
+      return buyerRate[from];
+    }
+    return preferentialRate;
   },
 
   getPresalePaymentMaxTokens: function(minCap, maxTokens, presaleBonusRate, presaleAmountEth) {
