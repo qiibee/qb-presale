@@ -2,7 +2,6 @@ pragma solidity ^0.4.11;
 
 import "./RefundableOnTokenCrowdsale.sol";
 import "zeppelin-solidity/contracts/crowdsale/Crowdsale.sol";
-import "./WhitelistedPresale.sol";
 import "./QiibeeToken.sol";
 
 /**
