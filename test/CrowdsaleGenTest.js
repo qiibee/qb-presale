@@ -660,6 +660,22 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
     });
   });
 
+  it('should handle addPresalePayment exceptions fine', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        {'type':'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':5000},
+        {'type':'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':0,'rate':10000},
+        {'type':'addPresalePayment','beneficiaryAccount':'zero','fromAccount':0,'eth':5,'rate':10000}
+      ],
+      crowdsale: {
+        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000,
+        maxGasPrice: 50000000000, maxCallFrequency: 600,
+        owner: 0, foundationWallet: 10
+      }
+    });
+  });
+
   it('should NOT add presale payment if not owner', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
