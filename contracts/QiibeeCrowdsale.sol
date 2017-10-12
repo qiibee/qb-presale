@@ -197,22 +197,6 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
     }
 
     /*
-     * @dev Unpauses the token. Only the owner can call this function.
-     */
-    function unpauseToken() onlyOwner {
-        require(isFinalized);
-        QiibeeToken(token).unpause();
-    }
-
-    /*
-     * @dev Pauses the token. Only the owner can call this function.
-     */
-    function pauseToken() onlyOwner {
-        require(isFinalized);
-        QiibeeToken(token).pause();
-    }
-
-    /*
      * @dev Pauses the token. Only the owner can call this function.
      */
     function finalization() internal {
@@ -239,6 +223,7 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
 
         // finish the minting of the token
         token.finishMinting();
+
         QiibeeToken(token).unpause();
 
         // transfer the ownership of the token to the foundation

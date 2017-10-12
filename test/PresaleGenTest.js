@@ -185,4 +185,15 @@ contract('QiibeePresale Property-based test', function(accounts) {
     });
   });
 
+  it('should NOT add to whitelist of address is zero', async function () {
+    await runGeneratedPresaleAndCommands({
+      commands: [
+        { type: 'addToWhitelist', whitelistedAccount: 'zero', fromAccount: 0 },
+      ],
+      presale: {
+        cap: 100, foundationWallet: 10, owner: 0
+      }
+    });
+  });
+
 });

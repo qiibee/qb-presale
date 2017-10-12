@@ -393,11 +393,11 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
   it('should pause or handle exceptions fine', async function() {
     let crowdsaleAndCommands = {
       commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'waitTime','seconds':duration.days(3)},
         { type: 'finalizeCrowdsale', fromAccount: 0 },
         { type: 'pauseToken', 'pause':false, 'fromAccount':0 },
-        { type: 'pauseToken', 'pause':true, 'fromAccount':10 },
         { type: 'pauseToken', 'pause':true, 'fromAccount':0 },
+        { type: 'pauseToken', 'pause':true, 'fromAccount':10 },
       ],
       crowdsale: {
         initialRate: 6000, goal: 360000000, cap: 2400000000,

@@ -317,9 +317,9 @@ async function runPauseTokenCommand(command, state) {
   try {
     let tx;
     if (command.pause) {
-      tx = await state.crowdsaleContract.pauseToken({from: account});
+      tx = await state.token.pause({from: account});
     } else {
-      tx = await state.crowdsaleContract.unpauseToken({from: account});
+      tx = await state.token.unpause({from: account});
     }
     assert.equal(false, shouldThrow);
     help.debug(colors.green('SUCCESS pausing token, previous state:', state.tokenPaused, 'new state:', command.pause));
@@ -348,7 +348,7 @@ async function runFinalizeCrowdsaleCommand(command, state) {
   try {
 
     let goalReached = state.tokensSold.gte(state.crowdsaleData.goal),
-      ownerBeforeFinalize = await state.token.owner(),
+      tokenOwnerBeforeFinalize = await state.token.owner(),
       tx = await state.crowdsaleContract.finalize({from: account});
 
     help.debug(colors.green('SUCCESS: finishing crowdsale on block', nextTimestamp, ', from address:', gen.getAccount(command.fromAccount), ', funded:', goalReached, 'gas used: ', tx.receipt.gasUsed));
@@ -359,14 +359,14 @@ async function runFinalizeCrowdsaleCommand(command, state) {
     }
     state = decreaseEthBalance(state, command.fromAccount, help.txGasCost(tx));
 
-    let ownerAfterFinalize = await state.token.owner();
+    let tokenOwnerAfterFinalize = await state.token.owner();
 
     if (goalReached) {
       state = increaseEthBalance(state, state.wallet, state.weiRaised); //TODO: check this call
 
       //check token ownership change
-      assert.notEqual(ownerBeforeFinalize, ownerAfterFinalize);
-      assert.equal(state.crowdsaleData.foundationWallet, ownerAfterFinalize);
+      assert.notEqual(tokenOwnerBeforeFinalize, tokenOwnerAfterFinalize);
+      assert.equal(state.crowdsaleData.foundationWallet, tokenOwnerAfterFinalize);
 
       let foundationWallet = await state.crowdsaleContract.wallet(),
         totalSupply = new BigNumber(state.crowdsaleData.TOTAL_SUPPLY);
@@ -387,7 +387,7 @@ async function runFinalizeCrowdsaleCommand(command, state) {
     state.crowdsaleFinalized = true;
     state.goalReached = goalReached;
     state.tokenPaused = false;
-    state.owner = state.wallet; //TODO: change state.owner or token owner??
+    state.tokenOwner = state.wallet; //TODO: change state.owner or token owner??
   } catch(e) {
     help.debug(colors.yellow('FAILURE finishing crowdsale, on block', nextTimestamp, ', from address:', gen.getAccount(command.fromAccount), ', funded:'));
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);

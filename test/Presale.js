@@ -12,4 +12,14 @@ contract('create Presale', function(accounts) {
     assert.equal(accounts[0], parseInt(await presale.wallet()));
   });
 
+  it('can NOT create a Presale', async function() {
+    try {
+      await QiibeePresale.new(
+        0, accounts[0]
+      );
+    } catch (e) {
+      if (e.message.search('invalid opcode') == 0) throw e;
+    }
+  });
+
 });
