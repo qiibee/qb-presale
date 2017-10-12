@@ -44,7 +44,7 @@ module.exports = {
 
   waitTimeCommandGen: jsc.record({
     type: jsc.constant('waitTime'),
-    seconds: jsc.integer(0, 1000000000)
+    seconds: jsc.nat
   }),
 
   checkRateCommandGen: jsc.record({
