@@ -7,7 +7,14 @@ import "./QiibeeToken.sol";
 /**
    @title Presale event
 
-  TODO
+   Implementation of the presale event. This event will start when the owner calls the `unpause()`
+   function and will end when it paused again.
+
+   There is a cap expressed in wei and a whitelist, meaning that only investors in that list are
+   allowed to send their investments.
+
+   Funds raised during this presale will be transfered to `wallet`.
+
  */
 
 contract QiibeePresale is Ownable, Pausable {
@@ -26,10 +33,10 @@ contract QiibeePresale is Ownable, Pausable {
     // list of addresses that can invest during presale
     mapping (address => bool) public whitelist;
 
-    /**
-       @dev Constructor. Creates the token in a paused state
-       @param _cap see `see cap`
-       @param _wallet see `wallet`
+    /*
+     * @dev Constructor of the presale. Creates the presale in a paused state
+     * @param _cap see `see cap`
+     * @param _wallet see `wallet`
      */
     function QiibeePresale(
         uint256 _cap,
@@ -42,12 +49,11 @@ contract QiibeePresale is Ownable, Pausable {
         pause();
     }
 
-    /**
-     @dev Fallback function that will be executed every time the contract
-     receives ether, the contract will accept ethers when is not paused and
-     when the amount sent plus the wei raised is not higher than the max cap.
-
-     ONLY send from a ERC20 compatible wallet like myetherwallet.com
+    /*
+     * @dev Fallback function that will be executed every time the contract
+     * receives ether, the contract will accept ethers if the sender is whitelisted
+     * and when the value plus the amount already raised is not over the cap.
+     * ONLY send from a ERC20 compatible wallet like myetherwallet.com
      */
     function () whenNotPaused payable {
       require(weiRaised.add(msg.value) <= cap);
@@ -57,13 +63,18 @@ contract QiibeePresale is Ownable, Pausable {
       wallet.transfer(msg.value);
     }
 
-    //
+    /*
+     * @dev Add an address to the whitelist.
+     */
     function addToWhitelist(address buyer) public onlyOwner {
         require(buyer != 0x0);
         whitelist[buyer] = true;
     }
 
-    // @return true if buyer is whitelisted
+    /*
+     * @dev checks if an address is whitelisted
+     * @return true if buyer is whitelisted
+     */
     function isWhitelisted(address buyer) public constant returns (bool) {
         return whitelist[buyer];
     }

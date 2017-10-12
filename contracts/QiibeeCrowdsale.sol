@@ -11,9 +11,8 @@ import "./QiibeeToken.sol";
    fixed rate until the goal (soft cap) is reached and then a dynamic rate linked to the amount of
    tokens sold is applied. TGE has a cap on the amount of token (hard cap).
 
-   There is pre-TGE for whitelisted investors with global a preferential rate. They can also
-   have a special rate (different for each whiteslisted investor) that will apply only if they buy
-   a determined amount of ETH (if not, they just get the global preferential rate).
+   Investments made during the presale (see QiibeePresale.sol) are added before the TGE starts
+   through the addPresaleTokens() function.
 
    In case of the goal not being reached by purchases made during the 4-week period the token will
    not start operating and all funds sent during that period will be made available to be claimed
@@ -47,28 +46,31 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
     uint256 public maxInvest;
 
     /*
-     * event for change wallet logging
+     * @dev event for change wallet logging
      * @param wallet new wallet address
      */
     event WalletChange(address wallet);
 
-    /**
-        @dev Event triggered every time a presale purchase is done
-    **/
+    /*
+     * @dev event triggered every time a presale purchase is done
+     * @param beneficiary address that received the tokens
+     * @param weiAmount amount of ETH invested in wei
+     * @param rate rate at which the investor bought the tokens
+     */
     event TokenPresalePurchase(address indexed beneficiary, uint256 weiAmount, uint256 rate);
 
-    /**
-       @dev Constructor. Creates the token in a paused state
-       @param _startTime see `startTimestamp`
-       @param _endTime see `endTimestamp`
-       @param _initialRate see `initialRate`
-       @param _goal see `see goal`
-       @param _cap see `see cap`
-       @param _minInvest see `see minInvest`
-       @param _maxInvest see `see maxInvest`
-       @param _maxGasPrice see `see maxGasPrice`
-       @param _maxCallFrequency see `see maxCallFrequency`
-       @param _wallet see `wallet`
+    /*
+     * @dev Constructor. Creates the token in a paused state
+     * @param _startTime see `startTimestamp`
+     * @param _endTime see `endTimestamp`
+     * @param _initialRate see `initialRate`
+     * @param _goal see `see goal`
+     * @param _cap see `see cap`
+     * @param _minInvest see `see minInvest`
+     * @param _maxInvest see `see maxInvest`
+     * @param _maxGasPrice see `see maxGasPrice`
+     * @param _maxCallFrequency see `see maxCallFrequency`
+     * @param _wallet see `wallet`
      */
     function QiibeeCrowdsale(
         uint256 _startTime,
@@ -112,14 +114,8 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
     }
 
     /*
-     * @dev Returns the rate according different scenarios:
-     * 1. If current period is presale and the address trying to buy is whitelisted, the
-     * preferential rate is applied (unless there is a special rate assigned to it).
-     * 2. If current period is crowdsale, the `initalRate` is applied until the goal is reached.
-     * Afterwards, a dynamic rate is applied according to the total amount of tokens sold so far
-     * (see formula in code).
-     * NOTE: if current period is the crowdsale, no preferential rate nor spcial rate is applied
-     * no matter if the user is whitelisted or not.
+     * @dev Returns the rate accordingly: before goal is reached, there is a fixed rate given by
+     * `initialRate`. After that, the formula applies.
      * @return rate accordingly
      */
     function getRate() public constant returns(uint256) {
@@ -131,7 +127,7 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
 
     /*
      * @dev Low level token purchase function.
-     * @param beneficiary benficiary address where tokens are sent to
+     * @param beneficiary beneficiary address where tokens are sent to
      */
     function buyTokens(address beneficiary) public payable {
         require(beneficiary != address(0));
@@ -163,9 +159,8 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
     }
 
     /**
-     @dev Allows to add the address and the amount of wei sent by a contributor
-     in the private presale. Can only be called by the owner before the beginning
-     of TGE
+     @dev adds the address and the amount of wei sent by an investor during presale.
+     Can only be called by the owner before the beginning of TGE.
 
      @param beneficiary Address to which qbx will be sent
      @param weiSent Amount of wei contributed
