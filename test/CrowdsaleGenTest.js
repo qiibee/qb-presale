@@ -284,8 +284,21 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
 
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        // { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'waitTime','seconds':duration.days(1)},
         { type: 'sendTransaction','account':3,'beneficiary':0,'eth':1}
+      ],
+      crowdsale: {
+        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000,
+        maxGasPrice: 50000000000, maxCallFrequency: 600,
+        owner: 0, foundationWallet: 10
+      }
+    });
+
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'buyTokens', beneficiary: 'zero', account: 2, eth: 1 },
       ],
       crowdsale: {
         initialRate: 6000, goal: 360000000, cap: 2400000000,
@@ -450,7 +463,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
   it('should run the fund and finalize crowdsale command fine', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        {'type':'fundCrowdsaleBelowCap','account':0,'finalize':true}
+        { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true}
       ],
       crowdsale: {
         initialRate: 6000, goal: 360000000, cap: 2400000000,
@@ -464,7 +477,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
   it('should run the fund crowdsale below cap without finalize command fine', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        {'type':'fundCrowdsaleBelowCap','account':0,'finalize':false}
+        { type: 'fundCrowdsaleBelowCap','account':0,'finalize':false}
       ],
       crowdsale: {
         initialRate: 6000, goal: 360000000, cap: 2400000000,
@@ -478,8 +491,8 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
   it('should handle exception fine when trying to finalize and is already finalized', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        {'type':'fundCrowdsaleBelowCap','account':0,'finalize':true},
-        {'type':'finalizeCrowdsale','fromAccount':3}
+        { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true},
+        { type: 'finalizeCrowdsale','fromAccount':3}
       ],
       crowdsale: {
         initialRate: 6000, goal: 360000000, cap: 2400000000,
@@ -493,8 +506,8 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
   it('should handle fund, finalize and burn with 0 tokens', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        {'type':'fundCrowdsaleBelowCap','account':0,'finalize':true},
-        {'type':'burnTokens','account':4,'tokens':0}
+        { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true},
+        { type: 'burnTokens','account':4,'tokens':0}
       ],
       crowdsale: {
         initialRate: 6000, goal: 360000000, cap: 2400000000,
@@ -508,8 +521,8 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
   it('should run fund and finalize crowdsale below cap, then burn tokens fine', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        {'type':'fundCrowdsaleBelowCap','account':0,'finalize':true},
-        {'type':'burnTokens','account':5,'tokens':44}
+        { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true},
+        { type: 'burnTokens','account':5,'tokens':44}
       ],
       crowdsale: {
         initialRate: 6000, goal: 360000000, cap: 2400000000,
@@ -649,7 +662,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
   it('should run an addPresalePayment command fine', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        {'type':'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':10000}
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':10000}
       ],
       crowdsale: {
         initialRate: 6000, goal: 360000000, cap: 2400000000,
@@ -663,9 +676,24 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
   it('should handle addPresalePayment exceptions fine', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        {'type':'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':5000},
-        {'type':'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':0,'rate':10000},
-        {'type':'addPresalePayment','beneficiaryAccount':'zero','fromAccount':0,'eth':5,'rate':10000}
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':5000},
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':0,'rate':10000},
+        { type: 'addPresalePayment','beneficiaryAccount':'zero','fromAccount':0,'eth':5,'rate':10000}
+      ],
+      crowdsale: {
+        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000,
+        maxGasPrice: 50000000000, maxCallFrequency: 600,
+        owner: 0, foundationWallet: 10
+      }
+    });
+  });
+
+  it('should NOT add presale payment after TGE has started', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':10000}
       ],
       crowdsale: {
         initialRate: 6000, goal: 360000000, cap: 2400000000,
@@ -679,7 +707,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
   it('should NOT add presale payment if not owner', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        {'type':'addPresalePayment','beneficiaryAccount':1,'fromAccount':9,'eth':5,'rate':10000}
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':9,'eth':5,'rate':10000}
       ],
       crowdsale: {
         initialRate: 6000, goal: 360000000, cap: 2400000000,
@@ -709,6 +737,20 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'setWallet', newAccount: 4, fromAccount: 1 },
+      ],
+      crowdsale: {
+        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 48000,
+        maxGasPrice: 50000000000, maxCallFrequency: 600,
+        owner: 0, foundationWallet: 10
+      }
+    });
+  });
+
+  it('should not change wallet if 0', async function () {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'setWallet', newAccount: 'zero', fromAccount: 0 },
       ],
       crowdsale: {
         initialRate: 6000, goal: 360000000, cap: 2400000000,

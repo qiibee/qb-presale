@@ -502,7 +502,7 @@ async function runFundCrowdsaleBelowCap(command, state) {
 
 async function runAddPresalePaymentCommand(command, state) {
 
-  let { startTimestamp } = state.crowdsaleData,
+  let { startTime } = state.crowdsaleData,
     nextTimestamp = latestTime(),
     weiToSend = web3.toWei(command.eth, 'ether'),
     tokens = weiToSend * command.rate,
@@ -510,7 +510,7 @@ async function runAddPresalePaymentCommand(command, state) {
     beneficiary = gen.getAccount(command.beneficiaryAccount),
     hasZeroAddress = _.some([account, beneficiary], isZeroAddress);
 
-  let shouldThrow = (nextTimestamp >= startTimestamp) ||
+  let shouldThrow = (nextTimestamp >= startTime) ||
     (state.crowdsalePaused) ||
     (account != gen.getAccount(state.owner)) ||
     (state.crowdsaleFinalized) ||
