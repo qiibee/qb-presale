@@ -75,13 +75,13 @@ module.exports = {
     return this.waitToBlock(parseInt(web3.eth.blockNumber) + toWait, accounts);
   },
 
-  simulateCrowdsale: async function(initialRate, preferentialRate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, accounts, balances) {
+  simulateCrowdsale: async function(rate, preferentialRate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, accounts, balances) {
     await increaseTimeTestRPC(1);
     var startTime = latestTime() + 5;
     var endTime = startTime + 10;
     var crowdsale = await QiibeeCrowdsale.new(
       startTime, endTime,
-      initialRate,
+      rate,
       goal, cap,
       minInvest, maxInvest,
       maxGasPrice, maxCallFrequency,
@@ -139,13 +139,13 @@ module.exports = {
   },
 
   getCrowdsaleExpectedRate: function(state) {
-    let { initialRate, goal } = state.crowdsaleData,
+    let { rate, goal } = state.crowdsaleData,
       { tokensSold } = state;
 
     if (state.tokensSold.gt(goal)) {
-      return parseInt(initialRate * 1000 / parseInt((tokensSold * 1000) / goal));
+      return parseInt(rate * 1000 / parseInt((tokensSold * 1000) / goal));
     }
-    return initialRate;
+    return rate;
   },
 
   getExpectedPresaleRate: function(state, from) {

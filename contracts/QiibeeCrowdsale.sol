@@ -26,9 +26,6 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
     // total amount of tokens in atto
     uint256 public constant TOTAL_SUPPLY = 10e27;
 
-    // initial rate of ether to qbx
-    uint256 public initialRate;
-
     // maximum amount of qbx (in atto) that can be minted
     uint256 public cap;
 
@@ -63,7 +60,7 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
      * @dev Constructor. Creates the token in a paused state
      * @param _startTime see `startTimestamp`
      * @param _endTime see `endTimestamp`
-     * @param _initialRate see `initialRate`
+     * @param _rate see `rate` on Crowdsale.sol
      * @param _goal see `see goal`
      * @param _cap see `see cap`
      * @param _minInvest see `see minInvest`
@@ -75,7 +72,7 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
     function QiibeeCrowdsale(
         uint256 _startTime,
         uint256 _endTime,
-        uint256 _initialRate,
+        uint256 _rate,
         uint256 _goal,
         uint256 _cap,
         uint256 _minInvest,
@@ -85,9 +82,8 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
         address _wallet
     )
         RefundableOnTokenCrowdsale(_goal)
-        Crowdsale(_startTime, _endTime, _initialRate, _wallet)
+        Crowdsale(_startTime, _endTime, _rate, _wallet)
     {
-        require(_initialRate > 0);
         require(_cap > 0);
         require(_goal <= _cap);
         require(_minInvest > 0);
@@ -96,7 +92,6 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
         require(_maxGasPrice > 0);
         require(_maxCallFrequency > 0);
 
-        initialRate = _initialRate;
         cap = _cap;
         minInvest = _minInvest;
         maxInvest = _maxInvest;
@@ -115,14 +110,14 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
 
     /*
      * @dev Returns the rate accordingly: before goal is reached, there is a fixed rate given by
-     * `initialRate`. After that, the formula applies.
+     * `rate`. After that, the formula applies.
      * @return rate accordingly
      */
     function getRate() public constant returns(uint256) {
         if (tokensSold >= goal) {
-            return initialRate.mul(1000).div(tokensSold.mul(1000).div(goal));
+            return rate.mul(1000).div(tokensSold.mul(1000).div(goal));
         }
-        return initialRate;
+        return rate;
     }
 
     /*
@@ -164,24 +159,24 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
 
      @param beneficiary Address to which qbx will be sent
      @param weiSent Amount of wei contributed
-     @param rate qbx per ether rate at the moment of the contribution
+     @param presaleRate qbx per ether rate at the moment of the contribution
    */
-    function addPresaleTokens(address beneficiary, uint256 weiSent, uint256 rate) public onlyOwner {
+    function addPresaleTokens(address beneficiary, uint256 weiSent, uint256 presaleRate) public onlyOwner {
         require(now < startTime);
         require(beneficiary != address(0));
         require(weiSent > 0);
-
+        require(presaleRate > 0);
         // validate that rate is higher than TGE rate
-        require(rate > initialRate);
+        require(presaleRate > rate);
 
         //update state
-        uint256 tokens = weiSent.mul(rate);
+        uint256 tokens = weiSent.mul(presaleRate);
         tokensSold = tokensSold.add(tokens);
         weiRaised = weiRaised.add(weiSent);
 
         token.mint(beneficiary, tokens);
 
-        TokenPresalePurchase(beneficiary, weiSent, rate);
+        TokenPresalePurchase(beneficiary, weiSent, presaleRate);
 
         forwardFunds();
     }

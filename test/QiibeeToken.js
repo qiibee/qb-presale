@@ -18,7 +18,7 @@ contract('qiibeeToken', function(accounts) {
   var eventsWatcher;
 
   beforeEach(async function() {
-    const initialRate = 6000;
+    const rate = 6000;
     const preferentialRate = 8000;
     const goal = 360000000;
     const cap = 2400000000;
@@ -27,7 +27,7 @@ contract('qiibeeToken', function(accounts) {
     const maxGasPrice = 50000000000;
     const maxCallFrequency = 600;
     const crowdsale = await help.simulateCrowdsale(
-      initialRate,
+      rate,
       preferentialRate,
       new BigNumber(help.toAtto(goal)),
       new BigNumber(help.toAtto(cap)),

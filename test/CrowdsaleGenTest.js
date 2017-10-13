@@ -40,6 +40,8 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
     assert.equal(state.crowdsalePaused, await crowdsale.paused());
 
     let tokensInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.tokens));
+    console.log('tokensInPurchases', tokensInPurchases);
+    console.log('help.fromAtto(await crowdsale.tokensSold())', help.fromAtto(await crowdsale.tokensSold()));
     tokensInPurchases.should.be.bignumber.equal(help.fromAtto(await crowdsale.tokensSold()));
 
     // let presaleWei = sumBigNumbers(_.map(state.presalePurchases, (p) => p.wei));
@@ -73,14 +75,14 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
     let endTime = startTime + duration.days(1);
     help.debug(colors.yellow('crowdsaleTestInput data:\n', JSON.stringify(input), startTime, endTime));
 
-    let {initialRate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, owner} = input.crowdsale,
+    let {rate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, owner} = input.crowdsale,
       ownerAddress = gen.getAccount(input.crowdsale.owner),
       foundationWallet = gen.getAccount(input.crowdsale.foundationWallet);
 
-    let shouldThrow = (initialRate == 0) ||
+    let shouldThrow = (rate == 0) ||
       (latestTime() >= startTime) ||
       (startTime >= endTime) ||
-      (initialRate == 0) ||
+      (rate == 0) ||
       (goal == 0) ||
       (cap == 0) ||
       (goal >= cap) ||
@@ -98,7 +100,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
       let crowdsaleData = {
         startTime: startTime,
         endTime: endTime,
-        initialRate: input.crowdsale.initialRate,
+        rate: input.crowdsale.rate,
         goal: new BigNumber(help.toAtto(input.crowdsale.goal)),
         cap: new BigNumber(help.toAtto(input.crowdsale.cap)),
         minInvest: new BigNumber(help.toAtto(input.crowdsale.minInvest)),
@@ -114,7 +116,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
       let crowdsale = await QiibeeCrowdsale.new(
         crowdsaleData.startTime,
         crowdsaleData.endTime,
-        crowdsaleData.initialRate,
+        crowdsaleData.rate,
         crowdsaleData.goal,
         crowdsaleData.cap,
         crowdsaleData.minInvest,
@@ -203,7 +205,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 0.5 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -218,7 +220,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -239,7 +241,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 20 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -254,7 +256,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1, gasPrice: 50000000001 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -271,7 +273,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -288,7 +290,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'sendTransaction','account':3,'beneficiary':0,'eth':1}
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -301,7 +303,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'buyTokens', beneficiary: 'zero', account: 2, eth: 1 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -315,7 +317,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type:'sendTransaction','account':0,'beneficiary':9,'eth':39}
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -327,7 +329,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { 'type':'fundCrowdsaleBelowCap','account':7,'finalize':false}
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 2400000000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -348,7 +350,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'checkRate' },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 2400000000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -371,7 +373,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'finalizeCrowdsale', fromAccount: 2 }
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 2400000000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -393,7 +395,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'pauseToken', 'pause':true, 'fromAccount':10 }
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -413,7 +415,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'pauseToken', 'pause':true, 'fromAccount':10 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -433,7 +435,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'buyTokens', beneficiary: 4, account: 4, eth: 500000 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 2400000000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -450,7 +452,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'finalizeCrowdsale', fromAccount: 1 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -466,7 +468,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true}
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 2400000000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -480,7 +482,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'fundCrowdsaleBelowCap','account':0,'finalize':false}
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 2400000000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -495,7 +497,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'finalizeCrowdsale','fromAccount':3}
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 2400000000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -510,7 +512,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'burnTokens','account':4,'tokens':0}
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 2400000000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -525,7 +527,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'burnTokens','account':5,'tokens':44}
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 2400000000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -561,7 +563,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'waitTime','seconds':duration.days(1)},
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -578,7 +580,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         // { type: 'finalizeCrowdsale', fromAccount: 0 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -596,7 +598,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'claimRefund', fromAccount: 4, investedEth: 5 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 2400000000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -614,7 +616,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'claimRefund', fromAccount: 4, investedEth: 5 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -634,7 +636,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'claimRefund', fromAccount: 7, investedEth: 5 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -651,7 +653,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'claimRefund', fromAccount: 4, investedEth: 5 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -665,7 +667,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':10000}
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -681,7 +683,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'addPresalePayment','beneficiaryAccount':'zero','fromAccount':0,'eth':5,'rate':10000}
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -696,7 +698,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':10000}
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -710,7 +712,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':9,'eth':5,'rate':10000}
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -725,7 +727,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'setWallet', newAccount: 4, fromAccount: 0 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -739,7 +741,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'setWallet', newAccount: 4, fromAccount: 1 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10
@@ -753,7 +755,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         { type: 'setWallet', newAccount: 'zero', fromAccount: 0 },
       ],
       crowdsale: {
-        initialRate: 6000, goal: 360000000, cap: 2400000000,
+        rate: 6000, goal: 360000000, cap: 2400000000,
         minInvest: 6000, maxInvest: 48000,
         maxGasPrice: 50000000000, maxCallFrequency: 600,
         owner: 0, foundationWallet: 10

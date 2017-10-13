@@ -30,7 +30,7 @@ module.exports = {
   }),
 
   crowdsaleGen: jsc.record({
-    initialRate: jsc.integer(0, 20000),
+    rate: jsc.integer(0, 20000),
     preferentialRate: jsc.integer(0, 20000),
     goal: jsc.integer(0, 1000000000),
     cap: jsc.integer(0, 1000000000),

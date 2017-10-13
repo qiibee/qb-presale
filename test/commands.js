@@ -76,7 +76,7 @@ async function runCheckRateCommand(command, state) {
   let rate = await state.crowdsaleContract.getRate();
   assert.equal(expectedRate, rate,
     'expected rate is different! Expected: ' + expectedRate + ', actual: ' + rate + '. blocks: ' + web3.eth.blockTimestamp +
-    ', start/initialRate/preferentialRate: ' + state.crowdsaleData.startTime + '/' + state.crowdsaleData.initialRate + '/' + state.crowdsaleData.preferentialRate);
+    ', start/initialRate/preferentialRate: ' + state.crowdsaleData.startTime + '/' + state.crowdsaleData.rate + '/' + state.crowdsaleData.preferentialRate);
   help.debug(colors.green('Expected rate:', expectedRate, 'rate:', rate));
   return state;
 }
@@ -123,7 +123,7 @@ async function runBuyTokensCommand(command, state) {
   let shouldThrow = (!inTGE) ||
     (state.crowdsalePaused) ||
     //TODO: add reuqirements for TOTAL SUPPLY, FOUNDATION, etc
-    crowdsale.initialRate == 0 ||
+    crowdsale.rate == 0 ||
     crowdsale.goal == 0 ||
     crowdsale.cap == 0 ||
     crowdsale.minInvest == 0 ||
@@ -188,7 +188,7 @@ async function runSendTransactionCommand(command, state) {
   let shouldThrow = (!inTGE) ||
     state.crowdsalePaused ||
     //TODO: add reuqirements for TOTAL SUPPLY, FOUNDATION, etc
-    crowdsale.initialRate == 0 ||
+    crowdsale.rate == 0 ||
     crowdsale.goal == 0 ||
     crowdsale.cap == 0 ||
     crowdsale.minInvest == 0 ||
@@ -516,11 +516,13 @@ async function runAddPresalePaymentCommand(command, state) {
     (state.crowdsaleFinalized) ||
     hasZeroAddress ||
     (weiToSend == 0) ||
-    (command.rate <= state.crowdsaleData.initialRate);
+    (command.rate <= state.crowdsaleData.rate) ||
+    command.rate == 0 ||
+    command.rate <= state.crowdsaleData.rate;
 
   try {
     const tx = await state.crowdsaleContract.addPresaleTokens(beneficiary, weiToSend, command.rate, {from: account});
-    assert.equal(false, shouldThrow, 'buyTokens should have thrown but it did not');
+    assert.equal(false, shouldThrow, 'addPresalePayment should have thrown but it did not');
     help.debug(colors.green('SUCCESS adding presale private tokens for account:', command.beneficiaryAccount, 'eth:', command.eth, 'fromAccount:', command.fromAccount, 'blockTimestamp:', nextTimestamp));
 
     state.tokensSold = state.tokensSold.plus(tokens);

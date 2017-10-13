@@ -26,7 +26,7 @@ contract('qbxToken Crowdsale', function(accounts) {
 
     assert.equal(startTime, parseInt(await crowdsale.startTime()));
     assert.equal(endTime, parseInt(await crowdsale.endTime()));
-    assert.equal(100, parseInt(await crowdsale.initialRate()));
+    assert.equal(100, parseInt(await crowdsale.rate()));
     assert.equal(5000, parseInt(await crowdsale.goal()));
     assert.equal(10000, parseInt(await crowdsale.cap()));
     assert.equal(50000000000, parseInt(await crowdsale.maxGasPrice()));
@@ -38,7 +38,7 @@ contract('qbxToken Crowdsale', function(accounts) {
     const startTime = latestTime() + duration.days(1),
       endTime = startTime + duration.days(1);
 
-    // initialRate = 0
+    // rate = 0
     try {
       await QiibeeCrowdsale.new(
         startTime, endTime,
