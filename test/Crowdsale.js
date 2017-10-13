@@ -1,7 +1,15 @@
 var QiibeeCrowdsale = artifacts.require('./QiibeeCrowdsale.sol');
 
 var latestTime = require('./helpers/latestTime');
-var {duration} = require('./helpers/increaseTime');
+var { duration } = require('./helpers/increaseTime');
+var help = require('./helpers.js');
+
+function assertExpectedException(e) {
+  let isKnownException = help.isInvalidOpcodeEx(e);
+  if (!isKnownException) {
+    throw(e);
+  }
+}
 
 contract('qbxToken Crowdsale', function(accounts) {
 
@@ -29,56 +37,68 @@ contract('qbxToken Crowdsale', function(accounts) {
   it('can NOT create a Crowdsale', async function() {
     const startTime = latestTime() + duration.days(1),
       endTime = startTime + duration.days(1);
+
+    // initialRate = 0
     try {
-      // initialRate = 0
       await QiibeeCrowdsale.new(
         startTime, endTime,
         0, 5000, 10000,
         1000, 2500, 50000000000, 600,
         accounts[0]
       );
-
-      // goal = 0
+    } catch (e) {
+      assertExpectedException(e);
+    }
+    // goal = 0
+    try {
       await QiibeeCrowdsale.new(
         startTime, endTime,
         100, 0, 10000,
         1000, 2500, 50000000000, 600,
         accounts[0]
       );
+    } catch (e) {
+      assertExpectedException(e);
+    }
 
-      // cap = 0
+    // cap = 0
+    try {
       await QiibeeCrowdsale.new(
         startTime, endTime,
         100, 5000, 0,
         1000, 2500, 50000000000, 600,
         accounts[0]
       );
+    } catch (e) {
+      assertExpectedException(e);
+    }
 
-      // minInvest = 0
+    // minInvest = 0
+    try {
       await QiibeeCrowdsale.new(
         startTime, endTime,
         100, 5000, 10000,
         0, 2500, 50000000000, 600,
         accounts[0]
       );
+    } catch (e) {
+      assertExpectedException(e);
+    }
 
-      // maxInvest = 0
+    // maxInvest = 0
+    try {
       await QiibeeCrowdsale.new(
         startTime, endTime,
         100, 5000, 10000,
         1000, 0, 50000000000, 600,
         accounts[0]
       );
+    } catch (e) {
+      assertExpectedException(e);
+    }
 
-      // maxGasPrice = 0
-      await QiibeeCrowdsale.new(
-        startTime, endTime,
-        100, 5000, 10000,
-        1000, 2500, 50000000000, 600,
-        accounts[0]
-      );
-
-      // maxCallFrequency = 0
+    // maxGasPrice = 0
+    try {
       await QiibeeCrowdsale.new(
         startTime, endTime,
         100, 5000, 10000,
@@ -86,7 +106,19 @@ contract('qbxToken Crowdsale', function(accounts) {
         accounts[0]
       );
     } catch (e) {
-      if (e.message.search('invalid opcode') == 0) throw e;
+      assertExpectedException(e);
+    }
+
+    // maxCallFrequency = 0
+    try {
+      await QiibeeCrowdsale.new(
+        startTime, endTime,
+        100, 5000, 10000,
+        1000, 2500, 50000000000, 600,
+        accounts[0]
+      );
+    } catch (e) {
+      assertExpectedException(e);
     }
   });
 
