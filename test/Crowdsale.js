@@ -97,12 +97,24 @@ contract('qbxToken Crowdsale', function(accounts) {
       assertExpectedException(e);
     }
 
+    // minInvest > maxInvest
+    try {
+      await QiibeeCrowdsale.new(
+        startTime, endTime,
+        100, 5000, 10000,
+        1000, 100, 50000000000, 600,
+        accounts[0]
+      );
+    } catch (e) {
+      assertExpectedException(e);
+    }
+
     // maxGasPrice = 0
     try {
       await QiibeeCrowdsale.new(
         startTime, endTime,
         100, 5000, 10000,
-        1000, 2500, 50000000000, 600,
+        1000, 2500, 0, 600,
         accounts[0]
       );
     } catch (e) {
@@ -114,7 +126,7 @@ contract('qbxToken Crowdsale', function(accounts) {
       await QiibeeCrowdsale.new(
         startTime, endTime,
         100, 5000, 10000,
-        1000, 2500, 50000000000, 600,
+        1000, 2500, 50000000000, 0,
         accounts[0]
       );
     } catch (e) {
