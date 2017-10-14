@@ -680,7 +680,8 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
       commands: [
         { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':5000},
         { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':0,'rate':10000},
-        { type: 'addPresalePayment','beneficiaryAccount':'zero','fromAccount':0,'eth':5,'rate':10000}
+        { type: 'addPresalePayment','beneficiaryAccount':'zero','fromAccount':0,'eth':5,'rate':10000},
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':0}
       ],
       crowdsale: {
         rate: 6000, goal: 360000000, cap: 2400000000,
