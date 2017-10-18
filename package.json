@@ -31,7 +31,7 @@
     "lodash": "^4.17.4",
     "solc": "^0.4.13",
     "truffle-hdwallet-provider": "0.0.3",
-    "zeppelin-solidity": "github:OpenZeppelin/zeppelin-solidity#master"
+    "zeppelin-solidity": "github:OpenZeppelin/zeppelin-solidity#39d6c920694382dc32cdda110502319e4afe0d43"
   },
   "devDependencies": {
     "chai-bignumber": "^2.0.1",

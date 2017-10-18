@@ -205,7 +205,7 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
     /**
       @dev Finalizes the crowdsale, calls finalization method (see `finalization()`),
       unpauses the token and transfers the token ownership to the foundation.
-      This function can be called only by the owner and when the crowdsale has ended.
+      This function can only be called when the crowdsale has ended.
     */
     function finalize() public {
         require(!isFinalized);

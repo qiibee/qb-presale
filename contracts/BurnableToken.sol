@@ -14,7 +14,7 @@ contract BurnableToken is StandardToken {
      * @dev Burns a specified amount of tokens.
      * @param _value The amount of tokens to burn.
      */
-    function burn(uint256 _value) public { //TODO: is this okay? Does it need to have onlyOwner?
+    function burn(uint256 _value) public {
         require(_value > 0);
 
         address burner = msg.sender;
