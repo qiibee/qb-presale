@@ -1,8 +1,8 @@
 pragma solidity ^0.4.11;
 
-import "./RefundableOnTokenCrowdsale.sol";
-import "zeppelin-solidity/contracts/crowdsale/Crowdsale.sol";
-import "./QiibeeToken.sol";
+import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "zeppelin-solidity/contracts/lifecycle/Pausable.sol";
+import "zeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
    @title Presale event
