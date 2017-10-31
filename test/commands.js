@@ -94,11 +94,11 @@ async function runCheckTokensCommand(command, state) {
       duration = await vesting.duration(),
       revoked = await vesting.revoked[state.token];
 
-    let purchasedTokens = help.toAtto(_.sumBy(_.filter(state.purchases, function(p) {
+    let purchasedTokens = new BigNumber(help.toAtto(_.sumBy(_.filter(state.purchases, function(p) {
       return  p.beneficiary == command.account;
     }), function(p) {
       return parseInt(p.tokens);
-    }));
+    })));
 
     if (nextTime < cliff) {
       releasable.should.be.bignumber.equal(0);
@@ -106,7 +106,7 @@ async function runCheckTokensCommand(command, state) {
       releasable.should.be.bignumber.equal(purchasedTokens);
     } else {
       let cs = new BigNumber(nextTime - start);
-      releasable.should.be.bignumber.equal((new BigNumber(purchasedTokens).mul(cs)).div(new BigNumber(duration)));
+      purchasedTokens.mul(cs).div(duration).should.be.bignumber.gte(releasable);
     }
   }
   return state;
@@ -562,9 +562,7 @@ async function runAddPresalePaymentCommand(command, state) {
     command.rate == 0 ||
     command.rate <= state.crowdsaleData.rate ||
     cliff == 0 || duration == 0 || duration < cliff;
-  // console.log('state', state);
-  console.log('command', command);
-  console.log('shouldThrow', shouldThrow);
+
   try {
     const tx = await state.crowdsaleContract.addPresaleTokens(beneficiary, weiToSend, command.rate, cliff, duration, {from: account});
     assert.equal(false, shouldThrow, 'addPresalePayment should have thrown but it did not');

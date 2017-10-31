@@ -182,7 +182,7 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
 
         TokenVesting vesting;
         if (vestings[beneficiary] == 0) {
-          vesting = new TokenVesting(beneficiary, now, cliffDate, vestingDate, false);
+          vesting = new TokenVesting(beneficiary, startTime, cliffDate, vestingDate, false);
           vestings[beneficiary] = vesting;
         } else {
           vesting = TokenVesting(vestings[beneficiary]);
