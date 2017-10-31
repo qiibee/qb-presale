@@ -36,6 +36,13 @@ module.exports = {
       from: address,     // Use the address we derived
       gas: 4700000, // crowdsale uses 4454368 gas
       gasPrice: 22000000000 // in wei = 22 gwei
+    },
+    coverage: {
+      host: "localhost",
+      port: 8555,
+      network_id: "*",
+      gas: 0xfffffffffff,
+      gasPrice: 0x01
     }
   },
   rpc: {
