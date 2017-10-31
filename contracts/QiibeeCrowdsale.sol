@@ -3,6 +3,7 @@ pragma solidity ^0.4.11;
 import "./RefundableOnTokenCrowdsale.sol";
 import "zeppelin-solidity/contracts/crowdsale/Crowdsale.sol";
 import "./QiibeeToken.sol";
+import "./TokenVesting.sol";
 
 /**
    @title Crowdsale for the QBX Token Generation Event
@@ -41,6 +42,8 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
     // minimum and maximum invest in atto per address
     uint256 public minInvest;
     uint256 public maxInvest;
+
+    mapping (address => address) public vestings;
 
     /*
      * @dev event for change wallet logging
@@ -161,20 +164,30 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
      @param weiSent Amount of wei contributed
      @param presaleRate qbx per ether rate at the moment of the contribution
    */
-    function addPresaleTokens(address beneficiary, uint256 weiSent, uint256 presaleRate) public onlyOwner {
+    function addPresaleTokens(address beneficiary, uint256 weiSent, uint256 presaleRate, uint64 cliffDate, uint64 vestingDate) public onlyOwner {
         require(now < startTime);
         require(beneficiary != address(0));
         require(weiSent > 0);
         require(presaleRate > 0);
         // validate that rate is higher than TGE rate
         require(presaleRate > rate);
+        require(cliffDate > 0);
+        require(vestingDate > 0);
+        require(cliffDate <= vestingDate);
 
         //update state
         uint256 tokens = weiSent.mul(presaleRate);
         tokensSold = tokensSold.add(tokens);
         weiRaised = weiRaised.add(weiSent);
 
-        token.mint(beneficiary, tokens);
+        TokenVesting vesting;
+        if (vestings[beneficiary] == 0) {
+          vesting = new TokenVesting(beneficiary, now, cliffDate, vestingDate, false);
+          vestings[beneficiary] = vesting;
+        } else {
+          vesting = TokenVesting(vestings[beneficiary]);
+        }
+        token.mint(vesting, tokens);
 
         TokenPresalePurchase(beneficiary, weiSent, presaleRate);
 
@@ -186,7 +199,7 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
      * @param _wallet new wallet
      */
     function setWallet(address _wallet) onlyOwner public {
-        require(_wallet != 0x0);
+        require(_wallet != address(0));
         wallet = _wallet;
         WalletChange(_wallet);
     }

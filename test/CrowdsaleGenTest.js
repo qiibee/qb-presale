@@ -40,8 +40,6 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
     assert.equal(state.crowdsalePaused, await crowdsale.paused());
 
     let tokensInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.tokens));
-    console.log('tokensInPurchases', tokensInPurchases);
-    console.log('help.fromAtto(await crowdsale.tokensSold())', help.fromAtto(await crowdsale.tokensSold()));
     tokensInPurchases.should.be.bignumber.equal(help.fromAtto(await crowdsale.tokensSold()));
 
     // let presaleWei = sumBigNumbers(_.map(state.presalePurchases, (p) => p.wei));
@@ -138,9 +136,6 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
       });
 
       help.debug(colors.yellow('created crowdsale at address ', crowdsale.address));
-
-      // issue & transfer tokens for founders payments
-      // let maxFoundersPaymentTokens = crowdsaleData.maxTokens * (crowdsaleData.ownerPercentage / 1000.0) ;
 
       var state = {
         crowdsaleData: crowdsaleData,
@@ -661,10 +656,38 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
     });
   });
 
+
+  //VESTING
+  it('should add presale payments with vesting and check token balances in specified periods', async function() {
+    await runGeneratedCrowdsaleAndCommands({
+      commands: [
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':10000, 'cliff': duration.days(10), 'duration': duration.days(20)},
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':2,'rate':10000, 'cliff': duration.days(10), 'duration': duration.days(20)},
+        { type: 'fundCrowdsaleBelowCap','account':2,'finalize':true},
+        { type:'checkTokens','account':1},
+        { type: 'waitTime','seconds':duration.days(15)},
+        { type:'checkTokens','account':1},
+        { type: 'waitTime','seconds':duration.days(40)},
+        { type:'checkTokens','account':1},
+      ],
+      crowdsale: {
+        rate: 6000, goal: 360000000, cap: 2400000000,
+        minInvest: 6000, maxInvest: 2400000000,
+        maxGasPrice: 50000000000, maxCallFrequency: 600,
+        owner: 0, foundationWallet: 10
+      }
+    });
+  });
+
+  //TODO: add test to release vested tokens
+  //TODO: add test with cliff bigger than duration
+  //TODO: add test for revocable
+
+  //PRESALE PAYMENTS
   it('should run an addPresalePayment command fine', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':10000}
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':10000, 'cliff': duration.days(10), 'duration': duration.days(20)},
       ],
       crowdsale: {
         rate: 6000, goal: 360000000, cap: 2400000000,
@@ -678,10 +701,10 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
   it('should handle addPresalePayment exceptions fine', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':5000},
-        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':0,'rate':10000},
-        { type: 'addPresalePayment','beneficiaryAccount':'zero','fromAccount':0,'eth':5,'rate':10000},
-        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':0}
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':5000, 'cliff': duration.days(10), 'duration': duration.days(20) },
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':0,'rate':10000, 'cliff': duration.days(10), 'duration': duration.days(20) },
+        { type: 'addPresalePayment','beneficiaryAccount':'zero','fromAccount':0,'eth':5,'rate':10000, 'cliff': duration.days(10), 'duration': duration.days(20) },
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':0, 'cliff': duration.days(10), 'duration': duration.days(20) }
       ],
       crowdsale: {
         rate: 6000, goal: 360000000, cap: 2400000000,
@@ -696,7 +719,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':10000}
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':0,'eth':5,'rate':10000, 'cliff': duration.days(10), 'duration': duration.days(20)}
       ],
       crowdsale: {
         rate: 6000, goal: 360000000, cap: 2400000000,
@@ -710,7 +733,7 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
   it('should NOT add presale payment if not owner', async function() {
     await runGeneratedCrowdsaleAndCommands({
       commands: [
-        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':9,'eth':5,'rate':10000}
+        { type: 'addPresalePayment','beneficiaryAccount':1,'fromAccount':9,'eth':5,'rate':10000, 'cliff': duration.days(10), 'duration': duration.days(20)}
       ],
       crowdsale: {
         rate: 6000, goal: 360000000, cap: 2400000000,

@@ -31,7 +31,6 @@ module.exports = {
 
   crowdsaleGen: jsc.record({
     rate: jsc.integer(0, 20000),
-    preferentialRate: jsc.integer(0, 20000),
     goal: jsc.integer(0, 1000000000),
     cap: jsc.integer(0, 1000000000),
     minInvest: jsc.integer(0, 1000000000),
@@ -50,6 +49,11 @@ module.exports = {
   checkRateCommandGen: jsc.record({
     type: jsc.constant('checkRate'),
     fromAccount: accountGen
+  }),
+
+  checkTokensCommandGen: jsc.record({
+    type: jsc.constant('checkTokens'),
+    account: accountGen
   }),
 
   setWalletCommandGen: jsc.record({
@@ -119,7 +123,9 @@ module.exports = {
     beneficiaryAccount: accountGen,
     fromAccount: accountGen,
     eth: jsc.nat,
-    rate: jsc.integer(0, 20000)
+    rate: jsc.integer(0, 20000),
+    cliff: jsc.nat,
+    duration: jsc.nat
   }),
 
   addToWhitelistCommandGen: jsc.record({
