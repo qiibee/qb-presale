@@ -19,16 +19,14 @@ contract('qiibeeToken', function(accounts) {
 
   beforeEach(async function() {
     const rate = 6000;
-    const preferentialRate = 8000;
-    const goal = 360000000;
-    const cap = 2400000000;
-    const minInvest = 200000;
-    const maxInvest = 1000000;
-    const maxGasPrice = 50000000000;
+    const goal = 36000;
+    const cap = 240000;
+    const minInvest = 20;
+    const maxInvest = 240000;
+    const maxGasPrice = 500000000000;
     const maxCallFrequency = 600;
     const crowdsale = await help.simulateCrowdsale(
       rate,
-      preferentialRate,
       new BigNumber(help.toAtto(goal)),
       new BigNumber(help.toAtto(cap)),
       new BigNumber(help.toAtto(minInvest)),
@@ -40,7 +38,6 @@ contract('qiibeeToken', function(accounts) {
     );
     token = QiibeeToken.at(await crowdsale.token());
 
-    //TODO: do we need to add something else here? Whitelist?
     eventsWatcher = token.allEvents();
 
     eventsWatcher.watch(function(error, log){

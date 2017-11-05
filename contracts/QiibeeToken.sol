@@ -2,6 +2,7 @@ pragma solidity ^0.4.11;
 
 import "zeppelin-solidity/contracts/token/PausableToken.sol";
 import "zeppelin-solidity/contracts/token/MintableToken.sol";
+import "./VestedToken.sol";
 import "./BurnableToken.sol";
 
 /**
@@ -13,7 +14,7 @@ import "./BurnableToken.sol";
 
    The smallest unit of a qbx is the atto.
  */
-contract QiibeeToken is BurnableToken, PausableToken, MintableToken {
+contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken {
 
     string public constant SYMBOL = "QBX";
 
