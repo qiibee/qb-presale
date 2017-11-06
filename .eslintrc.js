@@ -11,6 +11,7 @@ module.exports = {
       "afterEach": true,
       "artifacts": true,
       "assert": true,
+      "before": true,
       "beforeEach": true,
       "contract": true,
       "it": true,
@@ -34,8 +35,6 @@ module.exports = {
         "semi": [
             "error",
             "always"
-        ],
-        "no-unused-vars": ["error", { "args": "none" }],
-
+        ]
     }
 };

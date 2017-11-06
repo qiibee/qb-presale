@@ -33,5 +33,5 @@ module.exports = function(deployer) {
   // deployer.deploy(QiibeeCrowdsale, startTime, endTime, rate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, wallet);
  // deployer.deploy(QiibeePresale, presalecap, wallet);
   // deployer.deploy(QiibeePresale, startTime, endTime, rate, goal, presalecap, wallet);
-  // deployer.deploy(QiibeePresale, startTime, endTime, maxGasPrice, maxCallFrequency, goal, presalecap, wallet);
+  // deployer.deploy(QiibeePresale, startTime, endTime, goal, presalecap, maxGasPrice, maxCallFrequency, wallet);
 };

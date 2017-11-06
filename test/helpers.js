@@ -11,7 +11,7 @@ abiDecoder.addABI(QiibeeCrowdsale._json.abi);
 var latestTime = require('./helpers/latestTime');
 var {increaseTimeTestRPC, increaseTimeTestRPCTo} = require('./helpers/increaseTime');
 
-const DEBUG_MODE = (process.env.npm_config_qb_debug == 'true') || false;
+const DEBUG_MODE = (process.env.QB_DEBUG == 'true' || process.env.npm_config_qb_debug == 'true') || false;
 
 let gasPriceFromEnv = parseInt(process.env.GAS_PRICE);
 let gasPrice;

@@ -9,7 +9,7 @@ require('chai')
 
 var QiibeeToken = artifacts.require('../QiibeeToken.sol');
 
-const LOG_EVENTS = true;
+const LOG_EVENTS = false;
 
 contract('qiibeeToken', function(accounts) {
 

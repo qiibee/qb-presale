@@ -7,7 +7,7 @@ const Crowdsale = artifacts.require('Crowdsale.sol');
 const QiibeeToken = artifacts.require('QiibeeToken.sol');
 
 const latestTime = require('./helpers/latestTime');
-const {increaseTimeTestRPC, increaseTimeTestRPCTo} = require('./helpers/increaseTime');
+const {increaseTimeTestRPCTo} = require('./helpers/increaseTime');
 const { duration } = require('./helpers/increaseTime');
 const help = require('./helpers.js');
 const BigNumber = web3.BigNumber;
@@ -23,67 +23,70 @@ function assertExpectedException(e) {
   }
 }
 
-const LOG_EVENTS = false;
 const value = help.toWei(1);
 
 contract('Crowdsale', function ([owner, wallet, investor]) {
 
-  const goal = new BigNumber(help.toWei(800));
-  const lessThanGoal = new BigNumber(help.toWei(750));
-  const cap = new BigNumber(help.toWei(1800));
-  const lessThanCap = new BigNumber(help.toWei(1000));
-  const maxGasPrice = new BigNumber(5000000000000000000);
-  const maxCallFrequency = 0;
+  const defaultTimeDelta = duration.days(1); // time delta used in time calculations (for start, end1 & end2)
+  const defaults = {
+    goal: new BigNumber(help.toWei(800)),
+    lessThanGoal: new BigNumber(help.toWei(750)),
+    cap: new BigNumber(help.toWei(1800)),
+    lessThanCap: new BigNumber(help.toWei(1000)),
+    maxGasPrice: new BigNumber(5000000000000000000),
+    maxCallFrequency: 600,
+    wallet: wallet
+  };
 
-  let startTime, endTime;
-  let eventsWatcher, token, afterEndTime, crowdsale;
+  // beforeEach(async function () {
+  //   startTime = latestTime() + duration.weeks(1);
+  //   endTime = startTime + duration.weeks(1);
+  //   afterEndTime = endTime + duration.seconds(1);
+  //   crowdsale = await Crowdsale.new(startTime, endTime, goal, cap, maxGasPrice, maxCallFrequency, wallet, {from: owner});
 
-  beforeEach(async function () {
-    startTime = latestTime() + duration.weeks(1);
-    endTime = startTime + duration.weeks(1);
-    afterEndTime = endTime + duration.seconds(1);
+  //   token = QiibeeToken.at(await crowdsale.token());
+  //   await increaseTimeTestRPC(1);
 
-    crowdsale = await Crowdsale.new(startTime, endTime, goal, cap, maxGasPrice, maxCallFrequency, wallet, {from: owner});
-    token = QiibeeToken.at(await crowdsale.token());
-    await increaseTimeTestRPC(1);
+  //   assert.equal(startTime, parseInt(await crowdsale.startTime()));
+  //   assert.equal(endTime, parseInt(await crowdsale.endTime()));
+  //   assert.equal(maxGasPrice, parseInt(await crowdsale.maxGasPrice()));
+  //   assert.equal(maxCallFrequency, parseInt(await crowdsale.maxCallFrequency()));
+  //   assert.equal(goal.toString(), (await crowdsale.goal()).toString());
+  //   assert.equal(cap.toString(), (await crowdsale.cap()).toString());
+  //   assert.equal(wallet, await crowdsale.wallet());
+  // });
 
-    assert.equal(startTime, parseInt(await crowdsale.startTime()));
-    assert.equal(endTime, parseInt(await crowdsale.endTime()));
-    assert.equal(maxGasPrice, parseInt(await crowdsale.maxGasPrice()));
-    assert.equal(maxCallFrequency, parseInt(await crowdsale.maxCallFrequency()));
-    assert.equal(goal.toString(), (await crowdsale.goal()).toString());
-    assert.equal(cap.toString(), (await crowdsale.cap()).toString());
-    assert.equal(wallet, await crowdsale.wallet());
+  async function createCrowdsale(params) {
+    const startTime = params.start === undefined ? (latestTime() + defaultTimeDelta) : params.start,
+      endTime = params.endTime === undefined ? (startTime + duration.weeks(1)) : params.endTime,
+      goal = params.goal === undefined ? defaults.goal : params.goal,
+      cap = params.cap === undefined ? defaults.cap : params.cap,
+      maxGasPrice = params.maxGasPrice === undefined ? defaults.maxGasPrice : params.maxGasPrice,
+      maxCallFrequency = params.maxCallFrequency === undefined ? defaults.maxCallFrequency : params.maxCallFrequency,
+      wallet = params.wallet === undefined ? defaults.wallet : params.foundationWallet;
 
-    eventsWatcher = token.allEvents();
-
-    eventsWatcher.watch(function(error, log){
-      if (LOG_EVENTS)
-        console.log('Event:', log.event, ':',log.args);
-    });
-  });
-
-  afterEach(function(done) {
-    eventsWatcher.stopWatching();
-    done();
-  });
+    return await Crowdsale.new(startTime, endTime, goal, cap, maxGasPrice, maxCallFrequency, wallet, {from: owner});
+  }
 
   it('should be token owner', async function () {
-    const owner = await token.owner();
+    const crowdsale = await createCrowdsale({}),
+      token = QiibeeToken.at(await crowdsale.token()),
+      owner = await token.owner();
     assert.equal(owner, crowdsale.address);
   });
 
   it('should be ended only after end', async function () {
+    const crowdsale = await createCrowdsale({});
     let ended = await crowdsale.hasEnded();
     assert.equal(ended, false);
-    await increaseTimeTestRPCTo(afterEndTime);
+    await increaseTimeTestRPCTo(await crowdsale.endTime() + duration.seconds(1));
     ended = await crowdsale.hasEnded();
     assert.equal(ended, true);
   });
 
   it('should fail creating crowdsale with zero maxGasPrice', async function () {
     try {
-      await Crowdsale.new(startTime, endTime, 0, maxCallFrequency, goal, cap, wallet, {from: owner});
+      await createCrowdsale({maxGasPrice: 0});
     } catch (e) {
       assertExpectedException(e);
     }
@@ -92,6 +95,7 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
   describe('accepting payments', function () {
 
     it('should reject payments before start', async function () {
+      const crowdsale = await createCrowdsale({});
       try {
         await crowdsale.send(value);
       } catch (e) {
@@ -105,13 +109,15 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
     });
 
     it('should accept payments after start', async function () {
-      await increaseTimeTestRPCTo(startTime);
+      const crowdsale = await createCrowdsale({});
+      await increaseTimeTestRPCTo(await crowdsale.startTime());
       await crowdsale.sendTransaction({value: value, from: investor});
       await crowdsale.buyTokens(investor, {value: value, from: investor});
     });
 
     it('should reject payments after end', async function () {
-      await increaseTimeTestRPCTo(afterEndTime);
+      const crowdsale = await createCrowdsale({});
+      await increaseTimeTestRPCTo(await crowdsale.endTime() + duration.seconds(1));
       try {
         await crowdsale.sendTransaction({value: value, from: investor});
       } catch (e) {
@@ -131,19 +137,20 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
 
     it('should fail creating crowdsale with zero goal', async function () {
       try {
-        await Crowdsale.new(startTime, endTime, maxGasPrice, maxCallFrequency, 0, cap, wallet, {from: owner});
+        await createCrowdsale({goal: 0});
       } catch (e) {
         assertExpectedException(e);
       }
     });
 
     it('should deny refunds before end', async function () {
+      const crowdsale = await createCrowdsale({});
       try {
         await crowdsale.claimRefund({from: investor});
       } catch (e) {
         assertExpectedException(e);
       }
-      await increaseTimeTestRPCTo(startTime);
+      await increaseTimeTestRPCTo(await crowdsale.startTime());
       try {
         await crowdsale.claimRefund({from: investor});
       } catch (e) {
@@ -152,9 +159,10 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
     });
 
     it('should deny refunds after end if goal was reached', async function () {
-      await increaseTimeTestRPCTo(startTime);
-      await crowdsale.sendTransaction({value: goal, from: investor});
-      await increaseTimeTestRPCTo(afterEndTime);
+      const crowdsale = await createCrowdsale({});
+      await increaseTimeTestRPCTo(await crowdsale.startTime());
+      await crowdsale.sendTransaction({value: defaults.goal, from: investor});
+      await increaseTimeTestRPCTo(await crowdsale.endTime() + duration.seconds(1));
       try {
         await crowdsale.claimRefund({from: investor});
       } catch (e) {
@@ -163,38 +171,39 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
     });
 
     it('should allow refunds after end if goal was not reached', async function () {
-      await increaseTimeTestRPCTo(startTime);
-      await crowdsale.sendTransaction({value: lessThanGoal, from: investor});
-      await increaseTimeTestRPCTo(afterEndTime);
+      const crowdsale = await createCrowdsale({});
+      await increaseTimeTestRPCTo(await crowdsale.startTime());
+      await crowdsale.sendTransaction({value: defaults.lessThanGoal, from: investor});
+      await increaseTimeTestRPCTo(await crowdsale.endTime() + duration.seconds(1));
 
       await crowdsale.finalize({from: owner});
 
       const pre = web3.eth.getBalance(investor);
       await crowdsale.claimRefund({from: investor, gasPrice: 0});
       const post = web3.eth.getBalance(investor);
-      post.minus(pre).should.be.bignumber.equal(lessThanGoal);
+      post.minus(pre).should.be.bignumber.equal(defaults.lessThanGoal);
     });
 
     it('should forward funds to wallet after end if goal was reached', async function () {
-      await increaseTimeTestRPCTo(startTime);
-      await crowdsale.sendTransaction({value: goal, from: investor});
-      await increaseTimeTestRPCTo(afterEndTime);
+      const crowdsale = await createCrowdsale({});
+      await increaseTimeTestRPCTo(await crowdsale.startTime());
+      await crowdsale.sendTransaction({value: defaults.goal, from: investor});
+      await increaseTimeTestRPCTo(await crowdsale.endTime() + duration.seconds(1));
 
       const pre = web3.eth.getBalance(wallet);
       await crowdsale.finalize({from: owner});
       const post = web3.eth.getBalance(wallet);
 
-      post.minus(pre).should.be.bignumber.equal(goal);
+      post.minus(pre).should.be.bignumber.equal(defaults.goal);
     });
 
   });
 
   // CappedCrowdsale.sol
   describe('capped crowdsale tests', function () {
-
     it('should fail creating crowdsale with zero cap', async function () {
       try {
-        await Crowdsale.new(startTime, endTime, maxGasPrice, maxCallFrequency, goal, 0, wallet, {from: owner});
+        await createCrowdsale({cap: 0});
       } catch (e) {
         assertExpectedException(e);
       }
@@ -202,17 +211,17 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
 
     describe('accepting payments', function () {
 
-      beforeEach(async function () {
-        await increaseTimeTestRPCTo(startTime);
-      });
-
       it('should accept payments within cap', async function () {
-        await crowdsale.sendTransaction({value: cap.minus(lessThanCap), from: investor});
-        await crowdsale.sendTransaction({value: lessThanCap, from: investor});
+        const crowdsale = await createCrowdsale({});
+        await increaseTimeTestRPCTo(await crowdsale.startTime());
+        await crowdsale.sendTransaction({value: defaults.cap.minus(defaults.lessThanCap), from: investor});
+        await crowdsale.sendTransaction({value: defaults.lessThanCap, from: investor});
       });
 
       it('should reject payments outside cap', async function () {
-        await crowdsale.sendTransaction({value: cap, from: investor});
+        const crowdsale = await createCrowdsale({});
+        await increaseTimeTestRPCTo(await crowdsale.startTime());
+        await crowdsale.sendTransaction({value: defaults.cap, from: investor});
 
         try {
           await crowdsale.sendTransaction({value: 1, from: investor});
@@ -222,8 +231,10 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
       });
 
       it('should reject payments that exceed cap', async function () {
+        const crowdsale = await createCrowdsale({});
+        await increaseTimeTestRPCTo(await crowdsale.startTime());
         try {
-          await crowdsale.sendTransaction({value: cap.plus(1), from: investor});
+          await crowdsale.sendTransaction({value: defaults.cap.plus(1), from: investor});
         } catch (e) {
           assertExpectedException(e);
         }
@@ -233,26 +244,28 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
 
     describe('ending', function () {
 
-      beforeEach(async function () {
-        await increaseTimeTestRPCTo(startTime);
-      });
-
       it('should not be ended if under cap', async function () {
+        const crowdsale = await createCrowdsale({});
+        await increaseTimeTestRPCTo(await crowdsale.startTime());
         let hasEnded = await crowdsale.hasEnded();
         hasEnded.should.equal(false);
-        await crowdsale.sendTransaction({value: lessThanCap, from: investor});
+        await crowdsale.sendTransaction({value: defaults.lessThanCap, from: investor});
         hasEnded = await crowdsale.hasEnded();
         hasEnded.should.equal(false);
       });
 
       it('should not be ended if just under cap', async function () {
-        await crowdsale.sendTransaction({value: cap.minus(1), from: investor});
+        const crowdsale = await createCrowdsale({});
+        await increaseTimeTestRPCTo(await crowdsale.startTime());
+        await crowdsale.sendTransaction({value: defaults.cap.minus(1), from: investor});
         let hasEnded = await crowdsale.hasEnded();
         hasEnded.should.equal(false);
       });
 
       it('should be ended if cap reached', async function () {
-        await crowdsale.sendTransaction({value: cap, from: investor});
+        const crowdsale = await createCrowdsale({});
+        await increaseTimeTestRPCTo(await crowdsale.startTime());
+        await crowdsale.sendTransaction({value: defaults.cap, from: investor});
         let hasEnded = await crowdsale.hasEnded();
         hasEnded.should.equal(true);
       });

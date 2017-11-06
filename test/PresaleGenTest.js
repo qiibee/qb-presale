@@ -4,15 +4,15 @@ var jsc = require('jsverify');
 
 var BigNumber = web3.BigNumber;
 
-var help = require('../helpers');
-var latestTime = require('../helpers/latestTime');
-var {increaseTimeTestRPC, duration} = require('../helpers/increaseTime');
+var help = require('./helpers');
+var latestTime = require('./helpers/latestTime');
+var {increaseTimeTestRPC, duration} = require('./helpers/increaseTime');
 
-var QiibeeToken = artifacts.require('../QiibeeToken.sol');
-var QiibeePresale = artifacts.require('../QiibeePresale.sol');
+var QiibeeToken = artifacts.require('./QiibeeToken.sol');
+var QiibeePresale = artifacts.require('./QiibeePresale.sol');
 
-let gen = require('../generators');
-let commands = require('../commands');
+let gen = require('./generators');
+let commands = require('./commands');
 
 const LOG_EVENTS = false;
 

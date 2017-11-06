@@ -4,15 +4,15 @@ var jsc = require('jsverify');
 
 var BigNumber = web3.BigNumber;
 
-var help = require('../helpers');
-var latestTime = require('../helpers/latestTime');
-var {increaseTimeTestRPC, duration} = require('../helpers/increaseTime');
+var help = require('./helpers');
+var latestTime = require('./helpers/latestTime');
+var {increaseTimeTestRPC, duration} = require('./helpers/increaseTime');
 
 var QiibeeToken = artifacts.require('QiibeeToken.sol');
 var QiibeeCrowdsale = artifacts.require('QiibeeCrowdsale.sol');
 
-let gen = require('../generators');
-let commands = require('../commands');
+let gen = require('./generators');
+let commands = require('./commands');
 
 const LOG_EVENTS = false;
 
@@ -59,6 +59,8 @@ contract('QiibeeCrowdsale property-based test', function(accounts) {
     }
   };
 
+  var eventsWatcher;
+
   let runGeneratedCrowdsaleAndCommands = async function(input) {
     await increaseTimeTestRPC(60);
     let startTime = latestTime() + duration.days(1);
@@ -83,8 +85,6 @@ contract('QiibeeCrowdsale property-based test', function(accounts) {
       (maxCallFrequency == 0) ||
       (ownerAddress == 0) ||
       (foundationWallet == 0);
-
-    var eventsWatcher;
 
     try {
       let crowdsaleData = {
@@ -181,6 +181,11 @@ contract('QiibeeCrowdsale property-based test', function(accounts) {
     }
     return true;
   };
+
+  afterEach(function(done) {
+    eventsWatcher.stopWatching();
+    done();
+  });
 
   // SPAM PREVENETION TESTS
   it('should NOT buy tokens if amount of qbx is below the min limit', async function() {
@@ -581,5 +586,4 @@ contract('QiibeeCrowdsale property-based test', function(accounts) {
       }
     });
   });
-
 });
