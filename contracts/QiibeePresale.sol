@@ -1,8 +1,6 @@
 pragma solidity ^0.4.11;
 
-import "zeppelin-solidity/contracts/lifecycle/Pausable.sol";
-import "zeppelin-solidity/contracts/crowdsale/RefundVault.sol";
-import "./QiibeeToken.sol";
+import "./Crowdsale.sol";
 
 /**
    @title Presale event
@@ -17,7 +15,7 @@ import "./QiibeeToken.sol";
 
  */
 
-contract QiibeePresale is Pausable {
+contract QiibeePresale is Crowdsale {
 
     using SafeMath for uint256;
 
@@ -29,38 +27,10 @@ contract QiibeePresale is Pausable {
       uint256 maxInvest;
     }
 
-    uint256 public startTime;
-    uint256 public endTime;
-
-    uint256 public cap;
-    uint256 public goal; // minimum amount of funds to be raised in weis
-    RefundVault public vault; // refund vault used to hold funds while crowdsale is running
-
-    QiibeeToken public token; // token being sold
-    uint256 public tokensSold; // qbx minted (and sold)
-    uint256 public weiRaised; // raised money in wei
-    mapping (address => uint256) public balances; //balance of wei invested per investor
-
-    // spam prevention
-    mapping (address => uint256) public lastCallTime; // last call times by address
-    uint256 public maxGasPrice; // max gas price per transaction
-    uint256 public maxCallFrequency; // max frequency for purchases from a single source (in seconds)
-
     mapping (address => AccreditedInvestor) public accredited; // whitelist of investors
 
     bool public isFinalized = false;
 
-    address public wallet; // address where funds are collected
-
-    /**
-     * event for token purchase logging
-     * @param purchaser who paid for the tokens
-     * @param beneficiary who got the tokens
-     * @param value weis paid for purchase
-     * @param amount amount of tokens purchased
-     */
-    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
-    event Finalized();
     event NewAccreditedInvestor(address indexed from, address indexed buyer);
 
     /*
@@ -71,39 +41,14 @@ contract QiibeePresale is Pausable {
     function QiibeePresale(
         uint256 _startTime,
         uint256 _endTime,
-        uint256 _maxGasPrice,
-        uint256 _maxCallFrequency,
         uint256 _goal,
         uint256 _cap,
+        uint256 _maxGasPrice,
+        uint256 _maxCallFrequency,
         address _wallet
     )
+      Crowdsale(_startTime, _endTime, _goal, _cap, _maxGasPrice, _maxCallFrequency, _wallet)
     {
-        require(_startTime >= now);
-        require(_endTime >= _startTime);
-        require(_maxGasPrice > 0);
-        require(_maxCallFrequency >= 0);
-        require(_goal >= 0);
-        require(_cap > 0);
-        require(_goal <= _cap);
-        require(_wallet != address(0));
-
-        startTime = _startTime;
-        endTime = _endTime;
-        maxGasPrice = _maxGasPrice;
-        maxCallFrequency = _maxCallFrequency;
-        cap = _cap;
-        goal = _goal;
-        wallet = _wallet;
-
-        token = new QiibeeToken();
-        vault = new RefundVault(wallet);
-
-        QiibeeToken(token).pause();
-    }
-
-    // fallback function can be used to buy tokens
-    function () payable whenNotPaused {
-      buyTokens(msg.sender);
     }
 
     /*
@@ -177,44 +122,7 @@ contract QiibeePresale is Pausable {
     // @return true if investors can buy at the moment
     function validPurchase() internal constant returns (bool) {
       require(isAccredited(msg.sender));
-
-      bool withinPeriod = now >= startTime && now <= endTime;
-      bool withinCap = weiRaised.add(msg.value) <= cap;
-      bool nonZeroPurchase = msg.value != 0;
-      return withinPeriod && nonZeroPurchase && withinCap;
-    }
-
-    // @return true if crowdsale event has ended
-    function hasEnded() public constant returns (bool) {
-      bool capReached = weiRaised >= cap;
-      return now > endTime || capReached;
-    }
-
-    function goalReached() public constant returns (bool) {
-      return weiRaised >= goal;
-    }
-
-    // In addition to sending the funds, we want to call
-    // the RefundVault deposit function
-    function forwardFunds() internal {
-      vault.deposit.value(msg.value)(msg.sender);
-    }
-
-    // if crowdsale is unsuccessful, investors can claim refunds here
-    function claimRefund() public {
-      require(isFinalized);
-      require(!goalReached());
-
-      vault.refund(msg.sender);
-    }
-
-    // vault finalization task, called when owner calls finalize()
-    function finalization() internal {
-      if (goalReached()) {
-        vault.close();
-      } else {
-        vault.enableRefunds();
-      }
+      super.validPurchase();
     }
 
     /**

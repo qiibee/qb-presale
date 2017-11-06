@@ -1,15 +1,15 @@
 /*
  * This are tests taken from RefundableCrowdsale.sol, CappedCrowdsale.sol from Open Zeppelin
- * and adapted to the QiibeePresale.
+ * and adapted to the Crowdsale.
  */
 
-const QiibeePresale = artifacts.require('QiibeePresale.sol');
+const Crowdsale = artifacts.require('Crowdsale.sol');
 const QiibeeToken = artifacts.require('QiibeeToken.sol');
 
-const latestTime = require('../helpers/latestTime');
-const {increaseTimeTestRPC, increaseTimeTestRPCTo} = require('../helpers/increaseTime');
-const { duration } = require('../helpers/increaseTime');
-const help = require('../helpers.js');
+const latestTime = require('./helpers/latestTime');
+const {increaseTimeTestRPC, increaseTimeTestRPCTo} = require('./helpers/increaseTime');
+const { duration } = require('./helpers/increaseTime');
+const help = require('./helpers.js');
 const BigNumber = web3.BigNumber;
 
 require('chai').
@@ -23,9 +23,10 @@ function assertExpectedException(e) {
   }
 }
 
-const LOG_EVENTS = true;
+const LOG_EVENTS = false;
+const value = help.toWei(1);
 
-contract('Open Zeppelin contracts tests', function ([owner, wallet, investor]) {
+contract('Crowdsale', function ([owner, wallet, investor]) {
 
   const goal = new BigNumber(help.toWei(800));
   const lessThanGoal = new BigNumber(help.toWei(750));
@@ -34,17 +35,16 @@ contract('Open Zeppelin contracts tests', function ([owner, wallet, investor]) {
   const maxGasPrice = new BigNumber(5000000000000000000);
   const maxCallFrequency = 0;
 
-  let startTime, endTime, afterEndTime;
-  let eventsWatcher, token, crowdsale;
+  let startTime, endTime;
+  let eventsWatcher, token, afterEndTime, crowdsale;
 
   beforeEach(async function () {
     startTime = latestTime() + duration.weeks(1);
-    endTime = startTime + duration.weeks(1),
+    endTime = startTime + duration.weeks(1);
     afterEndTime = endTime + duration.seconds(1);
 
-    crowdsale = await QiibeePresale.new(startTime, endTime, maxGasPrice, maxCallFrequency, goal, cap, wallet, {from: owner});
+    crowdsale = await Crowdsale.new(startTime, endTime, goal, cap, maxGasPrice, maxCallFrequency, wallet, {from: owner});
     token = QiibeeToken.at(await crowdsale.token());
-
     await increaseTimeTestRPC(1);
 
     assert.equal(startTime, parseInt(await crowdsale.startTime()));
@@ -68,12 +68,70 @@ contract('Open Zeppelin contracts tests', function ([owner, wallet, investor]) {
     done();
   });
 
+  it('should be token owner', async function () {
+    const owner = await token.owner();
+    assert.equal(owner, crowdsale.address);
+  });
+
+  it('should be ended only after end', async function () {
+    let ended = await crowdsale.hasEnded();
+    assert.equal(ended, false);
+    await increaseTimeTestRPCTo(afterEndTime);
+    ended = await crowdsale.hasEnded();
+    assert.equal(ended, true);
+  });
+
+  it('should fail creating crowdsale with zero maxGasPrice', async function () {
+    try {
+      await Crowdsale.new(startTime, endTime, 0, maxCallFrequency, goal, cap, wallet, {from: owner});
+    } catch (e) {
+      assertExpectedException(e);
+    }
+  });
+
+  describe('accepting payments', function () {
+
+    it('should reject payments before start', async function () {
+      try {
+        await crowdsale.send(value);
+      } catch (e) {
+        assertExpectedException(e);
+      }
+      try {
+        await crowdsale.buyTokens(investor, {from: investor, value: value});
+      } catch(e) {
+        assertExpectedException(e);
+      }
+    });
+
+    it('should accept payments after start', async function () {
+      await increaseTimeTestRPCTo(startTime);
+      await crowdsale.sendTransaction({value: value, from: investor});
+      await crowdsale.buyTokens(investor, {value: value, from: investor});
+    });
+
+    it('should reject payments after end', async function () {
+      await increaseTimeTestRPCTo(afterEndTime);
+      try {
+        await crowdsale.sendTransaction({value: value, from: investor});
+      } catch (e) {
+        assertExpectedException(e);
+      }
+      try {
+        await crowdsale.buyTokens(investor, {value: value, from: investor});
+      } catch(e) {
+        assertExpectedException(e);
+      }
+    });
+
+  });
+
   // RefundableCrowdsale.sol
   describe('refundable crowdsale tests', function () {
 
     it('should fail creating crowdsale with zero goal', async function () {
       try {
-        await QiibeePresale.new(startTime, endTime, maxGasPrice, maxCallFrequency, 0, cap, wallet, {from: owner});
+        await Crowdsale.new(startTime, endTime, maxGasPrice, maxCallFrequency, 0, cap, wallet, {from: owner});
       } catch (e) {
         assertExpectedException(e);
       }
@@ -95,7 +153,6 @@ contract('Open Zeppelin contracts tests', function ([owner, wallet, investor]) {
 
     it('should deny refunds after end if goal was reached', async function () {
       await increaseTimeTestRPCTo(startTime);
-      await crowdsale.addAccreditedInvestor(investor, 6000, 600, 600, 0, help.toWei(800), {from: owner});
       await crowdsale.sendTransaction({value: goal, from: investor});
       await increaseTimeTestRPCTo(afterEndTime);
       try {
@@ -107,7 +164,6 @@ contract('Open Zeppelin contracts tests', function ([owner, wallet, investor]) {
 
     it('should allow refunds after end if goal was not reached', async function () {
       await increaseTimeTestRPCTo(startTime);
-      await crowdsale.addAccreditedInvestor(investor, 6000, 600, 600, 0, goal, {from: owner});
       await crowdsale.sendTransaction({value: lessThanGoal, from: investor});
       await increaseTimeTestRPCTo(afterEndTime);
 
@@ -121,7 +177,6 @@ contract('Open Zeppelin contracts tests', function ([owner, wallet, investor]) {
 
     it('should forward funds to wallet after end if goal was reached', async function () {
       await increaseTimeTestRPCTo(startTime);
-      await crowdsale.addAccreditedInvestor(investor, 6000, 600, 600, 0, goal, {from: owner});
       await crowdsale.sendTransaction({value: goal, from: investor});
       await increaseTimeTestRPCTo(afterEndTime);
 
@@ -139,7 +194,7 @@ contract('Open Zeppelin contracts tests', function ([owner, wallet, investor]) {
 
     it('should fail creating crowdsale with zero cap', async function () {
       try {
-        await QiibeePresale.new(startTime, endTime, maxGasPrice, maxCallFrequency, goal, 0, wallet, {from: owner});
+        await Crowdsale.new(startTime, endTime, maxGasPrice, maxCallFrequency, goal, 0, wallet, {from: owner});
       } catch (e) {
         assertExpectedException(e);
       }
@@ -152,13 +207,11 @@ contract('Open Zeppelin contracts tests', function ([owner, wallet, investor]) {
       });
 
       it('should accept payments within cap', async function () {
-        await crowdsale.addAccreditedInvestor(investor, 6000, 600, 600, 0, cap, {from: owner});
         await crowdsale.sendTransaction({value: cap.minus(lessThanCap), from: investor});
         await crowdsale.sendTransaction({value: lessThanCap, from: investor});
       });
 
       it('should reject payments outside cap', async function () {
-        await crowdsale.addAccreditedInvestor(investor, 6000, 600, 600, 0, cap, {from: owner});
         await crowdsale.sendTransaction({value: cap, from: investor});
 
         try {
@@ -187,21 +240,18 @@ contract('Open Zeppelin contracts tests', function ([owner, wallet, investor]) {
       it('should not be ended if under cap', async function () {
         let hasEnded = await crowdsale.hasEnded();
         hasEnded.should.equal(false);
-        await crowdsale.addAccreditedInvestor(investor, 6000, 600, 600, 0, cap, {from: owner});
         await crowdsale.sendTransaction({value: lessThanCap, from: investor});
         hasEnded = await crowdsale.hasEnded();
         hasEnded.should.equal(false);
       });
 
       it('should not be ended if just under cap', async function () {
-        await crowdsale.addAccreditedInvestor(investor, 6000, 600, 600, 0, cap, {from: owner});
         await crowdsale.sendTransaction({value: cap.minus(1), from: investor});
         let hasEnded = await crowdsale.hasEnded();
         hasEnded.should.equal(false);
       });
 
       it('should be ended if cap reached', async function () {
-        await crowdsale.addAccreditedInvestor(investor, 6000, 600, 600, 0, cap, {from: owner});
         await crowdsale.sendTransaction({value: cap, from: investor});
         let hasEnded = await crowdsale.hasEnded();
         hasEnded.should.equal(true);

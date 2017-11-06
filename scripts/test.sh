@@ -46,8 +46,4 @@ fi
 rm -f .node-xmlhttprequest-sync-[0-9]*
 rm -f .node-xmlhttprequest-content-[0-9]*
 ./node_modules/.bin/truffle compile
-./node_modules/.bin/truffle test test/presale/*
-./node_modules/.bin/truffle test test/crowdsale/*
-./node_modules/.bin/truffle test test/token/*
-./node_modules/.bin/truffle test test/WhitelistedCrowdsale.js
-$@
+./node_modules/.bin/truffle test $@

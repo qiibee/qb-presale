@@ -14,7 +14,7 @@ var QiibeePresale = artifacts.require('../QiibeePresale.sol');
 let gen = require('../generators');
 let commands = require('../commands');
 
-const LOG_EVENTS = true;
+const LOG_EVENTS = false;
 
 let GEN_TESTS_QTY = parseInt(process.env.GEN_TESTS_QTY);
 if (isNaN(GEN_TESTS_QTY))
@@ -24,7 +24,7 @@ let GEN_TESTS_TIMEOUT = parseInt(process.env.GEN_TESTS_TIMEOUT);
 if (isNaN(GEN_TESTS_TIMEOUT))
   GEN_TESTS_TIMEOUT = 240;
 
-contract('QiibeePresale Property-based test', function(accounts) {
+contract('QiibeePresale property-based test', function(accounts) {
 
   const zero = new BigNumber(0);
 
@@ -82,18 +82,18 @@ contract('QiibeePresale Property-based test', function(accounts) {
         endTime: endTime,
         maxGasPrice: new BigNumber(maxGasPrice),
         maxCallFrequency: maxCallFrequency,
-        goal: new BigNumber(help.toWei(goal)), //TODO: change to Wei
-        cap: new BigNumber(help.toWei(cap)), //TODO: change to Wei
+        goal: new BigNumber(help.toWei(goal)),
+        cap: new BigNumber(help.toWei(cap)),
         foundationWallet: gen.getAccount(input.presale.foundationWallet),
       };
 
       let presale = await QiibeePresale.new(
         presaleData.startTime,
         presaleData.endTime,
-        presaleData.maxGasPrice,
-        presaleData.maxCallFrequency,
         presaleData.goal,
         presaleData.cap,
+        presaleData.maxGasPrice,
+        presaleData.maxCallFrequency,
         presaleData.foundationWallet,
         {from: ownerAddress}
       );

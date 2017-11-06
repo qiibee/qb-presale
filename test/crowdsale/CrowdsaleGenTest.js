@@ -14,7 +14,7 @@ var QiibeeCrowdsale = artifacts.require('QiibeeCrowdsale.sol');
 let gen = require('../generators');
 let commands = require('../commands');
 
-const LOG_EVENTS = true;
+const LOG_EVENTS = false;
 
 let GEN_TESTS_QTY = parseInt(process.env.GEN_TESTS_QTY);
 if (isNaN(GEN_TESTS_QTY))
@@ -24,7 +24,7 @@ let GEN_TESTS_TIMEOUT = parseInt(process.env.GEN_TESTS_TIMEOUT);
 if (isNaN(GEN_TESTS_TIMEOUT))
   GEN_TESTS_TIMEOUT = 480;
 
-contract('QiibeeCrowdsale Property-based test', function(accounts) {
+contract('QiibeeCrowdsale property-based test', function(accounts) {
 
   const zero = new BigNumber(0);
 
@@ -145,8 +145,6 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
         owner: owner,
         crowdsaleSupply: zero,
         burnedTokens: zero,
-        // vault: {},
-        // vaultState: 0,
         lastCallTime: [],
         buyerRate: [],
         whitelist: [],
