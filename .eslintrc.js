@@ -14,6 +14,7 @@ module.exports = {
       "beforeEach": true,
       "contract": true,
       "it": true,
+      "describe": true,
       "web3": true
     },
     "rules": {
@@ -33,6 +34,8 @@ module.exports = {
         "semi": [
             "error",
             "always"
-        ]
+        ],
+        "no-unused-vars": ["error", { "args": "none" }],
+
     }
 };

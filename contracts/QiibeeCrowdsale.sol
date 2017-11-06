@@ -1,7 +1,7 @@
 pragma solidity ^0.4.11;
 
-import "./RefundableOnTokenCrowdsale.sol";
-import "zeppelin-solidity/contracts/crowdsale/Crowdsale.sol";
+import "zeppelin-solidity/contracts/lifecycle/Pausable.sol";
+import "zeppelin-solidity/contracts/crowdsale/RefundVault.sol";
 import "./QiibeeToken.sol";
 
 /**
@@ -19,28 +19,38 @@ import "./QiibeeToken.sol";
    by the originating addresses.
  */
 
-contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
+contract QiibeeCrowdsale is Pausable {
 
     using SafeMath for uint256;
 
-    // total amount of tokens in atto
-    uint256 public constant TOTAL_SUPPLY = 10e27;
+    uint256 public constant TOTAL_SUPPLY = 10e27; // total amount of tokens in atto
 
-    // maximum amount of qbx (in atto) that can be minted
+    uint256 public startTime;
+    uint256 public endTime;
+
+    uint256 public rate; // how many token units a buyer gets per wei
+
     uint256 public cap;
+    uint256 public goal; // minimum amount of funds to be raised in weis
+    RefundVault public vault; // refund vault used to hold funds while crowdsale is running
 
-    // last call times by address
-    mapping (address => uint256) public lastCallTime;
+    QiibeeToken public token; // token being sold
+    uint256 public tokensSold; // qbx minted (and sold)
+    uint256 public weiRaised; // raised money in wei
+    mapping (address => uint256) public balances; // balance of wei invested per investor
 
-    // maximum gas price per transaction
-    uint256 public maxGasPrice;
-
-    // maximum frequency for purchases from a single source (in seconds)
-    uint256 public maxCallFrequency;
-
-    // minimum and maximum invest in atto per address
+    // minimum and maximum invest in wei per address
     uint256 public minInvest;
     uint256 public maxInvest;
+
+    // spam prevention
+    mapping (address => uint256) public lastCallTime; // last call times by address
+    uint256 public maxGasPrice; // max gas price per transaction
+    uint256 public maxCallFrequency; // max frequency for purchases from a single source (in seconds)
+
+    bool public isFinalized = false;
+
+    address public wallet; // address where funds are collected
 
     /*
      * @dev event for change wallet logging
@@ -48,13 +58,17 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
      */
     event WalletChange(address wallet);
 
-    /*
-     * @dev event triggered every time a presale purchase is done
-     * @param beneficiary address that received the tokens
-     * @param weiAmount amount of ETH invested in wei
-     * @param rate rate at which the investor bought the tokens
+    /**
+     * event for token purchase logging
+     * @param purchaser who paid for the tokens
+     * @param beneficiary who got the tokens
+     * @param value weis paid for purchase
+     * @param amount amount of tokens purchased
      */
-    event TokenPresalePurchase(address indexed beneficiary, uint256 weiAmount, uint256 rate);
+    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
+
+    event Finalized();
+    event NewAccreditedInvestor(address indexed from, address indexed buyer);
 
     /*
      * @dev Constructor. Creates the token in a paused state
@@ -69,7 +83,7 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
      * @param _maxCallFrequency see `see maxCallFrequency`
      * @param _wallet see `wallet`
      */
-    function QiibeeCrowdsale(
+    function QiibeeCrowdsale (
         uint256 _startTime,
         uint256 _endTime,
         uint256 _rate,
@@ -81,31 +95,47 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
         uint256 _maxCallFrequency,
         address _wallet
     )
-        RefundableOnTokenCrowdsale(_goal)
-        Crowdsale(_startTime, _endTime, _rate, _wallet)
     {
+        require(_startTime >= now);
+        require(_endTime >= _startTime);
+        require(_rate > 0);
         require(_cap > 0);
+        require(_goal >= 0);
         require(_goal <= _cap);
-        require(_minInvest > 0);
+        require(_minInvest >= 0);
         require(_maxInvest > 0);
         require(_minInvest <= _maxInvest);
         require(_maxGasPrice > 0);
-        require(_maxCallFrequency > 0);
+        require(_maxCallFrequency >= 0);
 
+        startTime = _startTime;
+        endTime = _endTime;
+        rate = _rate;
         cap = _cap;
+        goal = _goal;
         minInvest = _minInvest;
         maxInvest = _maxInvest;
         maxGasPrice = _maxGasPrice;
         maxCallFrequency = _maxCallFrequency;
+        wallet = _wallet;
+
+        token = new QiibeeToken();
+        vault = new RefundVault(wallet);
 
         QiibeeToken(token).pause();
+
+    }
+
+    // fallback function can be used to buy tokens
+    function () payable whenNotPaused {
+      buyTokens(msg.sender);
     }
 
     /*
      * @dev Creates the token to be sold. Override this method to have crowdsale of a specific mintable token.
      */
-    function createTokenContract() internal returns(MintableToken) {
-        return new QiibeeToken();
+    function createTokenContract() internal returns(QiibeeToken) {
+        return new QiibeeToken(); //TODO: get token already deployed?
     }
 
     /*
@@ -114,7 +144,7 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
      * @return rate accordingly
      */
     function getRate() public constant returns(uint256) {
-        if (tokensSold >= goal) {
+        if (goalReached()) {
             return rate.mul(1000).div(tokensSold.mul(1000).div(goal));
         }
         return rate;
@@ -126,25 +156,25 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
      */
     function buyTokens(address beneficiary) public payable {
         require(beneficiary != address(0));
-        // require(tx.origin != msg.sender); //TODO: do we want this?
         require(validPurchase());
 
         uint256 rate = getRate();
         uint256 tokens = msg.value.mul(rate);
-        uint256 newBalance = token.balanceOf(beneficiary).add(tokens);
 
-        require(newBalance <= maxInvest && tokens >= minInvest);
+        // check limits
+        uint256 newBalance = balances[beneficiary].add(msg.value);
+        require(newBalance <= maxInvest && msg.value >= minInvest);
+
+        // spam prevention. TODO: needed for the presale?
         require(now.sub(lastCallTime[msg.sender]) >= maxCallFrequency);
         require(tx.gasprice <= maxGasPrice);
-
-        uint256 newTokenAmount = tokensSold.add(tokens);
-        require(newTokenAmount <= cap);
-
         lastCallTime[msg.sender] = now;
 
         // update state
         weiRaised = weiRaised.add(msg.value);
-        tokensSold = newTokenAmount;
+        tokensSold = tokensSold.add(tokens);
+
+        //TODO: vest tokens?
 
         token.mint(beneficiary, tokens);
 
@@ -153,32 +183,36 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
         forwardFunds();
     }
 
-    /**
-     @dev adds the address and the amount of wei sent by an investor during presale.
-     Can only be called by the owner before the beginning of TGE.
+    // @return true if investors can buy at the moment
+    function validPurchase() internal constant returns (bool) {
+      bool withinPeriod = now >= startTime && now <= endTime;
+      bool withinCap = weiRaised.add(msg.value) <= cap;
+      bool nonZeroPurchase = msg.value != 0;
+      return withinPeriod && withinCap && nonZeroPurchase;
+    }
 
-     @param beneficiary Address to which qbx will be sent
-     @param weiSent Amount of wei contributed
-     @param presaleRate qbx per ether rate at the moment of the contribution
-   */
-    function addPresaleTokens(address beneficiary, uint256 weiSent, uint256 presaleRate) public onlyOwner {
-        require(now < startTime);
-        require(beneficiary != address(0));
-        require(weiSent > 0);
-        require(presaleRate > 0);
-        // validate that rate is higher than TGE rate
-        require(presaleRate > rate);
+    // @return true if crowdsale event has ended
+    function hasEnded() public constant returns (bool) {
+      bool capReached = weiRaised >= cap;
+      return now > endTime || capReached;
+    }
 
-        //update state
-        uint256 tokens = weiSent.mul(presaleRate);
-        tokensSold = tokensSold.add(tokens);
-        weiRaised = weiRaised.add(weiSent);
+    function goalReached() public constant returns (bool) {
+      return weiRaised >= goal;
+    }
 
-        token.mint(beneficiary, tokens);
+    // In addition to sending the funds, we want to call
+    // the RefundVault deposit function
+    function forwardFunds() internal {
+      vault.deposit.value(msg.value)(msg.sender);
+    }
 
-        TokenPresalePurchase(beneficiary, weiSent, presaleRate);
+    // if crowdsale is unsuccessful, investors can claim refunds here
+    function claimRefund() public {
+      require(isFinalized);
+      require(!goalReached());
 
-        forwardFunds();
+      vault.refund(msg.sender);
     }
 
     /*
@@ -199,7 +233,11 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
         uint256 foundationSupply = TOTAL_SUPPLY.sub(crowdsaleSupply);
         token.mint(wallet, foundationSupply);
 
-        super.finalization();
+        if (goalReached()) {
+          vault.close();
+        } else {
+          vault.enableRefunds();
+        }
     }
 
     /**
@@ -223,15 +261,6 @@ contract QiibeeCrowdsale is RefundableOnTokenCrowdsale, Pausable {
 
         // transfer the ownership of the token to the foundation
         token.transferOwnership(wallet);
-    }
-
-    /*
-     * @dev Checks if the crowdsale has ended. Overrides Crowdsale#hasEnded to add cap logic.
-     * @return true if cap was reached or if TGE period is over.
-     */
-    function hasEnded() public constant returns (bool) {
-        bool capReached = tokensSold >= cap;
-        return super.hasEnded() || capReached;
     }
 
 }

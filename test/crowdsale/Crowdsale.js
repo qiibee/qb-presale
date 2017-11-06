@@ -1,8 +1,8 @@
-var QiibeeCrowdsale = artifacts.require('./QiibeeCrowdsale.sol');
+var QiibeeCrowdsale = artifacts.require('QiibeeCrowdsale.sol');
 
-var latestTime = require('./helpers/latestTime');
-var { duration } = require('./helpers/increaseTime');
-var help = require('./helpers.js');
+var latestTime = require('../helpers/latestTime');
+var { duration } = require('../helpers/increaseTime');
+var help = require('../helpers.js');
 
 function assertExpectedException(e) {
   let isKnownException = help.isInvalidOpcodeEx(e);

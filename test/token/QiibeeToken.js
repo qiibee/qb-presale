@@ -1,4 +1,4 @@
-var help = require('./helpers');
+var help = require('../helpers');
 // var _ = require('lodash');
 
 var BigNumber = web3.BigNumber;
@@ -7,8 +7,7 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-var QiibeeToken = artifacts.require('./QiibeeToken.sol');
-// var Message = artifacts.require('./Message.sol');
+var QiibeeToken = artifacts.require('../QiibeeToken.sol');
 
 const LOG_EVENTS = true;
 

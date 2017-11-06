@@ -24,19 +24,21 @@ module.exports = {
   getAccount: getAccount,
 
   presaleGen: jsc.record({
-    cap: jsc.integer(0, 1000000000),
+    maxGasPrice: jsc.integer(0, 1000000000),
+    maxCallFrequency: jsc.integer(0, 10000),
+    goal: jsc.integer(0, 100000),
+    cap: jsc.integer(0, 100000),
     foundationWallet: accountGen,
     owner: accountGen
   }),
 
   crowdsaleGen: jsc.record({
-    rate: jsc.integer(0, 20000),
-    preferentialRate: jsc.integer(0, 20000),
-    goal: jsc.integer(0, 1000000000),
-    cap: jsc.integer(0, 1000000000),
-    minInvest: jsc.integer(0, 1000000000),
-    maxInvest: jsc.integer(0, 1000000000),
-    maxGasPrice: jsc.integer(0, 100000000000),
+    rate: jsc.integer(0, 2000),
+    goal: jsc.integer(0, 100000),
+    cap: jsc.integer(0, 100000),
+    minInvest: jsc.integer(0, 100000),
+    maxInvest: jsc.integer(0, 100000),
+    maxGasPrice: jsc.integer(0, 1000000000),
     maxCallFrequency: jsc.integer(0, 10000),
     foundationWallet: accountGen,
     owner: accountGen
@@ -78,6 +80,13 @@ module.exports = {
     eth: jsc.integer(0, 1000000000)
   }),
 
+  presaleBuyTokensCommandGen: jsc.record({
+    type: jsc.constant('presaleBuyTokens'),
+    account: accountGen,
+    beneficiary: accountGen,
+    eth: jsc.nat(0, 200)
+  }),
+
   presaleSendTransactionCommandGen: jsc.record({
     type: jsc.constant('presaleSendTransaction'),
     account: accountGen,
@@ -114,19 +123,15 @@ module.exports = {
     finalize: jsc.bool
   }),
 
-  addPresalePaymentCommandGen: jsc.record({
-    type: jsc.constant('addPresalePayment'),
-    beneficiaryAccount: accountGen,
-    fromAccount: accountGen,
-    eth: jsc.nat,
-    rate: jsc.integer(0, 20000)
-  }),
-
-  addToWhitelistCommandGen: jsc.record({
-    type: jsc.constant('addToWhitelist'),
-    whitelistedAccount: knownAccountGen,
+  addAccreditedInvestorCommandGen: jsc.record({
+    type: jsc.constant('addAccreditedInvestor'),
+    investor: knownAccountGen,
+    rate: jsc.integer(0, 20000),
+    cliff: jsc.integer(0, 20000),
+    vesting: jsc.integer(0, 20000),
+    minInvest: jsc.integer(0, 1000000000),
+    maxInvest: jsc.integer(0, 1000000000),
     fromAccount: accountGen,
   }),
-
 };
 

@@ -6,9 +6,7 @@ module.exports = {
     development: {
       host: 'localhost',
       port: 8545,
-      network_id: '*',
-      gas: 0x5B8D80, // 6000000 gas
-      gasPrice: 21000000000 // 21 Gwei
+      network_id: '*'
     },
     ropsten: {
       network_id: 3,    // Use the ID provided at craddeation time

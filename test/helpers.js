@@ -67,6 +67,14 @@ module.exports = {
     return web3.toWei(value, 'ether');
   },
 
+  toWei: function(value){
+    return web3.toWei(value, 'ether');
+  },
+
+  fromWei: function(value){
+    return web3.toWei(value, 'ether');
+  },
+
   isInvalidOpcodeEx: function(e) {
     return e.message.search('invalid opcode') >= 0;
   },
@@ -75,7 +83,7 @@ module.exports = {
     return this.waitToBlock(parseInt(web3.eth.blockNumber) + toWait, accounts);
   },
 
-  simulateCrowdsale: async function(rate, preferentialRate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, accounts, balances) {
+  simulateCrowdsale: async function(rate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, accounts, balances) {
     await increaseTimeTestRPC(1);
     var startTime = latestTime() + 5;
     var endTime = startTime + 10;
@@ -88,8 +96,9 @@ module.exports = {
       accounts[0]
     );
 
-    await increaseTimeTestRPCTo(latestTime()+1);
-    await increaseTimeTestRPCTo(startTime+3);
+    await increaseTimeTestRPCTo(latestTime() + 1);
+    await increaseTimeTestRPCTo(startTime + 3);
+
     for(let i = 0; i < 5; i++) {
       if (balances[i] > 0) {
         await crowdsale.sendTransaction({ value: web3.toWei(balances[i], 'ether'), from: accounts[i + 1]});
@@ -142,23 +151,10 @@ module.exports = {
     let { rate, goal } = state.crowdsaleData,
       { tokensSold } = state;
 
-    if (state.tokensSold.gt(goal)) {
+    if (state.weiRaised.gte(goal)) {
       return parseInt(rate * 1000 / parseInt((tokensSold * 1000) / goal));
     }
     return rate;
   },
 
-  getExpectedPresaleRate: function(state, from) {
-    let { preferentialRate } = state.crowdsaleData,
-      { buyerRate } = state;
-    if (buyerRate[from]) {
-      return buyerRate[from];
-    }
-    return preferentialRate;
-  },
-
-  getPresalePaymentMaxTokens: function(minCap, maxTokens, presaleBonusRate, presaleAmountEth) {
-    let minTokenPrice = minCap / maxTokens;
-    return (presaleAmountEth / minTokenPrice) * (presaleBonusRate + 100) / 100;
-  }
 };

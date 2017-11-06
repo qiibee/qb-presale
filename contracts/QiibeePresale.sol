@@ -22,7 +22,6 @@ contract QiibeePresale is Pausable {
     using SafeMath for uint256;
 
     struct AccreditedInvestor {
-      address buyer;
       uint256 rate;
       uint64 cliff;
       uint64 vesting;
@@ -30,43 +29,28 @@ contract QiibeePresale is Pausable {
       uint256 maxInvest;
     }
 
-    // Amount of qbx minted and transferred during the TGE
-    uint256 public tokensSold;
-
-    uint256 public cap;
-
-    // The token being sold
-    QiibeeToken public token;
-
-    // start and end timestamps where investments are allowed (both inclusive)
     uint256 public startTime;
     uint256 public endTime;
 
-    // address where funds are collected
-    address public wallet;
+    uint256 public cap;
+    uint256 public goal; // minimum amount of funds to be raised in weis
+    RefundVault public vault; // refund vault used to hold funds while crowdsale is running
 
-    // amount of raised money in wei
-    uint256 public weiRaised;
+    QiibeeToken public token; // token being sold
+    uint256 public tokensSold; // qbx minted (and sold)
+    uint256 public weiRaised; // raised money in wei
+    mapping (address => uint256) public balances; //balance of wei invested per investor
 
-    // last call times by address
-    mapping (address => uint256) public lastCallTime;
+    // spam prevention
+    mapping (address => uint256) public lastCallTime; // last call times by address
+    uint256 public maxGasPrice; // max gas price per transaction
+    uint256 public maxCallFrequency; // max frequency for purchases from a single source (in seconds)
 
-    // maximum gas price per transaction
-    uint256 public maxGasPrice;
-
-    // maximum frequency for purchases from a single source (in seconds)
-    uint256 public maxCallFrequency;
-
-    //balance of wei invested per investor
-    mapping (address => uint256) public balances;
-
-    // minimum amount of funds to be raised in weis
-    uint256 public goal;
-
-    // refund vault used to hold funds while crowdsale is running
-    RefundVault public vault;
+    mapping (address => AccreditedInvestor) public accredited; // whitelist of investors
 
     bool public isFinalized = false;
+
+    address public wallet; // address where funds are collected
 
     /**
      * event for token purchase logging
@@ -77,15 +61,10 @@ contract QiibeePresale is Pausable {
      */
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
     event Finalized();
-
-    // list of addresses that can invest during presale
-    // mapping (address => bool) public whitelist;
-    mapping (address => AccreditedInvestor) public accredited;
-
     event NewAccreditedInvestor(address indexed from, address indexed buyer);
 
     /*
-     * @dev Constructor of the presale. Creates the presale in a paused state
+     * @dev Constructor of the presale.
      * @param _cap see `see cap`
      * @param _wallet see `wallet`
      */
@@ -102,7 +81,8 @@ contract QiibeePresale is Pausable {
         require(_startTime >= now);
         require(_endTime >= _startTime);
         require(_maxGasPrice > 0);
-        require(_maxCallFrequency > 0);
+        require(_maxCallFrequency >= 0);
+        require(_goal >= 0);
         require(_cap > 0);
         require(_goal <= _cap);
         require(_wallet != address(0));
@@ -122,7 +102,7 @@ contract QiibeePresale is Pausable {
     }
 
     // fallback function can be used to buy tokens
-    function () payable {
+    function () payable whenNotPaused {
       buyTokens(msg.sender);
     }
 
@@ -130,10 +110,9 @@ contract QiibeePresale is Pausable {
      * @dev Low level token purchase function.
      * @param beneficiary beneficiary address where tokens are sent to
      */
-    function buyTokens(address beneficiary) public payable {
+    function buyTokens(address beneficiary) public payable whenNotPaused{
         require(beneficiary != address(0));
         require(validPurchase());
-        require(isAccredited(msg.sender));
 
         AccreditedInvestor storage data = accredited[msg.sender];
 
@@ -174,14 +153,14 @@ contract QiibeePresale is Pausable {
      * @dev Add an address to the accredited list.
      */
     function addAccreditedInvestor(address buyer, uint256 rate, uint64 cliff, uint64 vesting, uint256 minInvest, uint256 maxInvest) public onlyOwner {
-        require(buyer != 0x0);
+        require(buyer != address(0));
         require(rate > 0);
         require(cliff >= 0);
         require(vesting >= 0);
-        require(minInvest > 0);
+        require(minInvest >= 0);
         require(maxInvest > 0);
 
-        accredited[buyer] = AccreditedInvestor(buyer, rate, cliff, vesting, minInvest, maxInvest);
+        accredited[buyer] = AccreditedInvestor(rate, cliff, vesting, minInvest, maxInvest);
 
         NewAccreditedInvestor(msg.sender, buyer);
     }
@@ -192,11 +171,13 @@ contract QiibeePresale is Pausable {
      */
     function isAccredited(address investor) public constant returns (bool) {
         AccreditedInvestor storage data = accredited[investor];
-        return data.buyer != address(0);
+        return data.rate > 0; //TODO: is there any way to check this?
     }
 
     // @return true if investors can buy at the moment
     function validPurchase() internal constant returns (bool) {
+      require(isAccredited(msg.sender));
+
       bool withinPeriod = now >= startTime && now <= endTime;
       bool withinCap = weiRaised.add(msg.value) <= cap;
       bool nonZeroPurchase = msg.value != 0;
@@ -207,6 +188,10 @@ contract QiibeePresale is Pausable {
     function hasEnded() public constant returns (bool) {
       bool capReached = weiRaised >= cap;
       return now > endTime || capReached;
+    }
+
+    function goalReached() public constant returns (bool) {
+      return weiRaised >= goal;
     }
 
     // In addition to sending the funds, we want to call
@@ -247,10 +232,6 @@ contract QiibeePresale is Pausable {
 
       // transfer the ownership of the token to the foundation
       token.transferOwnership(wallet);
-    }
-
-    function goalReached() public constant returns (bool) {
-      return weiRaised >= goal;
     }
 
 }
