@@ -42,22 +42,14 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
     let tokensInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.tokens));
     tokensInPurchases.should.be.bignumber.equal(help.fromAtto(await crowdsale.tokensSold()));
 
-    // let presaleWei = sumBigNumbers(_.map(state.presalePurchases, (p) => p.wei));
-    // presaleWei.should.be.bignumber.equal(await crowdsale.totalPresaleWei.call());
-
     help.debug(colors.yellow('checking purchases total wei, purchases:', JSON.stringify(state.purchases)));
     let weiInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.wei));
     weiInPurchases.should.be.bignumber.equal(await crowdsale.weiRaised());
 
-    // Check presale tokens sold
-    // state.totalPresaleWei.should.be.bignumber.equal(await crowdsale.totalPresaleWei.call());
     assert.equal(state.crowdsaleFinalized, await crowdsale.isFinalized());
 
     if (state.crowdsaleFinalized) {
       assert.equal(state.goalReached, await crowdsale.goalReached());
-
-      // let vaultState = parseInt((await crowdsale.getVaultState()).toString());
-      // assert.equal(state.vaultState, vaultState);
 
       state.crowdsaleData.TOTAL_SUPPLY.
         should.be.bignumber.equal(await state.token.totalSupply());
@@ -136,9 +128,6 @@ contract('QiibeeCrowdsale Property-based test', function(accounts) {
       });
 
       help.debug(colors.yellow('created crowdsale at address ', crowdsale.address));
-
-      // issue & transfer tokens for founders payments
-      // let maxFoundersPaymentTokens = crowdsaleData.maxTokens * (crowdsaleData.ownerPercentage / 1000.0) ;
 
       var state = {
         crowdsaleData: crowdsaleData,

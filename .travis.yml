@@ -9,6 +9,10 @@ cache:
 script:
   - set -e
   - yarn lint
-  - GEN_TESTS_QTY=40 yarn test test/token/QiibeeToken.js test/crowdsale/Crowdsale.js test/crowdsaleCrowdsaleGenTest.js test/presale/Presale.js test/presale/PresaleGenTest.js test/presale/PresaleStandardTest.js test/WhitelistedCrowdsale.js
+  - GEN_TESTS_QTY=40 yarn test test/presale/*
+  - GEN_TESTS_QTY=40 yarn test test/crowdsale/*
+  - GEN_TESTS_QTY=40 yarn test test/tokeen/*
+  - yarn test test/WhitelistedCrowdsale.js
+
 after_script:
   - yarn run coveralls

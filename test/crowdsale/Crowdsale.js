@@ -11,7 +11,7 @@ function assertExpectedException(e) {
   }
 }
 
-contract('qbxToken Crowdsale', function(accounts) {
+contract('qiibee crowdsale', function(accounts) {
 
   it('can create a Crowdsale', async function() {
     const startTime = latestTime() + duration.days(1),

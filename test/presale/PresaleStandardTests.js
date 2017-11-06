@@ -25,7 +25,7 @@ function assertExpectedException(e) {
 
 const LOG_EVENTS = true;
 
-contract('Open Zeppelin contracts', function ([owner, wallet, investor]) {
+contract('Open Zeppelin contracts tests', function ([owner, wallet, investor]) {
 
   const goal = new BigNumber(help.toWei(800));
   const lessThanGoal = new BigNumber(help.toWei(750));
