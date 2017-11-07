@@ -93,14 +93,11 @@ contract QiibeeCrowdsale is Crowdsale {
         uint256 newBalance = balances[beneficiary].add(msg.value);
         require(newBalance <= maxInvest && msg.value >= minInvest);
 
-        // spam prevention. TODO: needed for the presale?
-        require(now.sub(lastCallTime[msg.sender]) >= maxCallFrequency);
-        require(tx.gasprice <= maxGasPrice);
-        lastCallTime[msg.sender] = now;
 
         // update state
         weiRaised = weiRaised.add(msg.value);
         tokensSold = tokensSold.add(tokens);
+        lastCallTime[msg.sender] = now;
 
         //TODO: vest tokens?
 

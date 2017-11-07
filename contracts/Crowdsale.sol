@@ -152,10 +152,13 @@ contract Crowdsale is Pausable {
 
     // @return true if investors can buy at the moment
     function validPurchase() internal constant returns (bool) {
+      // spam prevention. TODO: needed for the presale?
+      bool withinFrequency = now.sub(lastCallTime[msg.sender]) >= maxCallFrequency;
+      bool withinGasPrice = tx.gasprice <= maxGasPrice;
       bool withinPeriod = now >= startTime && now <= endTime;
       bool withinCap = weiRaised.add(msg.value) <= cap;
       bool nonZeroPurchase = msg.value != 0;
-      return withinPeriod && withinCap && nonZeroPurchase;
+      return withinFrequency && withinGasPrice && withinPeriod && withinCap && nonZeroPurchase;
     }
 
     // @return true if crowdsale event has ended

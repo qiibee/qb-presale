@@ -328,9 +328,10 @@ async function runPresaleSendTransactionCommand(command, state) {
     gasExceeded ||
     capExceeded;
   try {
-    // help.debug(colors.green('buyTokens rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.end1Timestamp, end2Timestamp, 'blockTimestamp:', nextTimestamp));
     const tx = await state.crowdsaleContract.sendTransaction({value: weiCost, from: account});
     assert.equal(false, shouldThrow, 'sendTransaction should have thrown but it did not');
+    help.debug(colors.green('SUCCESS buying tokens, rate:', rate, 'eth:', command.eth, 'endBlocks:', presale.endTime, 'blockTimestamp:', nextTime));
+
     if (inTGE) {
       state.purchases = _.concat(state.purchases,
         {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
@@ -348,6 +349,7 @@ async function runPresaleSendTransactionCommand(command, state) {
   } catch(e) {
     state = trackGasFromLastBlock(state, command.account);
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
+    help.debug(colors.yellow('FAILURE buying tokens, gasExceeded:', gasExceeded, ', minNotReached:', minNotReached, ', maxExceeded:', maxExceeded, ', frequencyExceeded:', frequencyExceeded, ', capExceeded: ', capExceeded));
   }
   return state;
 }
@@ -372,12 +374,14 @@ async function runAddAccreditedCommand(command, state) {
       command.fromAccount != state.owner;
 
   try {
-    await state.crowdsaleContract.addAccreditedInvestor(investor, rate, cliff, vesting, minInvest, maxInvest, {from: account});
+    await state.crowdsaleContract.addAccreditedInvestor(investor, rate, cliff, vesting, help.toWei(minInvest), help.toWei(maxInvest), {from: account});
+    help.debug(colors.green('SUCCESS adding accredited investor'));
 
     assert.equal(false, shouldThrow, 'add to whitelist should have thrown but it did not');
-    state.accredited[command.investor] = {rate: rate, cliff: cliff, vesting: vesting, minInvest: minInvest, maxInvest: maxInvest};
+    state.accredited[command.investor] = {rate: rate, cliff: cliff, vesting: vesting, minInvest: help.toWei(minInvest), maxInvest: help.toWei(maxInvest)};
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
+    help.debug(colors.yellow('FAILURE adding accredited investor'));
   }
   return state;
 }
