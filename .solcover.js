@@ -1,6 +1,7 @@
 module.exports = {
-  port: 8545,
+  port: 8555,
   norpc: true,
+  // testCommand: 'node ../node_modules/.bin/truffle test --network coverage',
   copyNodeModules: true,
   skipFiles: ['test-helpers/Message.sol', 'VestedToken.sol']
 }

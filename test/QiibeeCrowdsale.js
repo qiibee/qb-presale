@@ -6,7 +6,6 @@
 const QiibeeCrowdsale = artifacts.require('QiibeeCrowdsale.sol');
 
 const latestTime = require('./helpers/latestTime');
-// const { increaseTimeTestRPC } = require('./helpers/increaseTime');
 const { duration } = require('./helpers/increaseTime');
 const help = require('./helpers.js');
 const BigNumber = web3.BigNumber;
@@ -36,33 +35,6 @@ contract('QiibeeCrowdsale', function ([owner, wallet]) {
     wallet: wallet
   };
 
-  // beforeEach(async function () {
-  //   startTime = latestTime() + duration.weeks(1);
-  //   endTime = startTime + duration.weeks(1);
-
-  //   crowdsale = await QiibeeCrowdsale.new(startTime, endTime, rate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, wallet, {from: owner});
-
-  //   await increaseTimeTestRPC(1);
-
-  //   assert.equal(startTime, parseInt(await crowdsale.startTime()));
-  //   assert.equal(endTime, parseInt(await crowdsale.endTime()));
-
-  //   assert.equal(goal.toString(), (await crowdsale.goal()).toString());
-  //   assert.equal(cap.toString(), (await crowdsale.cap()).toString());
-  //   assert.equal(minInvest.toString(), (await crowdsale.minInvest()).toString());
-  //   assert.equal(maxInvest.toString(), (await crowdsale.maxInvest()).toString());
-  //   assert.equal(maxGasPrice, parseInt(await crowdsale.maxGasPrice()));
-  //   assert.equal(maxCallFrequency, parseInt(await crowdsale.maxCallFrequency()));
-  //   assert.equal(wallet, await crowdsale.wallet());
-
-  //   eventsWatcher = crowdsale.allEvents();
-
-  //   eventsWatcher.watch(function(error, log){
-  //     if (LOG_EVENTS)
-  //       console.log('Event:', log.event, ':',log.args);
-  //   });
-  // });
-
   async function createCrowdsale(params) {
     const startTime = params.start === undefined ? (latestTime() + defaultTimeDelta) : params.start,
       endTime = params.endTime === undefined ? (startTime + duration.weeks(1)) : params.endTime,
@@ -77,6 +49,14 @@ contract('QiibeeCrowdsale', function ([owner, wallet]) {
 
     return await QiibeeCrowdsale.new(startTime, endTime, rate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, wallet, {from: owner});
   }
+
+  it('can create a qiibee crowdsale', async function () {
+    try {
+      await createCrowdsale({});
+    } catch (e) {
+      assertExpectedException(e);
+    }
+  });
 
   it('should fail creating qiibee crowdsale with zero rate', async function () {
     try {

@@ -72,6 +72,7 @@ contract QiibeePresale is Crowdsale {
         // check limits
         uint256 newBalance = balances[beneficiary].add(msg.value);
         require(newBalance <= maxInvest && msg.value >= minInvest);
+        balances[beneficiary] = newBalance;
 
         // spam prevention. TODO: needed for the presale?
         require(now.sub(lastCallTime[msg.sender]) >= maxCallFrequency);
@@ -122,7 +123,7 @@ contract QiibeePresale is Crowdsale {
     // @return true if investors can buy at the moment
     function validPurchase() internal constant returns (bool) {
       require(isAccredited(msg.sender));
-      super.validPurchase();
+      return super.validPurchase();
     }
 
     /**

@@ -123,8 +123,8 @@ module.exports = {
     finalize: jsc.bool
   }),
 
-  addAccreditedInvestorCommandGen: jsc.record({
-    type: jsc.constant('addAccreditedInvestor'),
+  addAccreditedCommandGen: jsc.record({
+    type: jsc.constant('addAccredited'),
     investor: knownAccountGen,
     rate: jsc.integer(0, 20000),
     cliff: jsc.integer(0, 20000),

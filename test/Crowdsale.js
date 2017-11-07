@@ -3,7 +3,7 @@
  * and adapted to the Crowdsale.
  */
 
-const Crowdsale = artifacts.require('Crowdsale.sol');
+const Crowdsale = artifacts.require('CrowdsaleImpl.sol');
 const QiibeeToken = artifacts.require('QiibeeToken.sol');
 
 const latestTime = require('./helpers/latestTime');
@@ -37,24 +37,6 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
     maxCallFrequency: 600,
     wallet: wallet
   };
-
-  // beforeEach(async function () {
-  //   startTime = latestTime() + duration.weeks(1);
-  //   endTime = startTime + duration.weeks(1);
-  //   afterEndTime = endTime + duration.seconds(1);
-  //   crowdsale = await Crowdsale.new(startTime, endTime, goal, cap, maxGasPrice, maxCallFrequency, wallet, {from: owner});
-
-  //   token = QiibeeToken.at(await crowdsale.token());
-  //   await increaseTimeTestRPC(1);
-
-  //   assert.equal(startTime, parseInt(await crowdsale.startTime()));
-  //   assert.equal(endTime, parseInt(await crowdsale.endTime()));
-  //   assert.equal(maxGasPrice, parseInt(await crowdsale.maxGasPrice()));
-  //   assert.equal(maxCallFrequency, parseInt(await crowdsale.maxCallFrequency()));
-  //   assert.equal(goal.toString(), (await crowdsale.goal()).toString());
-  //   assert.equal(cap.toString(), (await crowdsale.cap()).toString());
-  //   assert.equal(wallet, await crowdsale.wallet());
-  // });
 
   async function createCrowdsale(params) {
     const startTime = params.start === undefined ? (latestTime() + defaultTimeDelta) : params.start,

@@ -107,7 +107,7 @@ contract Crowdsale is Pausable {
         token = new QiibeeToken();
         vault = new RefundVault(wallet);
 
-        QiibeeToken(token).pause();
+        token.pause();
 
     }
 

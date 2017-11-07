@@ -13,6 +13,8 @@ matrix:
   fast_finish: true
   allow_failures:
     - env: SOLIDITY_COVERAGE=true
+before_script:
+ - chmod +x ./scripts/ci.sh
 script:
   - yarn lint
   - ./scripts/ci.sh

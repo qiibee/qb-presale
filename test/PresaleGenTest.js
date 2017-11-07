@@ -166,8 +166,20 @@ contract('QiibeePresale property-based test', function(accounts) {
   it('should allow accredited investors to invest', async function () {
     await runGeneratedPresaleAndCommands({
       commands: [
-        { type: 'addAccreditedInvestor', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
         { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
+      ],
+      presale: {
+        maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+      }
+    });
+  });
+
+  it('should allow accredited investors to buy tokens', async function () {
+    await runGeneratedPresaleAndCommands({
+      commands: [
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
+        { type: 'presaleBuyTokens', beneficiary: 3, account: 4, eth: 1 },
       ],
       presale: {
         maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -189,7 +201,7 @@ contract('QiibeePresale property-based test', function(accounts) {
   it('should NOT be able to add investor to accredited list if not owner', async function () {
     await runGeneratedPresaleAndCommands({
       commands: [
-        { type: 'addAccreditedInvestor', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
       ],
       presale: {
         maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -200,7 +212,7 @@ contract('QiibeePresale property-based test', function(accounts) {
   it('should NOT be able to add investor to accredited list if address is zero', async function () {
     await runGeneratedPresaleAndCommands({
       commands: [
-        { type: 'addAccreditedInvestor', investor: 'zero', rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
+        { type: 'addAccredited', investor: 'zero', rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
       ],
       presale: {
         maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
