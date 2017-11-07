@@ -28,8 +28,6 @@ contract Crowdsale is Pausable {
     uint256 public startTime;
     uint256 public endTime;
 
-    uint256 public rate; // how many token units a buyer gets per wei
-
     uint256 public cap;
     uint256 public goal; // minimum amount of funds to be raised in weis
     RefundVault public vault; // refund vault used to hold funds while crowdsale is running
@@ -121,18 +119,6 @@ contract Crowdsale is Pausable {
      */
     function createTokenContract() internal returns(QiibeeToken) {
         return new QiibeeToken(); //TODO: get token already deployed?
-    }
-
-    /*
-     * @dev Returns the rate accordingly: before goal is reached, there is a fixed rate given by
-     * `rate`. After that, the formula applies.
-     * @return rate accordingly
-     */
-    function getRate() public constant returns(uint256) {
-        if (goalReached()) {
-            return rate.mul(1000).div(tokensSold.mul(1000).div(goal));
-        }
-        return rate;
     }
 
     /**
