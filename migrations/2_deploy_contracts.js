@@ -28,10 +28,6 @@ module.exports = function(deployer) {
     console.log('Using testrpc network. Wallet address: ', wallet);
   }
 
-  // const wallet = "0x7Ba631Ce4B83a05fcee8154B0Cf6765F1Fc417d4" // the address that will hold the fund. Recommended to use a multisig one for security.
-  // deployer.deploy(QiibeeToken);
   // deployer.deploy(QiibeeCrowdsale, startTime, endTime, rate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, wallet);
- // deployer.deploy(QiibeePresale, presalecap, wallet);
-  // deployer.deploy(QiibeePresale, startTime, endTime, rate, goal, presalecap, wallet);
   // deployer.deploy(QiibeePresale, startTime, endTime, goal, presalecap, maxGasPrice, maxCallFrequency, wallet);
 };

@@ -111,13 +111,6 @@ contract Crowdsale is Pausable {
       buyTokens(msg.sender);
     }
 
-    /*
-     * @dev Creates the token to be sold. Override this method to have crowdsale of a specific mintable token.
-     */
-    function createTokenContract() internal returns(QiibeeToken) {
-        return new QiibeeToken(); //TODO: get token already deployed?
-    }
-
     /**
      * @dev Must be overridden to add buy token minting logic. The overriding function
      * should call super.finalization() to ensure the chain of buy tokens is
