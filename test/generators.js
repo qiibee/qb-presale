@@ -100,6 +100,12 @@ module.exports = {
     fromAccount: accountGen
   }),
 
+  pausePresaleCommandGen: jsc.record({
+    type: jsc.constant('pausePresale'),
+    pause: jsc.bool,
+    fromAccount: accountGen
+  }),
+
   pauseTokenCommandGen: jsc.record({
     type: jsc.constant('pauseToken'),
     pause: jsc.bool,
@@ -108,6 +114,11 @@ module.exports = {
 
   finalizeCrowdsaleCommandGen: jsc.record({
     type: jsc.constant('finalizeCrowdsale'),
+    fromAccount: accountGen
+  }),
+
+  finalizePresaleCommandGen: jsc.record({
+    type: jsc.constant('finalizePresale'),
     fromAccount: accountGen
   }),
 

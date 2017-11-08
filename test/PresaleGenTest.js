@@ -35,22 +35,22 @@ contract('QiibeePresale property-based test', function(accounts) {
 
   let sumBigNumbers = (arr) => _.reduce(arr, (accum, x) => accum.plus(x), zero);
 
-  let checkPresaleState = async function(state, presaleData, crowdsale) {
-    assert.equal(gen.getAccount(state.wallet), await crowdsale.wallet());
-    assert.equal(state.crowdsalePaused, await crowdsale.paused());
+  let checkPresaleState = async function(state, presaleData, presale) {
+    assert.equal(gen.getAccount(state.wallet), await presale.wallet());
+    assert.equal(state.presalePaused, await presale.paused());
 
     let tokensInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.tokens));
-    tokensInPurchases.should.be.bignumber.equal(help.fromAtto(await crowdsale.tokensSold()));
+    tokensInPurchases.should.be.bignumber.equal(help.fromAtto(await presale.tokensSold()));
 
     help.debug(colors.yellow('checking purchases total wei, purchases:', JSON.stringify(state.purchases)));
     let weiInPurchases = sumBigNumbers(_.map(state.purchases, (p) => p.wei));
-    weiInPurchases.should.be.bignumber.equal(await crowdsale.weiRaised());
+    weiInPurchases.should.be.bignumber.equal(await presale.weiRaised());
 
-    assert.equal(state.crowdsaleFinalized, await crowdsale.isFinalized());
+    assert.equal(state.presaleFinalized, await presale.isFinalized());
 
-    if (state.crowdsaleFinalized) {
-      assert.equal(state.goalReached, await crowdsale.goalReached());
-    }
+    // if (state.presaleFinalized) {
+    //   assert.equal(state.goalReached, await presale.goalReached());
+    // }
   };
 
   let runGeneratedPresaleAndCommands = async function(input) {
@@ -111,7 +111,7 @@ contract('QiibeePresale property-based test', function(accounts) {
 
       var state = {
         presaleData: presaleData,
-        crowdsaleContract: presale,
+        presaleContract: presale,
         token: token,
         balances: {},
         ethBalances: help.getAccountsBalances(accounts),
@@ -119,10 +119,10 @@ contract('QiibeePresale property-based test', function(accounts) {
         weiRaised: zero,
         tokensSold: zero,
         tokenPaused: true,
-        crowdsaleFinalized: false,
-        crowdsalePaused: false,
+        presaleFinalized: false,
+        presalePaused: false,
         goalReached: false,
-        crowdsaleSupply: zero,
+        presaleSupply: zero,
         burnedTokens: zero,
         owner: owner,
         accredited: [],
@@ -318,4 +318,33 @@ contract('QiibeePresale property-based test', function(accounts) {
 
     return jsc.assert(property, {tests: GEN_TESTS_QTY});
   });
+
+  it('should finish presale fine', async function() {
+    let presaleAndCommands = {
+      commands: [
+        { type: 'waitTime','seconds':duration.days(4)},
+        { type: 'finalizePresale', fromAccount: 1 }
+      ],
+      presale: {
+        maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+      }
+    };
+
+    await runGeneratedPresaleAndCommands(presaleAndCommands);
+  });
+
+  it('should handle the exception correctly when trying to finalize the presale before the presale has ended', async function() {
+    let presaleAndCommands = {
+      commands: [
+        { type: 'waitTime','seconds':duration.minutes(60)},
+        { type: 'finalizePresale', fromAccount: 1 }
+      ],
+      presale: {
+        maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+      }
+    };
+
+    await runGeneratedPresaleAndCommands(presaleAndCommands);
+  });
+
 });
