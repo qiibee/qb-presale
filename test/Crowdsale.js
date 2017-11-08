@@ -39,7 +39,7 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
   };
 
   async function createCrowdsale(params) {
-    const startTime = params.start === undefined ? (latestTime() + defaultTimeDelta) : params.start,
+    const startTime = params.startTime === undefined ? (latestTime() + defaultTimeDelta) : params.startTime,
       endTime = params.endTime === undefined ? (startTime + duration.weeks(1)) : params.endTime,
       goal = params.goal === undefined ? defaults.goal : params.goal,
       cap = params.cap === undefined ? defaults.cap : params.cap,
@@ -49,6 +49,26 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
 
     return await Crowdsale.new(startTime, endTime, goal, cap, maxGasPrice, maxCallFrequency, wallet, {from: owner});
   }
+
+  describe('create crowdsale tests', function () {
+    it('can NOT create crowdsale with endTime bigger than startTime', async function () {
+      const startTime = latestTime() + duration.weeks(1),
+        endTime = startTime - duration.weeks(1);
+      try {
+        await createCrowdsale({startTime: startTime, endTime: endTime});
+      } catch(e) {
+        assertExpectedException(e);
+      }
+    });
+
+    it('can NOT create crowdsale with maxCallFrequency less than zero', async function () {
+      try {
+        await createCrowdsale({maxCallFrequency: defaults.maxCallFrequency*(-1)});
+      } catch(e) {
+        assertExpectedException(e);
+      }
+    });
+  });
 
   it('should be token owner', async function () {
     const crowdsale = await createCrowdsale({}),
@@ -90,6 +110,16 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
       }
     });
 
+    it('should reject payments if beneficiary address is zero', async function () {
+      const crowdsale = await createCrowdsale({});
+      await increaseTimeTestRPCTo(await crowdsale.startTime());
+      try {
+        await crowdsale.buyTokens(help.zeroAddress, {value: value, from: investor});
+      } catch (e) {
+        assertExpectedException(e);
+      }
+    });
+
     it('should accept payments after start', async function () {
       const crowdsale = await createCrowdsale({});
       await increaseTimeTestRPCTo(await crowdsale.startTime());
@@ -114,13 +144,29 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
 
   });
 
+  describe('finalize crowdsale tests', function () {
+
+    it('should reject finalize if crowdsale is already finalized', async function () {
+      const crowdsale = await createCrowdsale({});
+      await increaseTimeTestRPCTo(await crowdsale.startTime());
+      await crowdsale.sendTransaction({value: defaults.goal, from: investor});
+      await increaseTimeTestRPCTo(await crowdsale.endTime() + duration.seconds(1));
+      await crowdsale.finalize({from: owner});
+      try {
+        await crowdsale.finalize({from: owner});
+      } catch(e) {
+        assertExpectedException(e);
+      }
+    });
+
+  });
   // RefundableCrowdsale.sol
   describe('refundable crowdsale tests', function () {
 
-    it('should fail creating crowdsale with zero goal', async function () {
+    it('can NOT create crowdsale with goal less than zero', async function () {
       try {
-        await createCrowdsale({goal: 0});
-      } catch (e) {
+        await createCrowdsale({goal: defaults.goal.mul(-1)});
+      } catch(e) {
         assertExpectedException(e);
       }
     });
