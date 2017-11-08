@@ -7,12 +7,12 @@ import "./QiibeeToken.sol";
 /**
    @title Crowdsale for the QBX Token Generation Event
 
-   Implementation of the QBX Token Generation Event (TGE): A 4-week, fixed token supply with a
-   fixed rate until the goal (soft cap) is reached and then a dynamic rate linked to the amount of
-   tokens sold is applied. TGE has a cap on the amount of token (hard cap).
+   Implementation of kind of an 'abstract' QBX Token Generation Event (TGE). This contract will be
+   used by QiibeePresale.sol and QiibeeCrowdsale.
 
-   Investments made during the presale (see QiibeePresale.sol) are added before the TGE starts
-   through the addPresaleTokens() function.
+   This TGE includes is capped and has a spam prevention technique:
+    * investors can make purchases with a frequency of X seconds given by maxCallFrequency.
+    * investors are limited in the gas price
 
    In case of the goal not being reached by purchases made during the 4-week period the token will
    not start operating and all funds sent during that period will be made available to be claimed
@@ -23,13 +23,11 @@ contract Crowdsale is Pausable {
 
     using SafeMath for uint256;
 
-    uint256 public constant TOTAL_SUPPLY = 10e27; // total amount of tokens in atto
-
     uint256 public startTime;
     uint256 public endTime;
 
-    uint256 public cap;
-    uint256 public goal; // minimum amount of funds to be raised in weis
+    uint256 public cap; // max amount of funds to be raised in weis
+    uint256 public goal; // min amount of funds to be raised in weis
     RefundVault public vault; // refund vault used to hold funds while crowdsale is running
 
     QiibeeToken public token; // token being sold
@@ -42,7 +40,7 @@ contract Crowdsale is Pausable {
     uint256 public maxGasPrice; // max gas price per transaction
     uint256 public maxCallFrequency; // max frequency for purchases from a single source (in seconds)
 
-    bool public isFinalized = false;
+    bool public isFinalized = false; // whether the crowdsale has finished or not
 
     address public wallet; // address where funds are collected
 
@@ -67,11 +65,8 @@ contract Crowdsale is Pausable {
      * @dev Constructor. Creates the token in a paused state
      * @param _startTime see `startTimestamp`
      * @param _endTime see `endTimestamp`
-     * @param _rate see `rate` on Crowdsale.sol
      * @param _goal see `see goal`
      * @param _cap see `see cap`
-     * @param _minInvest see `see minInvest`
-     * @param _maxInvest see `see maxInvest`
      * @param _maxGasPrice see `see maxGasPrice`
      * @param _maxCallFrequency see `see maxCallFrequency`
      * @param _wallet see `wallet`
@@ -109,7 +104,9 @@ contract Crowdsale is Pausable {
 
     }
 
-    // fallback function can be used to buy tokens
+    /*
+     * @dev fallback function can be used to buy tokens
+     */
     function () payable whenNotPaused {
       buyTokens(msg.sender);
     }
@@ -136,9 +133,10 @@ contract Crowdsale is Pausable {
       forwardFunds();
     }
 
-    // @return true if investors can buy at the moment
+    /*
+     * @return true if investors can buy at the moment
+     */
     function validPurchase() internal constant returns (bool) {
-      // spam prevention. TODO: needed for the presale?
       bool withinFrequency = now.sub(lastCallTime[msg.sender]) >= maxCallFrequency;
       bool withinGasPrice = tx.gasprice <= maxGasPrice;
       bool withinPeriod = now >= startTime && now <= endTime;
@@ -147,23 +145,31 @@ contract Crowdsale is Pausable {
       return withinFrequency && withinGasPrice && withinPeriod && withinCap && nonZeroPurchase;
     }
 
-    // @return true if crowdsale event has ended
+    /*
+     * @return true if crowdsale event has ended
+     */
     function hasEnded() public constant returns (bool) {
       bool capReached = weiRaised >= cap;
       return now > endTime || capReached;
     }
 
+    /*
+     * @return true if crowdsale goal has reached
+     */
     function goalReached() public constant returns (bool) {
       return weiRaised >= goal;
     }
 
-    // In addition to sending the funds, we want to call
-    // the RefundVault deposit function
+    /*
+     * In addition to sending the funds, we want to call the RefundVault deposit function
+     */
     function forwardFunds() internal {
       vault.deposit.value(msg.value)(msg.sender);
     }
 
-    // if crowdsale is unsuccessful, investors can claim refunds here
+    /*
+     * if crowdsale is unsuccessful, investors can claim refunds here
+     */
     function claimRefund() public {
       require(isFinalized);
       require(!goalReached());
@@ -171,21 +177,11 @@ contract Crowdsale is Pausable {
       vault.refund(msg.sender);
     }
 
-    /*
-     * @dev Changes the current wallet for a new one. Only the owner can call this function.
-     * @param _wallet new wallet
-     */
-    function setWallet(address _wallet) onlyOwner public {
-        require(_wallet != 0x0);
-        wallet = _wallet;
-        WalletChange(_wallet);
-    }
-
     /**
      * @dev Must be called after crowdsale ends, to do some extra finalization
      * work. Calls the contract's finalization function.
      */
-    function finalize() onlyOwner public {
+    function finalize() public {
       require(!isFinalized);
       require(hasEnded());
 
@@ -206,6 +202,16 @@ contract Crowdsale is Pausable {
       } else {
         vault.enableRefunds();
       }
+    }
+
+    /*
+     * @dev Changes the current wallet for a new one. Only the owner can call this function.
+     * @param _wallet new wallet
+     */
+    function setWallet(address _wallet) onlyOwner public {
+        require(_wallet != 0x0);
+        wallet = _wallet;
+        WalletChange(_wallet);
     }
 
 }

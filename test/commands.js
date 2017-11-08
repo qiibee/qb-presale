@@ -71,6 +71,10 @@ function getBalance(state, account) {
   return state.balances[account] || new BigNumber(0);
 }
 
+function getTokenBalance(state, account) {
+  return state.tokenBalances[account] || new BigNumber(0);
+}
+
 async function runCheckRateCommand(command, state) {
   let expectedRate = help.getCrowdsaleExpectedRate(state);
   let rate = await state.crowdsaleContract.getRate();
@@ -139,9 +143,6 @@ async function runBuyTokensCommand(command, state) {
     capExceeded;
 
   try {
-    //await state.crowdsaleContract.buyTokens(beneficiaryAccount, {value: weiCost, from: account});
-    //gasPrice price (in ether) of one unit of gas specified in the transaction
-
     const tx = await state.crowdsaleContract.buyTokens(beneficiaryAccount, {value: weiCost, from: account, gasPrice: (command.gasPrice ? command.gasPrice : state.crowdsaleData.maxGasPrice)});
     assert.equal(false, shouldThrow, 'buyTokens should have thrown but it didn\'t');
 
@@ -152,6 +153,7 @@ async function runBuyTokensCommand(command, state) {
     );
     state.lastCallTime[command.account] = nextTime;
     state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(weiCost);
+    state.tokenBalances[command.beneficiary] = getTokenBalance(state, command.beneficiary).plus(tokens);
     state.weiRaised = state.weiRaised.plus(weiCost);
     state.tokensSold = state.tokensSold.plus(new BigNumber(help.toAtto(tokens)));
     state.crowdsaleSupply = state.crowdsaleSupply.plus(new BigNumber(help.toAtto(tokens)));
@@ -210,16 +212,14 @@ async function runSendTransactionCommand(command, state) {
 
     help.debug(colors.green('SUCCESS buying tokens, rate:', rate, 'eth:', command.eth, 'endBlocks:', crowdsale.endTime, 'blockTimestamp:', nextTime));
 
-    if (inTGE) {
-      state.purchases = _.concat(state.purchases,
-        {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
-      );
-      state.weiRaised = state.weiRaised.plus(weiCost);
-      state.tokensSold = state.tokensSold.plus(tokens);
-    } else {
-      throw(new Error('sendTransaction not in TGE should have thrown'));
-    }
-
+    state.purchases = _.concat(state.purchases,
+      {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
+    );
+    state.lastCallTime[command.account] = nextTime;
+    state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(weiCost);
+    state.tokenBalances[command.beneficiary] = getTokenBalance(state, command.beneficiary).plus(tokens);
+    state.weiRaised = state.weiRaised.plus(weiCost);
+    state.tokensSold = state.tokensSold.plus(new BigNumber(help.toAtto(tokens)));
     state.crowdsaleSupply = state.crowdsaleSupply.plus(new BigNumber(help.toAtto(tokens)));
 
     state = decreaseEthBalance(state, command.account, weiCost);
@@ -598,22 +598,25 @@ async function runClaimRefundCommand(command, state) {
 
 async function runBurnTokensCommand(command, state) {
   let account = gen.getAccount(command.account),
-    balance = getBalance(state, command.account),
+    balance = getTokenBalance(state, command.account),
     hasZeroAddress = isZeroAddress(account),
-    atto = new BigNumber(help.toAtto(command.tokens));
+    tokens = new BigNumber(help.toAtto(command.tokens));
 
   let shouldThrow = state.tokenPaused ||
     (balance < command.tokens) ||
     command.tokens == 0 ||
     hasZeroAddress;
 
+  console.log('shouldThrow', shouldThrow);
+  console.log('balance', balance);
+  console.log('tokens', tokens);
   try {
-    const tx = await state.token.burn(atto, {from: account});
+    const tx = await state.token.burn(tokens, {from: account});
     assert.equal(false, shouldThrow, 'burn should have thrown but it did not');
     help.debug(colors.green('SUCCESS burning tokens, balance:', balance, 'tokens: ', command.tokens));
 
-    state.balances[account] = balance.minus(atto);
-    state.totalSupply = state.totalSupply.minus(atto);
+    state.tokenBalances[account] = balance.minus(tokens);
+    state.crowdsaleSupply = state.crowdsaleSupply.minus(tokens);
 
     state = decreaseEthBalance(state, command.account, help.txGasCost(tx));
   } catch(e) {

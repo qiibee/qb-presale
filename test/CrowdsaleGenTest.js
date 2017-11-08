@@ -134,6 +134,7 @@ contract('QiibeeCrowdsale property-based test', function(accounts) {
         crowdsaleContract: crowdsale,
         token: token,
         balances: {},
+        tokenBalances: {},
         ethBalances: help.getAccountsBalances(accounts),
         purchases: [],
         weiRaised: zero,
@@ -187,341 +188,350 @@ contract('QiibeeCrowdsale property-based test', function(accounts) {
     done();
   });
 
-  // SPAM PREVENETION TESTS
-  it('should NOT buy tokens if amount of qbx is below the min limit', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 0.5 },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
+  describe('limit tests', function () {
+    it('should NOT buy tokens if amount exceeds the cap', async function() {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'fundCrowdsaleBelowCap','account':0,'finalize':false},
+          { type: 'buyTokens', beneficiary: 2, account: 2, eth: 100 },
+          { type: 'waitTime','seconds':duration.minutes(12)},
+          { type: 'buyTokens', beneficiary: 4, account: 4, eth: 500000 },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 240000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
+    });
+
+    it('should NOT buy tokens if amount of qbx is below the min limit', async function() {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'buyTokens', beneficiary: 3, account: 2, eth: 0.5 },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
+    });
+
+    it('should buy tokens if amount of qbx is within the limits', async function() {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
+    });
+
+    it('should NOT buy tokens if amount of qbx exceeds the max limit', async function() {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+          { type: 'waitTime','seconds':duration.minutes(12)},
+          { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+          { type: 'waitTime','seconds':duration.minutes(12)},
+          { type: 'buyTokens', beneficiary: 3, account: 2, eth: 2 },
+          { type: 'waitTime','seconds':duration.minutes(12)},
+          { type: 'buyTokens', beneficiary: 3, account: 2, eth: 20 },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
+    });
+  });
+  describe('SPAM prevention tests', function () {
+    it('should NOT buy tokens with exceeding gasPrice limit', async function() {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1, gasPrice: 50000000001 },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
+    });
+
+    it('should NOT allow buyTokens if execution is made before the allowed frequency', async function() {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+          { type: 'waitTime','seconds':duration.minutes(9)},
+          { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
     });
   });
 
-  it('should buy tokens if amount of qbx is within the limits', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
+  describe('crowdsale tests', function () {
+    it('does not fail on some specific examples', async function() {
+
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'sendTransaction','account':3,'beneficiary':0,'eth':7000}
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
+
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'buyTokens', beneficiary: 'zero', account: 2, eth: 1 },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
+
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type:'pauseCrowdsale','pause':true,'fromAccount':8},
+          { type:'sendTransaction','account':0,'beneficiary':9,'eth':39}
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
+
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { 'type':'fundCrowdsaleBelowCap','account':7,'finalize':false}
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 240000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
+    });
+
+    it('calculates correct rate as long as tokens are sold', async function() {
+      let crowdsaleAndCommands = {
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'checkRate' },
+          { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
+          { type: 'checkRate' },
+          { type: 'buyTokens', beneficiary: 3, account: 3, eth: 100000 },
+          { type: 'checkRate' },
+          { type: 'buyTokens', beneficiary: 3, account: 4, eth: 150000 },
+          { type: 'checkRate' },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 240000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      };
+
+      await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
+    });
+
+    it('executes a normal TGE fine', async function() {
+      let crowdsaleAndCommands = {
+        commands: [
+          { type: 'checkRate', fromAccount: 3 },
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'fundCrowdsaleBelowCap','account':3,'finalize':false},
+          { type: 'buyTokens', beneficiary: 3, account: 4, eth: 10 },
+          { type: 'buyTokens', beneficiary: 3, account: 5, eth: 4 },
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'buyTokens', beneficiary: 3, account: 6, eth: 50000 },
+          { type: 'finalizeCrowdsale', fromAccount: 2 }
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 240000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      };
+
+      await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
     });
   });
 
-  it('should NOT buy tokens if amount of qbx exceeds the max limit', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
-        { type: 'waitTime','seconds':duration.minutes(12)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
-        { type: 'waitTime','seconds':duration.minutes(12)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 2 },
-        { type: 'waitTime','seconds':duration.minutes(12)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 20 },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
+  describe('crowdsale pause tests', function () {
+    it('should handle the exception correctly when trying to pause the token during and after the crowdsale', async function() {
+      let crowdsaleAndCommands = {
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'pauseToken', 'pause':true, 'fromAccount':0 },
+          { type: 'pauseToken', 'pause':false, 'fromAccount':0 },
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'finalizeCrowdsale', fromAccount: 0 },
+          { type: 'pauseToken', 'pause':false, 'fromAccount':0 },
+          { type: 'pauseToken', 'pause':true, 'fromAccount':10 }
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      };
+
+      await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
+    });
+
+    it('should pause or handle exceptions fine', async function() {
+      let crowdsaleAndCommands = {
+        commands: [
+          { type: 'waitTime','seconds':duration.days(3)},
+          { type: 'finalizeCrowdsale', fromAccount: 0 },
+          { type: 'pauseToken', 'pause':false, 'fromAccount':0 },
+          { type: 'pauseToken', 'pause':true, 'fromAccount':0 },
+          { type: 'pauseToken', 'pause':true, 'fromAccount':10 },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      };
+
+      await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
     });
   });
 
-  it('should NOT buy tokens with exceeding gasPrice limit', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1, gasPrice: 50000000001 },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
+  describe('crowdsale finalize tests', function () {
+    it('should handle the exception correctly when trying to finalize the crowdsale before the crowdsale has ended', async function() {
+      let crowdsaleAndCommands = {
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'finalizeCrowdsale', fromAccount: 1 },
+          { type: 'waitTime','seconds':duration.days(5)},
+          { type: 'finalizeCrowdsale', fromAccount: 1 },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      };
+
+      await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
+    });
+
+    it('should run the fund and finalize crowdsale command fine', async function() {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true}
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 240000,
+          maxGasPrice: 50000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
+    });
+
+    it('should run the fund crowdsale below cap without finalize command fine', async function() {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'fundCrowdsaleBelowCap','account':0,'finalize':false}
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 240000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
+    });
+
+    it('should handle exception fine when trying to finalize and is already finalized', async function() {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true},
+          { type: 'finalizeCrowdsale','fromAccount':3}
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 240000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
     });
   });
 
-  it('should NOT allow buyTokens if execution is made before the allowed frequency', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
-        { type: 'waitTime','seconds':duration.minutes(9)},
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    });
-  });
-
-  // CROWDSALE TESTS
-  it('does not fail on some specific examples', async function() {
-
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'sendTransaction','account':3,'beneficiary':0,'eth':7000}
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
+  describe('burn tokens tests', function () {
+    it('should handle fund, finalize and burn with 0 tokens', async function() {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true},
+          { type: 'burnTokens','account':4,'tokens':0}
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 240000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
     });
 
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'buyTokens', beneficiary: 'zero', account: 2, eth: 1 },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    });
-
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type:'pauseCrowdsale','pause':true,'fromAccount':8},
-        { type:'sendTransaction','account':0,'beneficiary':9,'eth':39}
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    });
-
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { 'type':'fundCrowdsaleBelowCap','account':7,'finalize':false}
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 240000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    });
-  });
-
-  it('calculates correct rate as long as tokens are sold', async function() {
-    let crowdsaleAndCommands = {
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'checkRate' },
-        { type: 'buyTokens', beneficiary: 3, account: 2, eth: 1 },
-        { type: 'checkRate' },
-        { type: 'buyTokens', beneficiary: 3, account: 3, eth: 100000 },
-        { type: 'checkRate' },
-        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 150000 },
-        { type: 'checkRate' },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 240000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    };
-
-    await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
-  });
-
-  it('executes a normal TGE fine', async function() {
-    let crowdsaleAndCommands = {
-      commands: [
-        { type: 'checkRate', fromAccount: 3 },
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'fundCrowdsaleBelowCap','account':3,'finalize':false},
-        { type: 'buyTokens', beneficiary: 3, account: 4, eth: 10 },
-        { type: 'buyTokens', beneficiary: 3, account: 5, eth: 4 },
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'buyTokens', beneficiary: 3, account: 6, eth: 50000 },
-        { type: 'finalizeCrowdsale', fromAccount: 2 }
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 240000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    };
-
-    await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
-  });
-
-  it('should handle the exception correctly when trying to pause the token during and after the crowdsale', async function() {
-    let crowdsaleAndCommands = {
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'pauseToken', 'pause':true, 'fromAccount':0 },
-        { type: 'pauseToken', 'pause':false, 'fromAccount':0 },
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'finalizeCrowdsale', fromAccount: 0 },
-        { type: 'pauseToken', 'pause':false, 'fromAccount':0 },
-        { type: 'pauseToken', 'pause':true, 'fromAccount':10 }
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    };
-
-    await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
-  });
-
-  it('should pause or handle exceptions fine', async function() {
-    let crowdsaleAndCommands = {
-      commands: [
-        { type: 'waitTime','seconds':duration.days(3)},
-        { type: 'finalizeCrowdsale', fromAccount: 0 },
-        { type: 'pauseToken', 'pause':false, 'fromAccount':0 },
-        { type: 'pauseToken', 'pause':true, 'fromAccount':0 },
-        { type: 'pauseToken', 'pause':true, 'fromAccount':10 },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    };
-
-    await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
-  });
-
-  it('should NOT buy tokens if amount exceeds the cap', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'fundCrowdsaleBelowCap','account':0,'finalize':false},
-        { type: 'buyTokens', beneficiary: 2, account: 2, eth: 100 },
-        { type: 'waitTime','seconds':duration.minutes(12)},
-        { type: 'buyTokens', beneficiary: 4, account: 4, eth: 500000 },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 240000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    });
-  });
-
-  it('should handle the exception correctly when trying to finalize the crowdsale before the crowdsale has ended', async function() {
-    let crowdsaleAndCommands = {
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'finalizeCrowdsale', fromAccount: 1 },
-        { type: 'waitTime','seconds':duration.days(5)},
-        { type: 'finalizeCrowdsale', fromAccount: 1 },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    };
-
-    await runGeneratedCrowdsaleAndCommands(crowdsaleAndCommands);
-  });
-
-  it('should run the fund and finalize crowdsale command fine', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true}
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 240000,
-        maxGasPrice: 50000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    });
-  });
-
-  it('should run the fund crowdsale below cap without finalize command fine', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'fundCrowdsaleBelowCap','account':0,'finalize':false}
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 240000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    });
-  });
-
-  it('should handle exception fine when trying to finalize and is already finalized', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true},
-        { type: 'finalizeCrowdsale','fromAccount':3}
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 240000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    });
-  });
-
-  it('should handle fund, finalize and burn with 0 tokens', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true},
-        { type: 'burnTokens','account':4,'tokens':0}
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 240000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
-    });
-  });
-
-  it('should run fund and finalize crowdsale below cap, then burn tokens fine', async function() {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true},
-        { type: 'burnTokens','account':5,'tokens':44}
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 240000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
+    it('should run fund and finalize crowdsale below cap, then burn tokens fine', async function() {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'fundCrowdsaleBelowCap','account':0,'finalize':true},
+          { type: 'burnTokens','account':5,'tokens':44}
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 240000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
     });
   });
 
@@ -544,46 +554,47 @@ contract('QiibeeCrowdsale property-based test', function(accounts) {
     return jsc.assert(property, {tests: GEN_TESTS_QTY});
   });
 
-  //OWNERSHIP TESTS
-  it('owner should be able to change wallet', async function () {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'setWallet', newAccount: 4, fromAccount: 0 },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
+  describe('ownership tests', function () {
+    it('owner should be able to change wallet', async function () {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'setWallet', newAccount: 4, fromAccount: 0 },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
     });
-  });
 
-  it('non-owner should not be able to change wallet', async function () {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'setWallet', newAccount: 4, fromAccount: 1 },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
+    it('non-owner should not be able to change wallet', async function () {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'setWallet', newAccount: 4, fromAccount: 1 },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
     });
-  });
 
-  it('should not change wallet if 0', async function () {
-    await runGeneratedCrowdsaleAndCommands({
-      commands: [
-        { type: 'setWallet', newAccount: 'zero', fromAccount: 0 },
-      ],
-      crowdsale: {
-        rate: 6000, goal: 36000, cap: 240000,
-        minInvest: 6000, maxInvest: 48000,
-        maxGasPrice: 50000000000, maxCallFrequency: 600,
-        owner: 0, foundationWallet: 10
-      }
+    it('should not change wallet if 0', async function () {
+      await runGeneratedCrowdsaleAndCommands({
+        commands: [
+          { type: 'setWallet', newAccount: 'zero', fromAccount: 0 },
+        ],
+        crowdsale: {
+          rate: 6000, goal: 36000, cap: 240000,
+          minInvest: 6000, maxInvest: 48000,
+          maxGasPrice: 50000000000, maxCallFrequency: 600,
+          owner: 0, foundationWallet: 10
+        }
+      });
     });
   });
 });

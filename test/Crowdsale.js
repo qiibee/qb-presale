@@ -1,6 +1,6 @@
 /*
  * This are tests taken from RefundableCrowdsale.sol, CappedCrowdsale.sol from Open Zeppelin
- * and adapted to the Crowdsale.
+ * and adapted to the Crowdsale.sol.
  */
 
 const Crowdsale = artifacts.require('CrowdsaleImpl.sol');

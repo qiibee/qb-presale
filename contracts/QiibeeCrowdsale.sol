@@ -7,10 +7,9 @@ import "./Crowdsale.sol";
 
    Implementation of the QBX Token Generation Event (TGE): A 4-week, fixed token supply with a
    fixed rate until the goal (soft cap) is reached and then a dynamic rate linked to the amount of
-   tokens sold is applied. TGE has a cap on the amount of token (hard cap).
+   tokens sold is applied.
 
-   Investments made during the presale (see QiibeePresale.sol) are added before the TGE starts
-   through the addPresaleTokens() function.
+
 
    In case of the goal not being reached by purchases made during the 4-week period the token will
    not start operating and all funds sent during that period will be made available to be claimed
@@ -82,17 +81,12 @@ contract QiibeeCrowdsale is Crowdsale {
      * @dev Low level token purchase function.
      * @param beneficiary beneficiary address where tokens are sent to
      */
-    function buyTokens(address beneficiary) public payable {
+    function buyTokens(address beneficiary) public payable whenNotPaused{
         require(beneficiary != address(0));
-        require(validPurchase());
+        require(validPurchase(beneficiary));
 
         uint256 rate = getRate();
         uint256 tokens = msg.value.mul(rate);
-
-        // check limits
-        uint256 newBalance = balances[beneficiary].add(msg.value);
-        require(newBalance <= maxInvest && msg.value >= minInvest);
-
 
         // update state
         weiRaised = weiRaised.add(msg.value);
@@ -106,6 +100,16 @@ contract QiibeeCrowdsale is Crowdsale {
         TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
 
         forwardFunds();
+    }
+
+    /*
+     * Checks if the ivnestment made is within the allowed limits
+     */
+    function validPurchase(address beneficiary) internal constant returns (bool) {
+        // check limits
+        uint256 newBalance = balances[beneficiary].add(msg.value);
+        bool withinLimits = newBalance <= maxInvest && msg.value >= minInvest;
+        return withinLimits && super.validPurchase();
     }
 
     /*

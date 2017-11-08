@@ -34,8 +34,13 @@ contract QiibeePresale is Crowdsale {
     event NewAccreditedInvestor(address indexed from, address indexed buyer);
 
     /*
-     * @dev Constructor of the presale.
+     * @dev Constructor.
+     * @param _startTime see `startTimestamp`
+     * @param _endTime see `endTimestamp`
+     * @param _goal see `see goal`
      * @param _cap see `see cap`
+     * @param _maxGasPrice see `see maxGasPrice`
+     * @param _maxCallFrequency see `see maxCallFrequency`
      * @param _wallet see `wallet`
      */
     function QiibeePresale(
@@ -52,7 +57,6 @@ contract QiibeePresale is Crowdsale {
     }
 
     /*
-     * @dev Low level token purchase function.
      * @param beneficiary beneficiary address where tokens are sent to
      */
     function buyTokens(address beneficiary) public payable whenNotPaused{
