@@ -26,8 +26,8 @@ contract Crowdsale is Pausable {
     uint256 public startTime;
     uint256 public endTime;
 
-    uint256 public cap; // max amount of funds to be raised in weis
-    uint256 public goal; // min amount of funds to be raised in weis
+    uint256 public cap; // max amount of funds to be raised in wei
+    uint256 public goal; // min amount of funds to be raised in wei
     RefundVault public vault; // refund vault used to hold funds while crowdsale is running
 
     QiibeeToken public token; // token being sold
@@ -54,7 +54,7 @@ contract Crowdsale is Pausable {
      * event for token purchase logging
      * @param purchaser who paid for the tokens
      * @param beneficiary who got the tokens
-     * @param value weis paid for purchase
+     * @param value in wei paid for purchase
      * @param amount amount of tokens purchased
      */
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
@@ -88,6 +88,8 @@ contract Crowdsale is Pausable {
         require(_goal <= _cap);
         require(_maxGasPrice > 0);
         require(_minBuyingRequestInterval >= 0);
+        require(_wallet != address(0));
+
 
         startTime = _startTime;
         endTime = _endTime;
@@ -117,7 +119,7 @@ contract Crowdsale is Pausable {
      * executed entirely.
      */
     function buyTokens(address beneficiary) public payable whenNotPaused {
-      require(beneficiary != 0x0);
+      require(beneficiary != address(0));
       require(validPurchase());
 
       uint256 weiAmount = msg.value;
@@ -202,7 +204,7 @@ contract Crowdsale is Pausable {
      * @param _wallet new wallet
      */
     function setWallet(address _wallet) onlyOwner public {
-        require(_wallet != 0x0);
+        require(_wallet != address(0));
         wallet = _wallet;
         WalletChange(_wallet);
     }
