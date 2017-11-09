@@ -120,7 +120,7 @@ async function runBuyTokensCommand(command, state) {
   let inTGE = nextTime >= startTime && nextTime <= endTime,
     capExceeded = state.weiRaised.plus(new BigNumber(help.toAtto(command.eth))).gt(crowdsale.cap),
     gasExceeded = (command.gasPrice > state.crowdsaleData.maxGasPrice) && inTGE,
-    frequencyExceeded = (state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.crowdsaleData.maxCallFrequency)) || false,
+    frequencyExceeded = (state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.crowdsaleData.minBuyingRequestInterval)) || false,
     maxExceeded = newBalance.gt(state.crowdsaleData.maxInvest),
     minNotReached = new BigNumber(help.toAtto(command.eth)).lt(state.crowdsaleData.minInvest);
 
@@ -184,7 +184,7 @@ async function runSendTransactionCommand(command, state) {
   let inTGE = nextTime >= startTime && nextTime <= endTime,
     capExceeded = state.weiRaised.plus(new BigNumber(help.toWei(command.eth))).gt(crowdsale.cap),
     gasExceeded = (command.gasPrice > state.crowdsaleData.maxGasPrice) && inTGE,
-    frequencyExceeded = (state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.crowdsaleData.maxCallFrequency)) || false,
+    frequencyExceeded = (state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.crowdsaleData.minBuyingRequestInterval)) || false,
     maxExceeded = newBalance.gt(state.crowdsaleData.maxInvest),
     minNotReached = new BigNumber(help.toAtto(command.eth)).lt(state.crowdsaleData.minInvest);
 
@@ -249,7 +249,7 @@ async function runPresaleBuyTokensCommand(command, state) {
   let inTGE = nextTime >= startTime && nextTime <= endTime,
     capExceeded = state.weiRaised.plus(new BigNumber(help.toAtto(command.eth))).gt(presale.cap),
     gasExceeded = (command.gasPrice > state.presaleData.maxGasPrice) && inTGE,
-    frequencyExceeded = (state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.presaleData.maxCallFrequency)) || false,
+    frequencyExceeded = (state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.presaleData.minBuyingRequestInterval)) || false,
     maxExceeded = accredited ? newBalance.gt(accredited.maxInvest) : null,
     minNotReached = accredited ? new BigNumber(help.toAtto(command.eth)).lt(accredited.minInvest) : null;
 
@@ -309,7 +309,7 @@ async function runPresaleSendTransactionCommand(command, state) {
   let inTGE = nextTime >= startTime && nextTime <= endTime,
     capExceeded = state.weiRaised.plus(new BigNumber(help.toAtto(command.eth))).gt(presale.cap),
     gasExceeded = (command.gasPrice > state.presaleData.maxGasPrice) && inTGE,
-    frequencyExceeded = (state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.presaleData.maxCallFrequency)) || false,
+    frequencyExceeded = (state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.presaleData.minBuyingRequestInterval)) || false,
     maxExceeded = accredited ? newBalance.gt(accredited.maxInvest) : null,
     minNotReached = accredited ? new BigNumber(help.toAtto(command.eth)).lt(accredited.minInvest) : null;
 

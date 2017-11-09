@@ -40,7 +40,7 @@ contract QiibeePresale is Crowdsale {
      * @param _goal see `see goal`
      * @param _cap see `see cap`
      * @param _maxGasPrice see `see maxGasPrice`
-     * @param _maxCallFrequency see `see maxCallFrequency`
+     * @param _minBuyingRequestInterval see `see minBuyingRequestInterval`
      * @param _wallet see `wallet`
      */
     function QiibeePresale(
@@ -49,10 +49,10 @@ contract QiibeePresale is Crowdsale {
         uint256 _goal,
         uint256 _cap,
         uint256 _maxGasPrice,
-        uint256 _maxCallFrequency,
+        uint256 _minBuyingRequestInterval,
         address _wallet
     )
-      Crowdsale(_startTime, _endTime, _goal, _cap, _maxGasPrice, _maxCallFrequency, _wallet)
+      Crowdsale(_startTime, _endTime, _goal, _cap, _maxGasPrice, _minBuyingRequestInterval, _wallet)
     {
     }
 

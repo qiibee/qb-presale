@@ -83,7 +83,7 @@ module.exports = {
     return this.waitToBlock(parseInt(web3.eth.blockNumber) + toWait, accounts);
   },
 
-  simulateCrowdsale: async function(rate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, accounts, balances) {
+  simulateCrowdsale: async function(rate, goal, cap, minInvest, maxInvest, maxGasPrice, minBuyingRequestInterval, accounts, balances) {
     await increaseTimeTestRPC(1);
     var startTime = latestTime() + 5;
     var endTime = startTime + 10;
@@ -92,7 +92,7 @@ module.exports = {
       rate,
       goal, cap,
       minInvest, maxInvest,
-      maxGasPrice, maxCallFrequency,
+      maxGasPrice, minBuyingRequestInterval,
       accounts[0]
     );
 

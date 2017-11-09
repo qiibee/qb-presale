@@ -34,7 +34,7 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
     cap: new BigNumber(help.toWei(1800)),
     lessThanCap: new BigNumber(help.toWei(1000)),
     maxGasPrice: new BigNumber(5000000000000000000),
-    maxCallFrequency: 600,
+    minBuyingRequestInterval: 600,
     wallet: wallet
   };
 
@@ -44,10 +44,10 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
       goal = params.goal === undefined ? defaults.goal : params.goal,
       cap = params.cap === undefined ? defaults.cap : params.cap,
       maxGasPrice = params.maxGasPrice === undefined ? defaults.maxGasPrice : params.maxGasPrice,
-      maxCallFrequency = params.maxCallFrequency === undefined ? defaults.maxCallFrequency : params.maxCallFrequency,
+      minBuyingRequestInterval = params.minBuyingRequestInterval === undefined ? defaults.minBuyingRequestInterval : params.minBuyingRequestInterval,
       wallet = params.wallet === undefined ? defaults.wallet : params.foundationWallet;
 
-    return await Crowdsale.new(startTime, endTime, goal, cap, maxGasPrice, maxCallFrequency, wallet, {from: owner});
+    return await Crowdsale.new(startTime, endTime, goal, cap, maxGasPrice, minBuyingRequestInterval, wallet, {from: owner});
   }
 
   describe('create crowdsale tests', function () {
@@ -61,9 +61,9 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
       }
     });
 
-    it('can NOT create crowdsale with maxCallFrequency less than zero', async function () {
+    it('can NOT create crowdsale with minBuyingRequestInterval less than zero', async function () {
       try {
-        await createCrowdsale({maxCallFrequency: defaults.maxCallFrequency*(-1)});
+        await createCrowdsale({minBuyingRequestInterval: defaults.minBuyingRequestInterval*(-1)});
       } catch(e) {
         assertExpectedException(e);
       }

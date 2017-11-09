@@ -23,7 +23,7 @@ contract('qiibeeToken', function(accounts) {
     const minInvest = 20;
     const maxInvest = 240000;
     const maxGasPrice = 500000000000;
-    const maxCallFrequency = 600;
+    const minBuyingRequestInterval = 600;
     const crowdsale = await help.simulateCrowdsale(
       rate,
       new BigNumber(help.toAtto(goal)),
@@ -31,7 +31,7 @@ contract('qiibeeToken', function(accounts) {
       new BigNumber(help.toAtto(minInvest)),
       new BigNumber(help.toAtto(maxInvest)),
       new BigNumber(maxGasPrice),
-      new BigNumber(maxCallFrequency),
+      new BigNumber(minBuyingRequestInterval),
       accounts,
       [140,100,80,0]
     );

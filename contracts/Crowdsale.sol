@@ -11,7 +11,7 @@ import "./QiibeeToken.sol";
    used by QiibeePresale.sol and QiibeeCrowdsale.
 
    This TGE includes is capped and has a spam prevention technique:
-    * investors can make purchases with a frequency of X seconds given by maxCallFrequency.
+    * investors can make purchases with a minimum request inverval of X seconds given by minBuyingRequestInterval.
     * investors are limited in the gas price
 
    In case of the goal not being reached by purchases made during the 4-week period the token will
@@ -38,7 +38,7 @@ contract Crowdsale is Pausable {
     // spam prevention
     mapping (address => uint256) public lastCallTime; // last call times by address
     uint256 public maxGasPrice; // max gas price per transaction
-    uint256 public maxCallFrequency; // max frequency for purchases from a single source (in seconds)
+    uint256 public minBuyingRequestInterval; // min request interval for purchases from a single source (in seconds)
 
     bool public isFinalized = false; // whether the crowdsale has finished or not
 
@@ -68,7 +68,7 @@ contract Crowdsale is Pausable {
      * @param _goal see `see goal`
      * @param _cap see `see cap`
      * @param _maxGasPrice see `see maxGasPrice`
-     * @param _maxCallFrequency see `see maxCallFrequency`
+     * @param _minBuyingRequestInterval see `see minBuyingRequestInterval`
      * @param _wallet see `wallet`
      */
     function Crowdsale (
@@ -77,7 +77,7 @@ contract Crowdsale is Pausable {
         uint256 _goal,
         uint256 _cap,
         uint256 _maxGasPrice,
-        uint256 _maxCallFrequency,
+        uint256 _minBuyingRequestInterval,
         address _wallet
     )
     {
@@ -87,14 +87,14 @@ contract Crowdsale is Pausable {
         require(_goal >= 0);
         require(_goal <= _cap);
         require(_maxGasPrice > 0);
-        require(_maxCallFrequency >= 0);
+        require(_minBuyingRequestInterval >= 0);
 
         startTime = _startTime;
         endTime = _endTime;
         cap = _cap;
         goal = _goal;
         maxGasPrice = _maxGasPrice;
-        maxCallFrequency = _maxCallFrequency;
+        minBuyingRequestInterval = _minBuyingRequestInterval;
         wallet = _wallet;
 
         token = new QiibeeToken();
@@ -130,7 +130,7 @@ contract Crowdsale is Pausable {
      * @return true if investors can buy at the moment
      */
     function validPurchase() internal constant returns (bool) {
-      bool withinFrequency = now.sub(lastCallTime[msg.sender]) >= maxCallFrequency;
+      bool withinFrequency = now.sub(lastCallTime[msg.sender]) >= minBuyingRequestInterval;
       bool withinGasPrice = tx.gasprice <= maxGasPrice;
       bool withinPeriod = now >= startTime && now <= endTime;
       bool withinCap = weiRaised.add(msg.value) <= cap;

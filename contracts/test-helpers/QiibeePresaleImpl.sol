@@ -12,10 +12,10 @@ contract QiibeePresaleImpl is QiibeePresale {
     uint256 _goal,
     uint256 _cap,
     uint256 _maxGasPrice,
-    uint256 _maxCallFrequency,
+    uint256 _minBuyingRequestInterval,
     address _wallet
   )
-    QiibeePresale(_startTime, _endTime, _goal, _cap, _maxGasPrice, _maxCallFrequency, _wallet)
+    QiibeePresale(_startTime, _endTime, _goal, _cap, _maxGasPrice, _minBuyingRequestInterval, _wallet)
   {
   }
 

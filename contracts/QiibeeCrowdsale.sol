@@ -38,7 +38,7 @@ contract QiibeeCrowdsale is Crowdsale {
      * @param _minInvest see `see minInvest`
      * @param _maxInvest see `see maxInvest`
      * @param _maxGasPrice see `see maxGasPrice`
-     * @param _maxCallFrequency see `see maxCallFrequency`
+     * @param _minBuyingRequestInterval see `see minBuyingRequestInterval`
      * @param _wallet see `wallet`
      */
     function QiibeeCrowdsale (
@@ -50,10 +50,10 @@ contract QiibeeCrowdsale is Crowdsale {
         uint256 _minInvest,
         uint256 _maxInvest,
         uint256 _maxGasPrice,
-        uint256 _maxCallFrequency,
+        uint256 _minBuyingRequestInterval,
         address _wallet
     )
-      Crowdsale(_startTime, _endTime, _goal, _cap, _maxGasPrice, _maxCallFrequency, _wallet)
+      Crowdsale(_startTime, _endTime, _goal, _cap, _maxGasPrice, _minBuyingRequestInterval, _wallet)
     {
         require(_rate > 0);
         require(_minInvest >= 0);

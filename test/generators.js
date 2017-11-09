@@ -25,7 +25,7 @@ module.exports = {
 
   presaleGen: jsc.record({
     maxGasPrice: jsc.integer(0, 1000000000),
-    maxCallFrequency: jsc.integer(0, 10000),
+    minBuyingRequestInterval: jsc.integer(0, 10000),
     goal: jsc.integer(0, 100000),
     cap: jsc.integer(0, 100000),
     foundationWallet: accountGen,
@@ -39,7 +39,7 @@ module.exports = {
     minInvest: jsc.integer(0, 100000),
     maxInvest: jsc.integer(0, 100000),
     maxGasPrice: jsc.integer(0, 1000000000),
-    maxCallFrequency: jsc.integer(0, 10000),
+    minBuyingRequestInterval: jsc.integer(0, 10000),
     foundationWallet: accountGen,
     owner: accountGen
   }),

@@ -59,14 +59,14 @@ contract('QiibeePresale property-based test', function(accounts) {
     let endTime = startTime + duration.days(1);
     help.debug(colors.yellow('presaleTestInput data:\n', JSON.stringify(input), startTime, endTime));
 
-    let {maxGasPrice, maxCallFrequency, goal, cap, owner} = input.presale,
+    let {maxGasPrice, minBuyingRequestInterval, goal, cap, owner} = input.presale,
       ownerAddress = gen.getAccount(input.presale.owner),
       foundationWallet = gen.getAccount(input.presale.foundationWallet);
 
     let shouldThrow = (latestTime() >= startTime) ||
       (startTime >= endTime) ||
       (maxGasPrice == 0) ||
-      (maxCallFrequency == 0) ||
+      (minBuyingRequestInterval == 0) ||
       (goal == 0) ||
       (cap == 0) ||
       (goal >= cap) ||
@@ -81,7 +81,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         startTime: startTime,
         endTime: endTime,
         maxGasPrice: new BigNumber(maxGasPrice),
-        maxCallFrequency: maxCallFrequency,
+        minBuyingRequestInterval: minBuyingRequestInterval,
         goal: new BigNumber(help.toWei(goal)),
         cap: new BigNumber(help.toWei(cap)),
         foundationWallet: gen.getAccount(input.presale.foundationWallet),
@@ -93,7 +93,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         presaleData.goal,
         presaleData.cap,
         presaleData.maxGasPrice,
-        presaleData.maxCallFrequency,
+        presaleData.minBuyingRequestInterval,
         presaleData.foundationWallet,
         {from: ownerAddress}
       );
@@ -168,7 +168,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
       ],
       presale: {
-        maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
       }
     });
   });
@@ -181,7 +181,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
       ],
       presale: {
-        maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
       }
     });
   });
@@ -194,7 +194,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
       ],
       presale: {
-        maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
       }
     });
   });
@@ -207,7 +207,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         { type: 'presaleBuyTokens', beneficiary: 3, account: 4, eth: 3 },
       ],
       presale: {
-        maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
       }
     });
   });
@@ -220,7 +220,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         { type: 'presaleBuyTokens', beneficiary: 3, account: 4, eth: 0.5 },
       ],
       presale: {
-        maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
       }
     });
   });
@@ -232,7 +232,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
       ],
       presale: {
-        maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
       }
     });
   });
@@ -245,7 +245,7 @@ contract('QiibeePresale property-based test', function(accounts) {
           { type: 'addAccredited', investor: 4, rate: 0, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 2 },
         ],
         presale: {
-          maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
         }
       });
     });
@@ -257,7 +257,7 @@ contract('QiibeePresale property-based test', function(accounts) {
           { type: 'addAccredited', investor: 4, rate: 6000, cliff: -600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 2 },
         ],
         presale: {
-          maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
         }
       });
     });
@@ -269,7 +269,7 @@ contract('QiibeePresale property-based test', function(accounts) {
           { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 2 },
         ],
         presale: {
-          maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
         }
       });
     });
@@ -281,7 +281,7 @@ contract('QiibeePresale property-based test', function(accounts) {
           { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: -600, minInvest: 1, maxInvest: 2, fromAccount: 2 },
         ],
         presale: {
-          maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
         }
       });
     });
@@ -293,7 +293,7 @@ contract('QiibeePresale property-based test', function(accounts) {
           { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: -2, fromAccount: 2 },
         ],
         presale: {
-          maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
         }
       });
     });
@@ -305,7 +305,7 @@ contract('QiibeePresale property-based test', function(accounts) {
           { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 0, maxInvest: 2, fromAccount: 2 },
         ],
         presale: {
-          maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
         }
       });
     });
@@ -317,7 +317,7 @@ contract('QiibeePresale property-based test', function(accounts) {
           { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 2 },
         ],
         presale: {
-          maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
         }
       });
     });
@@ -329,7 +329,7 @@ contract('QiibeePresale property-based test', function(accounts) {
           { type: 'addAccredited', investor: 'zero', rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
         ],
         presale: {
-          maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
         }
       });
     });
@@ -353,7 +353,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         { type: 'finalizePresale', fromAccount: 1 }
       ],
       presale: {
-        maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
       }
     };
 
@@ -368,7 +368,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         { type: 'finalizePresale', fromAccount: 2 }
       ],
       presale: {
-        maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
       }
     };
 
@@ -382,7 +382,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         { type: 'finalizePresale', fromAccount: 1 }
       ],
       presale: {
-        maxGasPrice: 50000000000, maxCallFrequency: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
       }
     };
 

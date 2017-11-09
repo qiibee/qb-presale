@@ -31,7 +31,7 @@ contract('QiibeeCrowdsale', function ([owner, wallet]) {
     minInvest: new BigNumber(help.toWei(100)),
     maxInvest: new BigNumber(help.toWei(500)),
     maxGasPrice: new BigNumber(5000000000000000000),
-    maxCallFrequency: 600,
+    minBuyingRequestInterval: 600,
     wallet: wallet
   };
 
@@ -44,10 +44,10 @@ contract('QiibeeCrowdsale', function ([owner, wallet]) {
       minInvest = params.minInvest === undefined ? defaults.minInvest : params.minInvest,
       maxInvest = params.maxInvest === undefined ? defaults.maxInvest : params.maxInvest,
       maxGasPrice = params.maxGasPrice === undefined ? defaults.maxGasPrice : params.maxGasPrice,
-      maxCallFrequency = params.maxCallFrequency === undefined ? defaults.maxCallFrequency : params.maxCallFrequency,
+      minBuyingRequestInterval = params.minBuyingRequestInterval === undefined ? defaults.minBuyingRequestInterval : params.minBuyingRequestInterval,
       wallet = params.wallet === undefined ? defaults.wallet : params.foundationWallet;
 
-    return await QiibeeCrowdsale.new(startTime, endTime, rate, goal, cap, minInvest, maxInvest, maxGasPrice, maxCallFrequency, wallet, {from: owner});
+    return await QiibeeCrowdsale.new(startTime, endTime, rate, goal, cap, minInvest, maxInvest, maxGasPrice, minBuyingRequestInterval, wallet, {from: owner});
   }
 
   it('can create a qiibee crowdsale', async function () {
