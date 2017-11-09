@@ -23,6 +23,8 @@ contract QiibeePresale is Crowdsale {
       uint256 rate;
       uint64 cliff;
       uint64 vesting;
+      bool revokable;
+      bool burnsOnRevoke;
       uint256 minInvest; // minimum invest in wei for a given investor
       uint256 maxCumulativeInvest; // maximum cumulative invest in wei for a given investor
     }
@@ -65,29 +67,32 @@ contract QiibeePresale is Crowdsale {
 
         AccreditedInvestor storage data = accredited[msg.sender];
 
+        // investor's data
         uint256 rate = data.rate;
         uint256 minInvest = data.minInvest;
         uint256 maxCumulativeInvest = data.maxCumulativeInvest;
-        uint64 current = uint64(now);
-        uint64 cliff = current + data.cliff;
+        uint64 from = uint64(endTime);
+        uint64 cliff = from + data.cliff;
         uint64 vesting = cliff + data.vesting;
+        bool revokable = data.revokable;
+        bool burnsOnRevoke = data.burnsOnRevoke;
+
         uint256 tokens = msg.value.mul(rate);
 
         // check investor's limits
         uint256 newBalance = balances[beneficiary].add(msg.value);
         require(newBalance <= maxCumulativeInvest && msg.value >= minInvest);
-        balances[beneficiary] = newBalance;
 
-        // update state
-        weiRaised = weiRaised.add(msg.value);
-        tokensSold = tokensSold.add(tokens);
-
-        // vest tokens TODO: check last two params
         if (data.cliff > 0 && data.vesting > 0) {
-          token.grantVestedTokens(beneficiary, tokens, current, cliff, vesting, false, false);
+          assert(token.mintVestedTokens(beneficiary, tokens, from, cliff, vesting, revokable, burnsOnRevoke));
+        } else {
+          assert(token.mint(this, tokens));
         }
 
-        token.mint(beneficiary, tokens);
+        // update state
+        balances[beneficiary] = newBalance;
+        weiRaised = weiRaised.add(msg.value);
+        tokensSold = tokensSold.add(tokens);
 
         TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
 
@@ -97,7 +102,7 @@ contract QiibeePresale is Crowdsale {
     /*
      * @dev Add an address to the accredited list.
      */
-    function addAccreditedInvestor(address investor, uint256 rate, uint64 cliff, uint64 vesting, uint256 minInvest, uint256 maxCumulativeInvest) public onlyOwner {
+    function addAccreditedInvestor(address investor, uint256 rate, uint64 cliff, uint64 vesting, bool revokable, bool burnsOnRevoke, uint256 minInvest, uint256 maxCumulativeInvest) public onlyOwner {
         require(investor != address(0));
         require(rate > 0);
         require(cliff >= 0);
@@ -105,7 +110,7 @@ contract QiibeePresale is Crowdsale {
         require(minInvest >= 0);
         require(maxCumulativeInvest > 0);
 
-        accredited[investor] = AccreditedInvestor(rate, cliff, vesting, minInvest, maxCumulativeInvest);
+        accredited[investor] = AccreditedInvestor(rate, cliff, vesting, revokable, burnsOnRevoke, minInvest, maxCumulativeInvest);
 
         NewAccreditedInvestor(msg.sender, investor);
     }
@@ -116,7 +121,7 @@ contract QiibeePresale is Crowdsale {
      */
     function isAccredited(address investor) public constant returns (bool) {
         AccreditedInvestor storage data = accredited[investor];
-        return data.rate > 0; //TODO: is there any way to check this?
+        return data.rate > 0; //TODO: is there any way to properly check this?
     }
 
     /*
@@ -124,7 +129,7 @@ contract QiibeePresale is Crowdsale {
      */
     function removeAccreditedInvestor(address investor) public onlyOwner {
         require(investor != address(0));
-        accredited[investor] = false;
+        delete accredited[investor];
     }
 
 
