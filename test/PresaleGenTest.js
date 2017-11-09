@@ -164,7 +164,7 @@ contract('QiibeePresale property-based test', function(accounts) {
     await runGeneratedPresaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
       ],
       presale: {
@@ -177,7 +177,7 @@ contract('QiibeePresale property-based test', function(accounts) {
     await runGeneratedPresaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
       ],
       presale: {
@@ -190,7 +190,7 @@ contract('QiibeePresale property-based test', function(accounts) {
     await runGeneratedPresaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 0, minInvest: 1, maxInvest: 2, fromAccount: 0 },
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 0, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
       ],
       presale: {
@@ -199,11 +199,11 @@ contract('QiibeePresale property-based test', function(accounts) {
     });
   });
 
-  it('should NOT allow accredited investors to invest more than maxInvest', async function () {
+  it('should NOT allow accredited investors to invest more than maxCumulativeInvest', async function () {
     await runGeneratedPresaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         { type: 'presaleBuyTokens', beneficiary: 3, account: 4, eth: 3 },
       ],
       presale: {
@@ -216,7 +216,7 @@ contract('QiibeePresale property-based test', function(accounts) {
     await runGeneratedPresaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         { type: 'presaleBuyTokens', beneficiary: 3, account: 4, eth: 0.5 },
       ],
       presale: {
@@ -242,7 +242,7 @@ contract('QiibeePresale property-based test', function(accounts) {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 0, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 2 },
+          { type: 'addAccredited', investor: 4, rate: 0, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 2 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -254,7 +254,7 @@ contract('QiibeePresale property-based test', function(accounts) {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 6000, cliff: -600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 2 },
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: -600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 2 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -266,7 +266,7 @@ contract('QiibeePresale property-based test', function(accounts) {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 2 },
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 2 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -278,7 +278,7 @@ contract('QiibeePresale property-based test', function(accounts) {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: -600, minInvest: 1, maxInvest: 2, fromAccount: 2 },
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: -600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 2 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -286,11 +286,11 @@ contract('QiibeePresale property-based test', function(accounts) {
       });
     });
 
-    it('should NOT be able to add investor to accredited list with maxInvest less than zero', async function () {
+    it('should NOT be able to add investor to accredited list with maxCumulativeInvest less than zero', async function () {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: -2, fromAccount: 2 },
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: -2, fromAccount: 2 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -302,7 +302,7 @@ contract('QiibeePresale property-based test', function(accounts) {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 0, maxInvest: 2, fromAccount: 2 },
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 0, maxCumulativeInvest: 2, fromAccount: 2 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -314,7 +314,7 @@ contract('QiibeePresale property-based test', function(accounts) {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 2 },
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 2 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -326,7 +326,7 @@ contract('QiibeePresale property-based test', function(accounts) {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 'zero', rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxInvest: 2, fromAccount: 0 },
+          { type: 'addAccredited', investor: 'zero', rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0

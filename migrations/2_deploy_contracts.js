@@ -11,7 +11,7 @@ module.exports = function(deployer) {
   const goal = new web3.BigNumber(2000000000000000000) // minimum amount of qbx to be sold 1500 qbx
   const cap = new web3.BigNumber(8000000000000000000) // max amount of tokens (in atto) to be sold 10bn 6000qbx
   const minInvest = new web3.BigNumber(1000000000000000000) // max amount of tokens (in atto) to be sold 400qbx
-  const maxInvest = new web3.BigNumber(3000000000000000000) // max amount of tokens (in atto) to be sold 4000qbx
+  const maxCumulativeInvest = new web3.BigNumber(3000000000000000000) // max amount of tokens (in atto) to be sold 4000qbx
   const maxGasPrice = new web3.BigNumber(5000000000000000000) // max amount og gas allowed per transaction 50 gwei
   const minBuyingRequestInterval = new web3.BigNumber(60) // frequency between one call and the next one for an address (in seconds)
   const presalecap = new web3.BigNumber(8000000000000000000) // max amount of tokens to be sold
@@ -28,6 +28,6 @@ module.exports = function(deployer) {
     console.log('Using testrpc network. Wallet address: ', wallet);
   }
 
-  // deployer.deploy(QiibeeCrowdsale, startTime, endTime, rate, goal, cap, minInvest, maxInvest, maxGasPrice, minBuyingRequestInterval, wallet);
+  // deployer.deploy(QiibeeCrowdsale, startTime, endTime, rate, goal, cap, minInvest, maxCumulativeInvest, maxGasPrice, minBuyingRequestInterval, wallet);
   // deployer.deploy(QiibeePresale, startTime, endTime, goal, presalecap, maxGasPrice, minBuyingRequestInterval, wallet);
 };

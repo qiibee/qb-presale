@@ -121,7 +121,7 @@ async function runBuyTokensCommand(command, state) {
     capExceeded = state.weiRaised.plus(new BigNumber(help.toAtto(command.eth))).gt(crowdsale.cap),
     gasExceeded = (command.gasPrice > state.crowdsaleData.maxGasPrice) && inTGE,
     frequencyExceeded = (state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.crowdsaleData.minBuyingRequestInterval)) || false,
-    maxExceeded = newBalance.gt(state.crowdsaleData.maxInvest),
+    maxExceeded = newBalance.gt(state.crowdsaleData.maxCumulativeInvest),
     minNotReached = new BigNumber(help.toAtto(command.eth)).lt(state.crowdsaleData.minInvest);
 
   let shouldThrow = (!inTGE) ||
@@ -131,8 +131,8 @@ async function runBuyTokensCommand(command, state) {
     crowdsale.cap == 0 ||
     crowdsale.goal.gt(crowdsale.cap) ||
     crowdsale.minInvest < 0 ||
-    crowdsale.maxInvest == 0 ||
-    crowdsale.minInvest.gt(crowdsale.maxInvest) ||
+    crowdsale.maxCumulativeInvest == 0 ||
+    crowdsale.minInvest.gt(crowdsale.maxCumulativeInvest) ||
     state.crowdsaleFinalized ||
     hasZeroAddress ||
     weiCost == 0 ||
@@ -185,7 +185,7 @@ async function runSendTransactionCommand(command, state) {
     capExceeded = state.weiRaised.plus(new BigNumber(help.toWei(command.eth))).gt(crowdsale.cap),
     gasExceeded = (command.gasPrice > state.crowdsaleData.maxGasPrice) && inTGE,
     frequencyExceeded = (state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.crowdsaleData.minBuyingRequestInterval)) || false,
-    maxExceeded = newBalance.gt(state.crowdsaleData.maxInvest),
+    maxExceeded = newBalance.gt(state.crowdsaleData.maxCumulativeInvest),
     minNotReached = new BigNumber(help.toAtto(command.eth)).lt(state.crowdsaleData.minInvest);
 
   let shouldThrow = (!inTGE) ||
@@ -195,8 +195,8 @@ async function runSendTransactionCommand(command, state) {
     crowdsale.cap == 0 ||
     crowdsale.goal.gt(crowdsale.cap) ||
     crowdsale.minInvest < 0 ||
-    crowdsale.maxInvest == 0 ||
-    crowdsale.minInvest.gt(crowdsale.maxInvest) ||
+    crowdsale.maxCumulativeInvest == 0 ||
+    crowdsale.minInvest.gt(crowdsale.maxCumulativeInvest) ||
     state.crowdsaleFinalized ||
     hasZeroAddress ||
     weiCost == 0 ||
@@ -250,7 +250,7 @@ async function runPresaleBuyTokensCommand(command, state) {
     capExceeded = state.weiRaised.plus(new BigNumber(help.toAtto(command.eth))).gt(presale.cap),
     gasExceeded = (command.gasPrice > state.presaleData.maxGasPrice) && inTGE,
     frequencyExceeded = (state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.presaleData.minBuyingRequestInterval)) || false,
-    maxExceeded = accredited ? newBalance.gt(accredited.maxInvest) : null,
+    maxExceeded = accredited ? newBalance.gt(accredited.maxCumulativeInvest) : null,
     minNotReached = accredited ? new BigNumber(help.toAtto(command.eth)).lt(accredited.minInvest) : null;
 
   let shouldThrow = (!inTGE) ||
@@ -310,7 +310,7 @@ async function runPresaleSendTransactionCommand(command, state) {
     capExceeded = state.weiRaised.plus(new BigNumber(help.toAtto(command.eth))).gt(presale.cap),
     gasExceeded = (command.gasPrice > state.presaleData.maxGasPrice) && inTGE,
     frequencyExceeded = (state.lastCallTime[command.account] && ((nextTime - state.lastCallTime[command.account]) < state.presaleData.minBuyingRequestInterval)) || false,
-    maxExceeded = accredited ? newBalance.gt(accredited.maxInvest) : null,
+    maxExceeded = accredited ? newBalance.gt(accredited.maxCumulativeInvest) : null,
     minNotReached = accredited ? new BigNumber(help.toAtto(command.eth)).lt(accredited.minInvest) : null;
 
   let shouldThrow = (!inTGE) ||
@@ -361,7 +361,7 @@ async function runAddAccreditedCommand(command, state) {
     cliff = command.cliff,
     vesting = command.vesting,
     minInvest = command.minInvest,
-    maxInvest = command.maxInvest;
+    maxCumulativeInvest = command.maxCumulativeInvest;
 
   let hasZeroAddress = _.some([account, investor], isZeroAddress);
 
@@ -370,15 +370,15 @@ async function runAddAccreditedCommand(command, state) {
       cliff < 0 ||
       vesting < 0 ||
       minInvest == 0 ||
-      maxInvest == 0 ||
+      maxCumulativeInvest == 0 ||
       command.fromAccount != state.owner;
 
   try {
-    await state.presaleContract.addAccreditedInvestor(investor, rate, cliff, vesting, help.toWei(minInvest), help.toWei(maxInvest), {from: account});
+    await state.presaleContract.addAccreditedInvestor(investor, rate, cliff, vesting, help.toWei(minInvest), help.toWei(maxCumulativeInvest), {from: account});
     help.debug(colors.green('SUCCESS adding accredited investor'));
 
     assert.equal(false, shouldThrow, 'add to whitelist should have thrown but it did not');
-    state.accredited[command.investor] = {rate: rate, cliff: cliff, vesting: vesting, minInvest: help.toWei(minInvest), maxInvest: help.toWei(maxInvest)};
+    state.accredited[command.investor] = {rate: rate, cliff: cliff, vesting: vesting, minInvest: help.toWei(minInvest), maxCumulativeInvest: help.toWei(maxCumulativeInvest)};
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
     help.debug(colors.yellow('FAILURE adding accredited investor'));

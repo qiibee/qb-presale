@@ -29,7 +29,7 @@ contract('QiibeeCrowdsale', function ([owner, wallet]) {
     goal: new BigNumber(help.toWei(800)),
     cap: new BigNumber(help.toWei(1800)),
     minInvest: new BigNumber(help.toWei(100)),
-    maxInvest: new BigNumber(help.toWei(500)),
+    maxCumulativeInvest: new BigNumber(help.toWei(500)),
     maxGasPrice: new BigNumber(5000000000000000000),
     minBuyingRequestInterval: 600,
     wallet: wallet
@@ -42,12 +42,12 @@ contract('QiibeeCrowdsale', function ([owner, wallet]) {
       goal = params.goal === undefined ? defaults.goal : params.goal,
       cap = params.cap === undefined ? defaults.cap : params.cap,
       minInvest = params.minInvest === undefined ? defaults.minInvest : params.minInvest,
-      maxInvest = params.maxInvest === undefined ? defaults.maxInvest : params.maxInvest,
+      maxCumulativeInvest = params.maxCumulativeInvest === undefined ? defaults.maxCumulativeInvest : params.maxCumulativeInvest,
       maxGasPrice = params.maxGasPrice === undefined ? defaults.maxGasPrice : params.maxGasPrice,
       minBuyingRequestInterval = params.minBuyingRequestInterval === undefined ? defaults.minBuyingRequestInterval : params.minBuyingRequestInterval,
       wallet = params.wallet === undefined ? defaults.wallet : params.foundationWallet;
 
-    return await QiibeeCrowdsale.new(startTime, endTime, rate, goal, cap, minInvest, maxInvest, maxGasPrice, minBuyingRequestInterval, wallet, {from: owner});
+    return await QiibeeCrowdsale.new(startTime, endTime, rate, goal, cap, minInvest, maxCumulativeInvest, maxGasPrice, minBuyingRequestInterval, wallet, {from: owner});
   }
 
   it('can create a qiibee crowdsale', async function () {
@@ -74,17 +74,17 @@ contract('QiibeeCrowdsale', function ([owner, wallet]) {
     }
   });
 
-  it('should fail creating qiibee crowdsale with zero maxInvest', async function () {
+  it('should fail creating qiibee crowdsale with zero maxCumulativeInvest', async function () {
     try {
-      await createCrowdsale({maxInvest: 0});
+      await createCrowdsale({maxCumulativeInvest: 0});
     } catch (e) {
       assertExpectedException(e);
     }
   });
 
-  it('should fail creating qiibee crowdsale with minInvest bigger than maxInvest', async function () {
+  it('should fail creating qiibee crowdsale with minInvest bigger than maxCumulativeInvest', async function () {
     try {
-      await createCrowdsale({minInvest: defaults.maxInvest.plus(100)});
+      await createCrowdsale({minInvest: defaults.maxCumulativeInvest.plus(100)});
     } catch (e) {
       assertExpectedException(e);
     }

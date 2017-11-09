@@ -24,9 +24,8 @@ contract QiibeeCrowdsale is Crowdsale {
 
     uint256 public rate; // how many token units a buyer gets per wei
 
-    // minimum and maximum invest in wei per address
-    uint256 public minInvest;
-    uint256 public maxInvest;
+    uint256 public minInvest; // minimum invest in wei an address can do
+    uint256 public maxCumulativeInvest; // maximum cumulative invest an address can do
 
     /*
      * @dev Constructor. Creates the token in a paused state
@@ -36,7 +35,7 @@ contract QiibeeCrowdsale is Crowdsale {
      * @param _goal see `see goal`
      * @param _cap see `see cap`
      * @param _minInvest see `see minInvest`
-     * @param _maxInvest see `see maxInvest`
+     * @param _maxCumulativeInvest see `see maxCumulativeInvest`
      * @param _maxGasPrice see `see maxGasPrice`
      * @param _minBuyingRequestInterval see `see minBuyingRequestInterval`
      * @param _wallet see `wallet`
@@ -48,7 +47,7 @@ contract QiibeeCrowdsale is Crowdsale {
         uint256 _goal,
         uint256 _cap,
         uint256 _minInvest,
-        uint256 _maxInvest,
+        uint256 _maxCumulativeInvest,
         uint256 _maxGasPrice,
         uint256 _minBuyingRequestInterval,
         address _wallet
@@ -57,12 +56,12 @@ contract QiibeeCrowdsale is Crowdsale {
     {
         require(_rate > 0);
         require(_minInvest >= 0);
-        require(_maxInvest > 0);
-        require(_minInvest <= _maxInvest);
+        require(_maxCumulativeInvest > 0);
+        require(_minInvest <= _maxCumulativeInvest);
 
         rate = _rate;
         minInvest = _minInvest;
-        maxInvest = _maxInvest;
+        maxCumulativeInvest = _maxCumulativeInvest;
     }
 
     /*
@@ -108,7 +107,7 @@ contract QiibeeCrowdsale is Crowdsale {
     function validPurchase(address beneficiary) internal constant returns (bool) {
         // check limits
         uint256 newBalance = balances[beneficiary].add(msg.value);
-        bool withinLimits = newBalance <= maxInvest && msg.value >= minInvest;
+        bool withinLimits = newBalance <= maxCumulativeInvest && msg.value >= minInvest;
         return withinLimits && super.validPurchase();
     }
 

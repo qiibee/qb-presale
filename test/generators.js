@@ -37,7 +37,7 @@ module.exports = {
     goal: jsc.integer(0, 100000),
     cap: jsc.integer(0, 100000),
     minInvest: jsc.integer(0, 100000),
-    maxInvest: jsc.integer(0, 100000),
+    maxCumulativeInvest: jsc.integer(0, 100000),
     maxGasPrice: jsc.integer(0, 1000000000),
     minBuyingRequestInterval: jsc.integer(0, 10000),
     foundationWallet: accountGen,
@@ -141,7 +141,7 @@ module.exports = {
     cliff: jsc.integer(0, 20000),
     vesting: jsc.integer(0, 20000),
     minInvest: jsc.integer(0, 1000000000),
-    maxInvest: jsc.integer(0, 1000000000),
+    maxCumulativeInvest: jsc.integer(0, 1000000000),
     fromAccount: accountGen,
   }),
 };

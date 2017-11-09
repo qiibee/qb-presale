@@ -23,8 +23,8 @@ contract QiibeePresale is Crowdsale {
       uint256 rate;
       uint64 cliff;
       uint64 vesting;
-      uint256 minInvest;
-      uint256 maxInvest;
+      uint256 minInvest; // minimum invest in wei for a given investor
+      uint256 maxCumulativeInvest; // maximum cumulative invest in wei for a given investor
     }
 
     mapping (address => AccreditedInvestor) public accredited; // whitelist of investors
@@ -67,7 +67,7 @@ contract QiibeePresale is Crowdsale {
 
         uint256 rate = data.rate;
         uint256 minInvest = data.minInvest;
-        uint256 maxInvest = data.maxInvest;
+        uint256 maxCumulativeInvest = data.maxCumulativeInvest;
         uint64 current = uint64(now);
         uint64 cliff = current + data.cliff;
         uint64 vesting = cliff + data.vesting;
@@ -75,7 +75,7 @@ contract QiibeePresale is Crowdsale {
 
         // check investor's limits
         uint256 newBalance = balances[beneficiary].add(msg.value);
-        require(newBalance <= maxInvest && msg.value >= minInvest);
+        require(newBalance <= maxCumulativeInvest && msg.value >= minInvest);
         balances[beneficiary] = newBalance;
 
         // update state
@@ -97,15 +97,15 @@ contract QiibeePresale is Crowdsale {
     /*
      * @dev Add an address to the accredited list.
      */
-    function addAccreditedInvestor(address investor, uint256 rate, uint64 cliff, uint64 vesting, uint256 minInvest, uint256 maxInvest) public onlyOwner {
+    function addAccreditedInvestor(address investor, uint256 rate, uint64 cliff, uint64 vesting, uint256 minInvest, uint256 maxCumulativeInvest) public onlyOwner {
         require(investor != address(0));
         require(rate > 0);
         require(cliff >= 0);
         require(vesting >= 0);
         require(minInvest >= 0);
-        require(maxInvest > 0);
+        require(maxCumulativeInvest > 0);
 
-        accredited[investor] = AccreditedInvestor(rate, cliff, vesting, minInvest, maxInvest);
+        accredited[investor] = AccreditedInvestor(rate, cliff, vesting, minInvest, maxCumulativeInvest);
 
         NewAccreditedInvestor(msg.sender, investor);
     }
