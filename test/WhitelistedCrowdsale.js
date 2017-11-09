@@ -57,7 +57,30 @@ contract('WhitelistedCrowdsale', function([owner, wallet, beneficiary, sender]) 
     assert.equal(false, await crowdsale.isWhitelisted(sender));
     await crowdsale.addToWhitelist(sender, {from: owner});
     assert.equal(true, await crowdsale.isWhitelisted(sender));
+  });
 
+  it('should remove address from whitelist', async function () {
+    assert.equal(false, await crowdsale.isWhitelisted(sender));
+    await crowdsale.addToWhitelist(sender, {from: owner});
+    assert.equal(true, await crowdsale.isWhitelisted(sender));
+    await crowdsale.removeFromWhitelist(sender, {from: owner});
+    assert.equal(false, await crowdsale.isWhitelisted(sender));
+  });
+
+  it('should reject adding zero address to whitelist', async function () {
+    try {
+      await crowdsale.addToWhitelist('0x0000000000000000000000000000000000000000', {from: owner});
+    } catch (e) {
+      assertExpectedException(e);
+    }
+  });
+
+  it('should reject removing zero address from whitelist', async function () {
+    try {
+      await crowdsale.removeFromWhitelist('0x0000000000000000000000000000000000000000', {from: owner});
+    } catch (e) {
+      assertExpectedException(e);
+    }
   });
 
   it('should reject non-whitelisted sender', async function () {

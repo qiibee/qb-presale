@@ -140,8 +140,16 @@ module.exports = {
     rate: jsc.integer(0, 20000),
     cliff: jsc.integer(0, 20000),
     vesting: jsc.integer(0, 20000),
+    revokable: jsc.bool,
+    burnsOnTokens: jsc.bool,
     minInvest: jsc.integer(0, 1000000000),
     maxCumulativeInvest: jsc.integer(0, 1000000000),
+    fromAccount: accountGen,
+  }),
+
+  removeAccreditedCommandGen: jsc.record({
+    type: jsc.constant('removeAccredited'),
+    investor: knownAccountGen,
     fromAccount: accountGen,
   }),
 };

@@ -84,9 +84,9 @@ contract QiibeePresale is Crowdsale {
         require(newBalance <= maxCumulativeInvest && msg.value >= minInvest);
 
         if (data.cliff > 0 && data.vesting > 0) {
-          assert(token.mintVestedTokens(beneficiary, tokens, from, cliff, vesting, revokable, burnsOnRevoke));
+          require(token.mintVestedTokens(beneficiary, tokens, from, cliff, vesting, revokable, burnsOnRevoke));
         } else {
-          assert(token.mint(this, tokens));
+          require(token.mint(beneficiary, tokens));
         }
 
         // update state
@@ -105,9 +105,8 @@ contract QiibeePresale is Crowdsale {
     function addAccreditedInvestor(address investor, uint256 rate, uint64 cliff, uint64 vesting, bool revokable, bool burnsOnRevoke, uint256 minInvest, uint256 maxCumulativeInvest) public onlyOwner {
         require(investor != address(0));
         require(rate > 0);
-        require(cliff >= 0);
-        require(vesting >= 0);
-        require(minInvest >= 0);
+        require(vesting >= cliff);
+        require(minInvest > 0);
         require(maxCumulativeInvest > 0);
 
         accredited[investor] = AccreditedInvestor(rate, cliff, vesting, revokable, burnsOnRevoke, minInvest, maxCumulativeInvest);

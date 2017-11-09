@@ -55,7 +55,7 @@ contract QiibeeCrowdsale is Crowdsale {
       Crowdsale(_startTime, _endTime, _goal, _cap, _maxGasPrice, _minBuyingRequestInterval, _wallet)
     {
         require(_rate > 0);
-        require(_minInvest >= 0);
+        require(_minInvest > 0);
         require(_maxCumulativeInvest > 0);
         require(_minInvest <= _maxCumulativeInvest);
 

@@ -8,15 +8,17 @@ import "./QiibeeToken.sol";
    @title Crowdsale for the QBX Token Generation Event
 
    Implementation of kind of an 'abstract' QBX Token Generation Event (TGE). This contract will be
-   used by QiibeePresale.sol and QiibeeCrowdsale.
+   used by QiibeePresale.sol and QiibeeCrowdsale.sol
 
-   This TGE includes is capped and has a spam prevention technique:
+   This TGE is capped and has a spam prevention technique:
     * investors can make purchases with a minimum request inverval of X seconds given by minBuyingRequestInterval.
     * investors are limited in the gas price
 
    In case of the goal not being reached by purchases made during the 4-week period the token will
    not start operating and all funds sent during that period will be made available to be claimed
    by the originating addresses.
+
+   The function buyTokens() is not minting tokens. This function should be overriden to add that logic.
  */
 
 contract Crowdsale is Pausable {
@@ -84,7 +86,7 @@ contract Crowdsale is Pausable {
         require(_startTime >= now);
         require(_endTime >= _startTime);
         require(_cap > 0);
-        require(_goal >= 0);
+        require(_goal > 0);
         require(_goal <= _cap);
         require(_maxGasPrice > 0);
         require(_minBuyingRequestInterval >= 0);
@@ -114,7 +116,7 @@ contract Crowdsale is Pausable {
     }
 
     /**
-     * @dev Must be overridden to add buy token minting logic. The overriding function
+     * @dev Must be overridden to add token minting logic. The overriding function
      * should call super.finalization() to ensure the chain of buy tokens is
      * executed entirely.
      */

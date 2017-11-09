@@ -114,6 +114,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         presaleContract: presale,
         token: token,
         balances: {},
+        tokenBalances: {},
         ethBalances: help.getAccountsBalances(accounts),
         purchases: [],
         weiRaised: zero,
@@ -164,7 +165,7 @@ contract('QiibeePresale property-based test', function(accounts) {
     await runGeneratedPresaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
       ],
       presale: {
@@ -173,11 +174,37 @@ contract('QiibeePresale property-based test', function(accounts) {
     });
   });
 
-  it('should allow accredited investors to buy tokens', async function () {
+  it('should NOT allow to buy tokens with address zero ', async function () {
     await runGeneratedPresaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+        { type: 'presaleSendTransaction', account: 'zero', eth: 1 },
+      ],
+      presale: {
+        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+      }
+    });
+  });
+
+  it('should allow accredited investors to buy tokens with cliff zero', async function () {
+    await runGeneratedPresaleAndCommands({
+      commands: [
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+        { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
+      ],
+      presale: {
+        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+      }
+    });
+  });
+
+  it('should NOT allow accredited investors to buy tokens with vesting less than cliff', async function () {
+    await runGeneratedPresaleAndCommands({
+      commands: [
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 0, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
       ],
       presale: {
@@ -190,8 +217,21 @@ contract('QiibeePresale property-based test', function(accounts) {
     await runGeneratedPresaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 0, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
-        { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 0, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+        { type: 'presaleSendTransaction', account: 4, eth: 1 },
+      ],
+      presale: {
+        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+      }
+    });
+  });
+
+  it('should allow accredited investors to buy non-vested tokens', async function () {
+    await runGeneratedPresaleAndCommands({
+      commands: [
+        { type: 'waitTime','seconds':duration.days(1)},
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 0, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+        { type: 'presaleBuyTokens', account: 4, beneficiary: 5, eth: 1 },
       ],
       presale: {
         maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -203,7 +243,7 @@ contract('QiibeePresale property-based test', function(accounts) {
     await runGeneratedPresaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         { type: 'presaleBuyTokens', beneficiary: 3, account: 4, eth: 3 },
       ],
       presale: {
@@ -216,7 +256,7 @@ contract('QiibeePresale property-based test', function(accounts) {
     await runGeneratedPresaleAndCommands({
       commands: [
         { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         { type: 'presaleBuyTokens', beneficiary: 3, account: 4, eth: 0.5 },
       ],
       presale: {
@@ -238,23 +278,12 @@ contract('QiibeePresale property-based test', function(accounts) {
   });
 
   describe('add to accredited list', function () {
+
     it('should NOT be able to add investor to accredited list with rate zero', async function () {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 0, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 2 },
-        ],
-        presale: {
-          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-        }
-      });
-    });
-
-    it('should NOT be able to add investor to accredited list with cliff less than zero', async function () {
-      await runGeneratedPresaleAndCommands({
-        commands: [
-          { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 6000, cliff: -600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 2 },
+          { type: 'addAccredited', investor: 4, rate: 0, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -266,7 +295,7 @@ contract('QiibeePresale property-based test', function(accounts) {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 2 },
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -274,23 +303,11 @@ contract('QiibeePresale property-based test', function(accounts) {
       });
     });
 
-    it('should NOT be able to add investor to accredited list with vesting less than zero', async function () {
+    it('should NOT be able to add investor to accredited list with maxCumulativeInvest zero', async function () {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: -600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 2 },
-        ],
-        presale: {
-          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-        }
-      });
-    });
-
-    it('should NOT be able to add investor to accredited list with maxCumulativeInvest less than zero', async function () {
-      await runGeneratedPresaleAndCommands({
-        commands: [
-          { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: -2, fromAccount: 2 },
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 0, fromAccount: 0 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -302,7 +319,7 @@ contract('QiibeePresale property-based test', function(accounts) {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 0, maxCumulativeInvest: 2, fromAccount: 2 },
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 0, maxCumulativeInvest: 2, fromAccount: 0 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -314,7 +331,7 @@ contract('QiibeePresale property-based test', function(accounts) {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 2 },
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 2 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -326,13 +343,50 @@ contract('QiibeePresale property-based test', function(accounts) {
       await runGeneratedPresaleAndCommands({
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
-          { type: 'addAccredited', investor: 'zero', rate: 6000, cliff: 600, vesting: 600, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+          { type: 'addAccredited', investor: 'zero', rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
         }
       });
     });
+
+    it('should be able to remove investor from accredited list', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'removeAccredited', investor: 4, fromAccount: 0 },
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      });
+    });
+
+    it('should NOT be able to remove investor from accredited list if not owner', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'removeAccredited', investor: 4, fromAccount: 2 },
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      });
+    });
+
+    it('should NOT be able to remove investor from accredited list if address is zero', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'removeAccredited', investor: 'zero', fromAccount: 0 },
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      });
+    });
+
   });
 
   it('distributes tokens correctly on any combination of bids', async function() {

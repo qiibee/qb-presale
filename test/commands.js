@@ -279,9 +279,20 @@ async function runPresaleBuyTokensCommand(command, state) {
     );
     state.lastCallTime[command.account] = nextTime;
     state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(weiCost);
+    state.tokenBalances[command.beneficiary] = getTokenBalance(state, command.beneficiary).plus(tokens);
     state.weiRaised = state.weiRaised.plus(weiCost);
     state.tokensSold = state.tokensSold.plus(new BigNumber(help.toAtto(tokens)));
     state.presaleSupply = state.presaleSupply.plus(new BigNumber(help.toAtto(tokens)));
+
+    if (accredited.cliff > 0 && accredited.vesting >= accredited.cliff) {
+      (await state.token.tokenGrantsCount(beneficiaryAccount)).should.be.bignumber.gt(new BigNumber(0));
+      new BigNumber(0).should.be.bignumber.equal(await state.token.transferableTokens(beneficiaryAccount, nextTime));
+      const timeAfterVested = endTime + accredited.cliff + accredited.vesting;
+      const supply = new BigNumber(help.toAtto(state.tokenBalances[command.beneficiary]));
+      supply.should.be.bignumber.equal(await state.token.transferableTokens(beneficiaryAccount, timeAfterVested));
+    } else {
+      new BigNumber(0).should.be.bignumber.equal(await state.token.tokenGrantsCount(beneficiaryAccount));
+    }
 
     state = decreaseEthBalance(state, command.account, weiCost);
     state = decreaseEthBalance(state, command.account, help.txGasCost(tx));
@@ -299,12 +310,11 @@ async function runPresaleSendTransactionCommand(command, state) {
     weiCost = web3.toWei(command.eth, 'ether'),
     nextTime = latestTime(),
     account = gen.getAccount(command.account),
-    beneficiaryAccount = gen.getAccount(command.beneficiary),
     accredited = state.accredited[command.account],
     rate = accredited ? accredited.rate : null,
     tokens = accredited ? new BigNumber(command.eth).mul(rate) : null,
-    hasZeroAddress = _.some([account, beneficiaryAccount], isZeroAddress),
-    newBalance = getBalance(state, command.beneficiary).plus(weiCost);
+    hasZeroAddress = _.some([account], isZeroAddress),
+    newBalance = getBalance(state, command.account).plus(weiCost);
 
   let inTGE = nextTime >= startTime && nextTime <= endTime,
     capExceeded = state.weiRaised.plus(new BigNumber(help.toAtto(command.eth))).gt(presale.cap),
@@ -327,25 +337,35 @@ async function runPresaleSendTransactionCommand(command, state) {
     frequencyExceeded ||
     gasExceeded ||
     capExceeded;
+
   try {
     const tx = await state.presaleContract.sendTransaction({value: weiCost, from: account});
     assert.equal(false, shouldThrow, 'sendTransaction should have thrown but it did not');
-    help.debug(colors.green('SUCCESS buying tokens, rate:', rate, 'eth:', command.eth, 'endBlocks:', presale.endTime, 'blockTimestamp:', nextTime));
 
-    if (inTGE) {
-      state.purchases = _.concat(state.purchases,
-        {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
-      );
-      state.weiRaised = state.weiRaised.plus(weiCost);
-      state.tokensSold = state.tokensSold.plus(tokens);
-    } else {
-      throw(new Error('sendTransaction not in TGE should have thrown'));
-    }
-
+    state.purchases = _.concat(state.purchases,
+      {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.account, account: command.account}
+    );
+    state.lastCallTime[command.account] = nextTime;
+    state.balances[command.account] = getBalance(state, command.account).plus(weiCost);
+    state.tokenBalances[command.account] = getTokenBalance(state, command.beneficiary).plus(tokens);
+    state.weiRaised = state.weiRaised.plus(weiCost);
+    state.tokensSold = state.tokensSold.plus(new BigNumber(help.toAtto(tokens)));
     state.presaleSupply = state.presaleSupply.plus(new BigNumber(help.toAtto(tokens)));
+
+    if (accredited.cliff > 0 && accredited.vesting >= accredited.cliff) {
+      (await state.token.tokenGrantsCount(account)).should.be.bignumber.gt(new BigNumber(0));
+      new BigNumber(0).should.be.bignumber.equal(await state.token.transferableTokens(account, nextTime));
+      const timeAfterVested = endTime + accredited.cliff + accredited.vesting;
+      const supply = new BigNumber(help.toAtto(state.tokenBalances[command.account]));
+      supply.should.be.bignumber.equal(await state.token.transferableTokens(account, timeAfterVested));
+    } else {
+      new BigNumber(0).should.be.bignumber.equal(await state.token.tokenGrantsCount(account));
+    }
 
     state = decreaseEthBalance(state, command.account, weiCost);
     state = decreaseEthBalance(state, command.account, help.txGasCost(tx));
+
+    help.debug(colors.green('SUCCESS buying tokens, rate:', rate, 'eth:', command.eth, 'endBlocks:', presale.endTime, 'blockTimestamp:', nextTime));
   } catch(e) {
     state = trackGasFromLastBlock(state, command.account);
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
@@ -360,6 +380,8 @@ async function runAddAccreditedCommand(command, state) {
     rate = command.rate,
     cliff = command.cliff,
     vesting = command.vesting,
+    revokable = command.revokable,
+    burnsOnTokens = command.burnsOnTokens,
     minInvest = command.minInvest,
     maxCumulativeInvest = command.maxCumulativeInvest;
 
@@ -367,21 +389,42 @@ async function runAddAccreditedCommand(command, state) {
 
   let shouldThrow = hasZeroAddress ||
       rate == 0 ||
-      cliff < 0 ||
-      vesting < 0 ||
+      vesting < cliff ||
       minInvest == 0 ||
       maxCumulativeInvest == 0 ||
       command.fromAccount != state.owner;
 
   try {
-    await state.presaleContract.addAccreditedInvestor(investor, rate, cliff, vesting, help.toWei(minInvest), help.toWei(maxCumulativeInvest), {from: account});
+    await state.presaleContract.addAccreditedInvestor(investor, rate, cliff, vesting, revokable, burnsOnTokens, help.toWei(minInvest), help.toWei(maxCumulativeInvest), {from: account});
     help.debug(colors.green('SUCCESS adding accredited investor'));
 
     assert.equal(false, shouldThrow, 'add to whitelist should have thrown but it did not');
-    state.accredited[command.investor] = {rate: rate, cliff: cliff, vesting: vesting, minInvest: help.toWei(minInvest), maxCumulativeInvest: help.toWei(maxCumulativeInvest)};
+    state.accredited[command.investor] = {rate: rate, cliff: cliff, vesting: vesting, revokable, burnsOnTokens, minInvest: help.toWei(minInvest), maxCumulativeInvest: help.toWei(maxCumulativeInvest)};
   } catch(e) {
     assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
     help.debug(colors.yellow('FAILURE adding accredited investor'));
+  }
+  return state;
+}
+
+async function runRemoveAccreditedCommand(command, state) {
+  let account = gen.getAccount(command.fromAccount),
+    investor = gen.getAccount(command.investor);
+
+  let hasZeroAddress = _.some([account, investor], isZeroAddress);
+
+  let shouldThrow = hasZeroAddress ||
+    command.fromAccount != state.owner;
+
+  try {
+    await state.presaleContract.removeAccreditedInvestor(investor, {from: account});
+    help.debug(colors.green('SUCCESS removing accredited investor'));
+
+    assert.equal(false, shouldThrow, 'add to whitelist should have thrown but it did not');
+    delete state.accredited[command.investor];
+  } catch(e) {
+    assertExpectedException(e, shouldThrow, hasZeroAddress, state, command);
+    help.debug(colors.yellow('FAILURE removing accredited investor'));
   }
   return state;
 }
@@ -689,6 +732,7 @@ const presaleCommands = {
   presaleSendTransaction: {gen: gen.presaleSendTransactionCommandGen, run: runPresaleSendTransactionCommand},
   pausePresale: {gen: gen.pausePresaleCommandGen, run: runPausePresaleCommand},
   addAccredited: { gen: gen.addAccreditedCommandGen, run: runAddAccreditedCommand},
+  removeAccredited: { gen: gen.removeAccreditedCommandGen, run: runRemoveAccreditedCommand},
   finalizePresale: {gen: gen.finalizePresaleCommandGen, run: runFinalizePresaleCommand}
 };
 

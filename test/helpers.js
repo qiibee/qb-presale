@@ -83,7 +83,7 @@ module.exports = {
     return this.waitToBlock(parseInt(web3.eth.blockNumber) + toWait, accounts);
   },
 
-  simulateCrowdsale: async function(rate, goal, cap, minInvest, maxCumulativeInvest, maxGasPrice, minBuyingRequestInterval, accounts, balances) {
+  simulateCrowdsale: async function(rate, goal, cap, minInvest, maxCumulativeInvest, maxGasPrice, minBuyingRequestInterval, accounts, balances, finish) {
     await increaseTimeTestRPC(1);
     var startTime = latestTime() + 5;
     var endTime = startTime + 10;
@@ -104,8 +104,10 @@ module.exports = {
         await crowdsale.sendTransaction({ value: web3.toWei(balances[i], 'ether'), from: accounts[i + 1]});
       }
     }
-    await increaseTimeTestRPCTo(endTime+1);
-    await crowdsale.finalize();
+    if (finish) {
+      await increaseTimeTestRPCTo(endTime+1);
+      await crowdsale.finalize();
+    }
     return crowdsale;
   },
 

@@ -31,8 +31,7 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
     }
 
     /**
-      @dev Overrides VestedToken#grantVestedTokens(). Similar to grantVestedTokens but minting tokens
-      instead of transferring.
+      @dev Similar to grantVestedTokens but minting tokens instead of transferring.
     */
     function mintVestedTokens (
       address _to,
@@ -42,7 +41,7 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
       uint64 _vesting,
       bool _revokable,
       bool _burnsOnRevoke
-    ) onlyOwner public constant returns (bool) {
+    ) onlyOwner public returns (bool) {
       // Check for date inconsistencies that may cause unexpected behavior
       require(_cliff >= _start && _vesting >= _cliff);
 
@@ -61,8 +60,6 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
                 );
 
       bool minted = mint(_to, _value); //mint tokens
-
-      NewTokenGrant(msg.sender, _to, _value, count - 1);
 
       return minted;
   }
