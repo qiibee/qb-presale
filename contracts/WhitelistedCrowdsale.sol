@@ -25,10 +25,10 @@ contract WhitelistedCrowdsale is Crowdsale, Ownable {
     return whitelist[investor];
   }
 
-  // @return true if buyer has been removed
-  function removeFromWhitelisted(address investor) public onlyOwner (bool) {
+  // @return true if buyer investor been removed
+  function removeFromWhitelisted(address investor) public onlyOwner {
       require(investor != address(0));
-      whitelist[_investor] = false;
+      whitelist[investor] = false;
   }
 
   // overriding Crowdsale#validPurchase to add whitelist logic
