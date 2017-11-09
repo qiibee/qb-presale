@@ -88,13 +88,11 @@ contract QiibeeCrowdsale is Crowdsale {
         uint256 tokens = msg.value.mul(rate);
 
         // update state
+        assert(token.mint(beneficiary, tokens));
+
         weiRaised = weiRaised.add(msg.value);
         tokensSold = tokensSold.add(tokens);
         lastCallTime[msg.sender] = now;
-
-        //TODO: vest tokens?
-
-        token.mint(beneficiary, tokens);
 
         TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
 
