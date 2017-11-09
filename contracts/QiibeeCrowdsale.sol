@@ -79,7 +79,7 @@ contract QiibeeCrowdsale is Crowdsale {
 
     /*
      * @dev Low level token purchase function.
-     * @param beneficiary beneficiary address where tokens are sent to
+     * @param beneficiary address where tokens are sent to
      */
     function buyTokens(address beneficiary) public payable whenNotPaused{
         require(beneficiary != address(0));
@@ -103,7 +103,7 @@ contract QiibeeCrowdsale is Crowdsale {
     }
 
     /*
-     * Checks if the ivnestment made is within the allowed limits
+     * Checks if the investment made is within the allowed limits
      */
     function validPurchase(address beneficiary) internal constant returns (bool) {
         // check limits
@@ -113,7 +113,8 @@ contract QiibeeCrowdsale is Crowdsale {
     }
 
     /*
-     * @dev Pauses the token. Only the owner can call this function.
+     * @dev Overrides Crowdsale#finalization() and is in charge of minting the tokens not sold
+     * and send them to the foundation wallet.
      */
     function finalization() internal {
         uint256 crowdsaleSupply = token.totalSupply();
@@ -137,12 +138,8 @@ contract QiibeeCrowdsale is Crowdsale {
 
         isFinalized = true;
 
-        // finish the minting of the token
         token.finishMinting();
-
-        QiibeeToken(token).unpause();
-
-        // transfer the ownership of the token to the foundation
+        token.unpause();
         token.transferOwnership(wallet);
     }
 

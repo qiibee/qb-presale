@@ -1,5 +1,5 @@
 var HDWalletProvider = require("truffle-hdwallet-provider");
-var mnemonic = "[ SEED PHRASE ]";
+var mnemonic = "exhibit salmon capital index grunt debris lunar burst initial broccoli salute involve";
 
 if (!process.env.SOLIDITY_COVERAGE){
   // This is a stub to use in case you begin validating on a testnet using HDWallet.

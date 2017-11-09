@@ -97,17 +97,17 @@ contract QiibeePresale is Crowdsale {
     /*
      * @dev Add an address to the accredited list.
      */
-    function addAccreditedInvestor(address buyer, uint256 rate, uint64 cliff, uint64 vesting, uint256 minInvest, uint256 maxInvest) public onlyOwner {
-        require(buyer != address(0));
+    function addAccreditedInvestor(address investor, uint256 rate, uint64 cliff, uint64 vesting, uint256 minInvest, uint256 maxInvest) public onlyOwner {
+        require(investor != address(0));
         require(rate > 0);
         require(cliff >= 0);
         require(vesting >= 0);
         require(minInvest >= 0);
         require(maxInvest > 0);
 
-        accredited[buyer] = AccreditedInvestor(rate, cliff, vesting, minInvest, maxInvest);
+        accredited[investor] = AccreditedInvestor(rate, cliff, vesting, minInvest, maxInvest);
 
-        NewAccreditedInvestor(msg.sender, buyer);
+        NewAccreditedInvestor(msg.sender, investor);
     }
 
     /*
@@ -118,6 +118,15 @@ contract QiibeePresale is Crowdsale {
         AccreditedInvestor storage data = accredited[investor];
         return data.rate > 0; //TODO: is there any way to check this?
     }
+
+    /*
+     * @dev Remove an address from the accredited list.
+     */
+    function removeAccreditedInvestor(address investor) public onlyOwner {
+        require(investor != address(0));
+        accredited[investor] = false;
+    }
+
 
     // @return true if investors can buy at the moment
     function validPurchase() internal constant returns (bool) {

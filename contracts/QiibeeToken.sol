@@ -26,7 +26,7 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
       @dev Burns a specific amount of tokens.
       @param _value The amount of tokens to be burnt.
     */
-    function burn(uint256 _value) whenNotPaused public {
+    function burn(uint256 _value) whenNotPaused onlyOwner public {
         super.burn(_value);
     }
 }
