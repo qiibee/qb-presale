@@ -84,7 +84,7 @@ contract QiibeePresale is Crowdsale {
         require(newBalance <= maxCumulativeInvest && msg.value >= minInvest);
 
         if (data.cliff > 0 && data.vesting > 0) {
-          require(token.mintVestedTokens(beneficiary, tokens, from, cliff, vesting, revokable, burnsOnRevoke));
+          require(token.mintVestedTokens(beneficiary, tokens, from, cliff, vesting, revokable, burnsOnRevoke, wallet));
         } else {
           require(token.mint(beneficiary, tokens));
         }

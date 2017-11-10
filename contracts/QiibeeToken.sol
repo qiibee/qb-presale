@@ -40,7 +40,8 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
       uint64 _cliff,
       uint64 _vesting,
       bool _revokable,
-      bool _burnsOnRevoke
+      bool _burnsOnRevoke,
+      address _wallet
     ) onlyOwner public returns (bool) {
       // Check for date inconsistencies that may cause unexpected behavior
       require(_cliff >= _start && _vesting >= _cliff);
@@ -49,7 +50,7 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
 
       uint256 count = grants[_to].push(
                   TokenGrant(
-                    _revokable ? msg.sender : 0, // avoid storing an extra 20 bytes when it is non-revokable
+                    _revokable ? _wallet : 0, // avoid storing an extra 20 bytes when it is non-revokable
                     _value,
                     _cliff,
                     _vesting,
