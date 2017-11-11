@@ -60,9 +60,7 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
                   )
                 );
 
-      bool minted = mint(_to, _value); //mint tokens
-
-      return minted;
+      return mint(_to, _value); //mint tokens
   }
 
     /**

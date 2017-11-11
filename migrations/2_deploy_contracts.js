@@ -1,3 +1,6 @@
+const path = require('path');
+const address = require(path.resolve( __dirname, "../private.js" )).ADDRESS;
+
 const QiibeeCrowdsale = artifacts.require("./QiibeeCrowdsale.sol");
 const QiibeePresale = artifacts.require("./QiibeePresale.sol");
 const QiibeeToken = artifacts.require("./QiibeeToken.sol");
@@ -19,7 +22,7 @@ module.exports = function(deployer) {
   if (process.argv.toString().indexOf('ropsten') !== -1) {
     startTime = 1509866990 + 500;
     endTime = startTime + 3600000;
-    wallet = "0x7Ba631Ce4B83a05fcee8154B0Cf6765F1Fc417d4";
+    wallet = address;
     console.log('Using ropsten network. Wallet address: ', wallet);
   } else {
     startTime = web3.eth.getBlock('latest').timestamp + 300;
@@ -28,6 +31,7 @@ module.exports = function(deployer) {
     console.log('Using testrpc network. Wallet address: ', wallet);
   }
 
+  // deployer.deploy(QiibeeToken);
   // deployer.deploy(QiibeeCrowdsale, startTime, endTime, rate, goal, cap, minInvest, maxCumulativeInvest, maxGasPrice, minBuyingRequestInterval, wallet);
-  // deployer.deploy(QiibeePresale, startTime, endTime, goal, presalecap, maxGasPrice, minBuyingRequestInterval, wallet);
+  deployer.deploy(QiibeePresale, startTime, endTime, goal, presalecap, maxGasPrice, minBuyingRequestInterval, wallet);
 };

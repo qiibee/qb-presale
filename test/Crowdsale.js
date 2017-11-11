@@ -51,6 +51,7 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
   }
 
   describe('create crowdsale tests', function () {
+
     it('can NOT create crowdsale with endTime bigger than startTime', async function () {
       const startTime = latestTime() + duration.weeks(1),
         endTime = startTime - duration.weeks(1);
@@ -61,13 +62,30 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
       }
     });
 
-    it('can NOT create crowdsale with minBuyingRequestInterval less than zero', async function () {
+    it('can NOT create crowdsale with zero minBuyingRequestInterval', async function () {
       try {
-        await createCrowdsale({minBuyingRequestInterval: defaults.minBuyingRequestInterval*(-1)});
+        await createCrowdsale({minBuyingRequestInterval: 0});
       } catch(e) {
         assertExpectedException(e);
       }
     });
+
+    it('can NOT create crowdsale with zero goal', async function () {
+      try {
+        await createCrowdsale({goal: 0});
+      } catch(e) {
+        assertExpectedException(e);
+      }
+    });
+
+    it('can NOT create crowdsale with zero wallet', async function () {
+      try {
+        await createCrowdsale({goal: help.zeroAddress});
+      } catch(e) {
+        assertExpectedException(e);
+      }
+    });
+
   });
 
   it('should be token owner', async function () {
@@ -159,13 +177,35 @@ contract('Crowdsale', function ([owner, wallet, investor]) {
       }
     });
 
+    it('should reject finalize if cap not reached and now < endTime', async function () {
+      const crowdsale = await createCrowdsale({});
+      await increaseTimeTestRPCTo(await crowdsale.startTime());
+      await crowdsale.sendTransaction({value: defaults.goal, from: investor});
+      try {
+        await crowdsale.finalize({from: owner});
+      } catch(e) {
+        assertExpectedException(e);
+      }
+    });
+
+    it('should finalize if cap reached even though now < endTime', async function () {
+      const crowdsale = await createCrowdsale({});
+      await increaseTimeTestRPCTo(await crowdsale.startTime());
+      await crowdsale.sendTransaction({value: defaults.cap, from: investor});
+      try {
+        await crowdsale.finalize({from: owner});
+      } catch(e) {
+        assertExpectedException(e);
+      }
+    });
+
   });
   // RefundableCrowdsale.sol
   describe('refundable crowdsale tests', function () {
 
     it('can NOT create crowdsale with goal less than zero', async function () {
       try {
-        await createCrowdsale({goal: defaults.goal.mul(-1)});
+        await createCrowdsale({goal: 0});
       } catch(e) {
         assertExpectedException(e);
       }

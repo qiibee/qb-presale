@@ -66,7 +66,7 @@ contract('QiibeePresale property-based test', function(accounts) {
     let shouldThrow = (latestTime() >= startTime) ||
       (startTime >= endTime) ||
       (maxGasPrice == 0) ||
-      (minBuyingRequestInterval == 0) ||
+      (minBuyingRequestInterval < 0) ||
       (goal == 0) ||
       (cap == 0) ||
       (goal >= cap) ||
@@ -86,7 +86,6 @@ contract('QiibeePresale property-based test', function(accounts) {
         cap: new BigNumber(help.toWei(cap)),
         foundationWallet: gen.getAccount(input.presale.foundationWallet),
       };
-
       let presale = await QiibeePresale.new(
         presaleData.startTime,
         presaleData.endTime,
@@ -97,18 +96,14 @@ contract('QiibeePresale property-based test', function(accounts) {
         presaleData.foundationWallet,
         {from: ownerAddress}
       );
-
       let token = QiibeeToken.at(await presale.token());
       assert.equal(false, shouldThrow, 'create Presale should have thrown but it did not');
-
       eventsWatcher = presale.allEvents();
       eventsWatcher.watch(function(error, log){
         if (LOG_EVENTS)
           console.log('Event:', log.event, ':',log.args);
       });
-
       help.debug(colors.yellow('created presale at address ', presale.address));
-
       var state = {
         presaleData: presaleData,
         presaleContract: presale,
@@ -130,7 +125,6 @@ contract('QiibeePresale property-based test', function(accounts) {
         lastCallTime: [],
         wallet: input.presale.foundationWallet
       };
-
       for (let commandParams of input.commands) {
         let command = commands.findCommand(commandParams.type);
         try {
@@ -161,120 +155,111 @@ contract('QiibeePresale property-based test', function(accounts) {
     return true;
   };
 
-  it('should allow accredited investors to buy tokens', async function () {
-    await runGeneratedPresaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
-        { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
-      ],
-      presale: {
-        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-      }
-    });
-  });
+  describe('buying tokens', function () {
 
-  it('should NOT allow to buy tokens with address zero ', async function () {
-    await runGeneratedPresaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
-        { type: 'presaleSendTransaction', account: 'zero', eth: 1 },
-      ],
-      presale: {
-        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-      }
+    it('should NOT allow non-accredited investors to invest', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'presaleSendTransaction', account: 4, eth: 1 },
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      });
     });
-  });
 
-  it('should allow accredited investors to buy tokens with cliff zero', async function () {
-    await runGeneratedPresaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
-        { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
-      ],
-      presale: {
-        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-      }
+    it('should allow accredited investors to buy tokens', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+          { type: 'presaleSendTransaction', account: 4, eth: 1 },
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      });
     });
-  });
 
-  it('should NOT allow accredited investors to buy tokens with vesting less than cliff', async function () {
-    await runGeneratedPresaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 0, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
-        { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
-      ],
-      presale: {
-        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-      }
+    it('should NOT allow to buy tokens with address zero ', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+          { type: 'presaleSendTransaction', account: 'zero', eth: 1 },
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      });
     });
-  });
 
-  it('should allow accredited investors to buy non-vested tokens', async function () {
-    await runGeneratedPresaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 0, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
-        { type: 'presaleSendTransaction', account: 4, eth: 1 },
-      ],
-      presale: {
-        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-      }
+    it('should allow accredited investors to buy tokens with cliff zero', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+          { type: 'presaleSendTransaction', account: 4, eth: 1 },
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      });
     });
-  });
 
-  it('should allow accredited investors to buy non-vested tokens', async function () {
-    await runGeneratedPresaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 0, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
-        { type: 'presaleBuyTokens', account: 4, beneficiary: 5, eth: 1 },
-      ],
-      presale: {
-        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-      }
+    it('should allow accredited investors to buy non-vested tokens', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 0, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+          { type: 'presaleSendTransaction', account: 4, eth: 1 },
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      });
     });
-  });
 
-  it('should NOT allow accredited investors to invest more than maxCumulativeInvest', async function () {
-    await runGeneratedPresaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
-        { type: 'presaleBuyTokens', beneficiary: 3, account: 4, eth: 3 },
-      ],
-      presale: {
-        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-      }
+    it('should allow accredited investors to buy non-vested tokens', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 0, vesting: 0, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+          { type: 'presaleBuyTokens', account: 4, beneficiary: 5, eth: 1 },
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      });
     });
-  });
 
-  it('should NOT allow accredited investors to invest less than minInvest', async function () {
-    await runGeneratedPresaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
-        { type: 'presaleBuyTokens', beneficiary: 3, account: 4, eth: 0.5 },
-      ],
-      presale: {
-        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-      }
+    it('should NOT allow accredited investors to invest more than maxCumulativeInvest', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+          { type: 'presaleBuyTokens', beneficiary: 3, account: 4, eth: 3 },
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      });
     });
-  });
 
-  it('should NOT allow non-accredited investors to invest', async function () {
-    await runGeneratedPresaleAndCommands({
-      commands: [
-        { type: 'waitTime','seconds':duration.days(1)},
-        { type: 'presaleSendTransaction', beneficiary: 3, account: 4, eth: 1 },
-      ],
-      presale: {
-        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-      }
+    it('should NOT allow accredited investors to invest less than minInvest', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+          { type: 'presaleBuyTokens', beneficiary: 3, account: 4, eth: 0.5 },
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      });
     });
+
   });
 
   describe('add to accredited list', function () {
@@ -284,6 +269,18 @@ contract('QiibeePresale property-based test', function(accounts) {
         commands: [
           { type: 'waitTime','seconds':duration.days(1)},
           { type: 'addAccredited', investor: 4, rate: 0, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      });
+    });
+
+    it('should NOT be able to add investor to accredited list with vesting less than cliff', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'addAccredited', investor: 4, rate: 6000, cliff: 600, vesting: 100, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 2, fromAccount: 0 },
         ],
         presale: {
           maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
@@ -389,58 +386,66 @@ contract('QiibeePresale property-based test', function(accounts) {
 
   });
 
-  it('distributes tokens correctly on any combination of bids', async function() {
-    // stateful prob based tests can take a long time to finish when shrinking...
-    this.timeout(GEN_TESTS_TIMEOUT * 1000);
+  describe('stateful prob based tests', function () {
 
-    let property = jsc.forall(presaleTestInputGen, async function(presaleAndCommands) {
-      return await runGeneratedPresaleAndCommands(presaleAndCommands);
+    it('distributes tokens correctly on any combination of bids', async function() {
+      // stateful prob based tests can take a long time to finish when shrinking...
+      this.timeout(GEN_TESTS_TIMEOUT * 1000);
+
+      let property = jsc.forall(presaleTestInputGen, async function(presaleAndCommands) {
+        return await runGeneratedPresaleAndCommands(presaleAndCommands);
+      });
+
+      return jsc.assert(property, {tests: GEN_TESTS_QTY});
     });
 
-    return jsc.assert(property, {tests: GEN_TESTS_QTY});
   });
 
-  it('should finish presale fine', async function() {
-    let presaleAndCommands = {
-      commands: [
-        { type: 'waitTime','seconds':duration.days(4)},
-        { type: 'finalizePresale', fromAccount: 1 }
-      ],
-      presale: {
-        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-      }
-    };
+  describe('finalize presale', function () {
 
-    await runGeneratedPresaleAndCommands(presaleAndCommands);
-  });
+    it('should finish presale fine', async function() {
+      let presaleAndCommands = {
+        commands: [
+          { type: 'waitTime','seconds':duration.days(4)},
+          { type: 'finalizePresale', fromAccount: 1 }
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      };
 
-  it('should NOT finish presale if it has already been finalized', async function() {
-    let presaleAndCommands = {
-      commands: [
-        { type: 'waitTime','seconds':duration.days(4)},
-        { type: 'finalizePresale', fromAccount: 1 },
-        { type: 'finalizePresale', fromAccount: 2 }
-      ],
-      presale: {
-        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-      }
-    };
+      await runGeneratedPresaleAndCommands(presaleAndCommands);
+    });
 
-    await runGeneratedPresaleAndCommands(presaleAndCommands);
-  });
+    it('should NOT finish presale if it has already been finalized', async function() {
+      let presaleAndCommands = {
+        commands: [
+          { type: 'waitTime','seconds':duration.days(4)},
+          { type: 'finalizePresale', fromAccount: 1 },
+          { type: 'finalizePresale', fromAccount: 2 }
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      };
 
-  it('should handle the exception correctly when trying to finalize the presale before the presale has ended', async function() {
-    let presaleAndCommands = {
-      commands: [
-        { type: 'waitTime','seconds':duration.minutes(60)},
-        { type: 'finalizePresale', fromAccount: 1 }
-      ],
-      presale: {
-        maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
-      }
-    };
+      await runGeneratedPresaleAndCommands(presaleAndCommands);
+    });
 
-    await runGeneratedPresaleAndCommands(presaleAndCommands);
+    it('should handle the exception correctly when trying to finalize the presale before the presale has ended', async function() {
+      let presaleAndCommands = {
+        commands: [
+          { type: 'waitTime','seconds':duration.minutes(60)},
+          { type: 'finalizePresale', fromAccount: 1 }
+        ],
+        presale: {
+          maxGasPrice: 50000000000, minBuyingRequestInterval: 600, goal: 36000, cap: 240000, foundationWallet: 10, owner: 0
+        }
+      };
+
+      await runGeneratedPresaleAndCommands(presaleAndCommands);
+    });
+
   });
 
 });

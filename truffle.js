@@ -1,5 +1,6 @@
-var HDWalletProvider = require("truffle-hdwallet-provider");
-var mnemonic = "exhibit salmon capital index grunt debris lunar burst initial broccoli salute involve";
+const path = require('path');
+const wallet = require(path.resolve( __dirname, "private.js" ));
+const HDWalletProvider = require("truffle-hdwallet-provider");
 
 if (!process.env.SOLIDITY_COVERAGE){
   // This is a stub to use in case you begin validating on a testnet using HDWallet.
@@ -19,7 +20,7 @@ module.exports = {
     },
     ropsten: {
       network_id: 3,    // Use the ID provided at craddeation time
-      provider: new HDWalletProvider(mnemonic, "https://ropsten.infura.io/leXGApLcGixJvwRW3gCI"), // The actual api key infura gave you
+      provider: new HDWalletProvider(wallet.MNEMONIC_PHRASE, "https://ropsten.infura.io/leXGApLcGixJvwRW3gCI"), // The actual api key infura gave you
       gas: 4700000, // crowdsale uses 4454368 gas
       gasPrice: 22000000000 // in wei = 22 gwei
     },

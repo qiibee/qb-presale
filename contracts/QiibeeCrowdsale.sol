@@ -9,8 +9,6 @@ import "./Crowdsale.sol";
    fixed rate until the goal (soft cap) is reached and then a dynamic rate linked to the amount of
    tokens sold is applied.
 
-
-
    In case of the goal not being reached by purchases made during the 4-week period the token will
    not start operating and all funds sent during that period will be made available to be claimed
    by the originating addresses.

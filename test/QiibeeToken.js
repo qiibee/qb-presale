@@ -77,14 +77,14 @@ contract('qiibeeToken', function(accounts) {
 
     it('can mint vested tokens if owner', async () => {
       const supply = await token.balanceOf(receiver);
-      await token.mintVestedTokens(receiver, tokenAmount, now, now + cliff, now + vesting, true, true, { from: await token.owner() });
+      await token.mintVestedTokens(receiver, tokenAmount, now, now + cliff, now + vesting, true, true, accounts[0], { from: await token.owner() });
       supply.plus(tokenAmount).should.be.bignumber.equal(await token.balanceOf(accounts[2]));
       new BigNumber(0).should.be.bignumber.equal(await token.transferableTokens(receiver, now));
     });
 
     it('can NOT mint vested tokens if not owner', async () => {
       try {
-        await token.mintVestedTokens(receiver, tokenAmount, now, now + cliff, now + vesting, true, true, { from: accounts[1] });
+        await token.mintVestedTokens(receiver, tokenAmount, now, now + cliff, now + vesting, true, true, accounts[0], { from: accounts[1] });
       } catch(error) {
         if (!help.isInvalidOpcodeEx(error)) throw error;
       }
@@ -92,7 +92,7 @@ contract('qiibeeToken', function(accounts) {
 
     it('can NOT mint vested tokens if cliff is bigger than startTime', async () => {
       try {
-        await token.mintVestedTokens(receiver, tokenAmount, now + cliff, now, now + vesting, true, true, { from: await token.owner() });
+        await token.mintVestedTokens(receiver, tokenAmount, now + cliff, now, now + vesting, true, true, accounts[0], { from: await token.owner() });
       } catch(error) {
         if (!help.isInvalidOpcodeEx(error)) throw error;
       }
@@ -100,7 +100,7 @@ contract('qiibeeToken', function(accounts) {
 
     it('can NOT mint vested tokens if vesting is bigger than cliff', async () => {
       try {
-        await token.mintVestedTokens(receiver, tokenAmount, now, now + cliff, now, true, true, { from: await token.owner() });
+        await token.mintVestedTokens(receiver, tokenAmount, now, now + cliff, now, true, true, accounts[0], { from: await token.owner() });
       } catch(error) {
         if (!help.isInvalidOpcodeEx(error)) throw error;
       }
@@ -108,10 +108,10 @@ contract('qiibeeToken', function(accounts) {
 
     it('can NOT have more than MAX_GRANTS_PER_ADDRESS grants per address', async () => {
       for (var i = 1; i <= 20; i++) {
-        await token.mintVestedTokens(receiver, tokenAmount, now, now + cliff, now + vesting, true, true, { from: await token.owner() });
+        await token.mintVestedTokens(receiver, tokenAmount, now, now + cliff, now + vesting, true, true, accounts[0], { from: await token.owner() });
       }
       try {
-        await token.mintVestedTokens(receiver, tokenAmount, now, now + cliff, now + vesting, true, true, { from: await token.owner() });
+        await token.mintVestedTokens(receiver, tokenAmount, now, now + cliff, now + vesting, true, true, accounts[0], { from: await token.owner() });
       } catch(error) {
         if (!help.isInvalidOpcodeEx(error)) throw error;
       }

@@ -4,3 +4,4 @@ npm-debug.log
 .node-xmlhttprequest-sync-[0-9]*
 coverage
 coverage.json
+.private.js

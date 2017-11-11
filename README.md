@@ -23,6 +23,7 @@ npm install
 
 - [QiibeeToken](contracts/QiibeeToken.sol)
 - [QiibeeCrowdsale](contracts/QiibeeCrowdsale.sol)
+- [QiibeePresale](contracts/QiibeePresale.sol)
 
 ## Test
 
@@ -36,9 +37,8 @@ There are also two environment variables (`GEN_TESTS_QTY` and `GEN_TESTS_TIMEOUT
 GEN_TESTS_QTY=50 GEN_TESTS_TIMEOUT=300 npm test
 ```
 
-will make the property-based tests in `test/CrowdsaleGenTest.js` to run 50 examples in a maximum of 5 minutes
-
+will make the property-based tests in `test/QiibeeCrowdsaleGenTest.js` `test/QiibeePresaleGenTest.js` to run 50 examples in a maximum of 5 minutes
 
 ## License
 
-Qiibee Token is open source and distributed under the Apache License v2.0
+qiibee Token is open source and distributed under the Apache License v2.0
