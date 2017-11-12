@@ -18,7 +18,7 @@ contract QiibeeCrowdsale is Crowdsale {
 
     using SafeMath for uint256;
 
-    uint256 public constant TOTAL_SUPPLY = 10e27; // total amount of tokens in atto
+    uint256 public constant FOUNDATION_SUPPLY = 10e27; // total amount of tokens in atto for the pools
 
     uint256 public rate; // how many token units a buyer gets per wei
 
@@ -112,10 +112,7 @@ contract QiibeeCrowdsale is Crowdsale {
      * and send them to the foundation wallet.
      */
     function finalization() internal {
-        uint256 crowdsaleSupply = token.totalSupply();
-        uint256 foundationSupply = TOTAL_SUPPLY.sub(crowdsaleSupply);
-        token.mint(wallet, foundationSupply);
-
+        token.mint(wallet, FOUNDATION_SUPPLY);
         super.finalization();
     }
 
