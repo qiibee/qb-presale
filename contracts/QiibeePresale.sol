@@ -5,14 +5,22 @@ import "./Crowdsale.sol";
 /**
    @title Presale event
 
-   Implementation of the presale event. This event will start when the owner calls the `unpause()`
-   function and will end when it paused again.
+   Implementation of the QBX Presale Token Generation Event (PTGE): A X-week capped presale with a
+   soft cap (goal) and a hard cap, both of them expressed in wei.
 
-   There is a cap expressed in wei and a whitelist, meaning that only investors in that list are
-   allowed to send their investments.
+   This presale is only for accredited investors, who will have to be whitelisted by the owner
+   using the addAccreditedInvestor() function. Each accredited investor has its own token rate, a
+   minimum amount of wei for each one of his transactions, a maximum cumulative investment and
+   vesting settings (cliff and vesting period).
 
-   Funds raised during this presale will be transfered to `wallet`.
+   On each purchase, the corresponding amount of tokens (given by the investor’s rate) will be
+   minted and vested (if the investor has vesting settings).
 
+   In case of the goal not being reached by purchases made during the event, all funds sent during
+   this period will be made available to be claimed by the originating addresses.
+
+   The token begins paused and remains like that at the end of the presale. The unpause of the token
+   will be done at the end of the qiibee crowdsale.
  */
 
 contract QiibeePresale is Crowdsale {

@@ -51,7 +51,7 @@ contract('QiibeeCrowdsale property-based test', function(accounts) {
     if (state.crowdsaleFinalized) {
       // assert.equal(state.goalReached, await crowdsale.goalReached());
 
-      state.crowdsaleData.TOTAL_SUPPLY.
+      (new BigNumber(state.crowdsaleData.FOUNDATION_SUPPLY).plus(state.tokensSold)).
         should.be.bignumber.equal(await state.token.totalSupply());
     } else {
       state.crowdsaleSupply.
@@ -98,9 +98,7 @@ contract('QiibeeCrowdsale property-based test', function(accounts) {
         minBuyingRequestInterval: minBuyingRequestInterval,
         maxGasPrice: new BigNumber(maxGasPrice),
         foundationWallet: gen.getAccount(input.crowdsale.foundationWallet),
-        TOTAL_SUPPLY: 10000000000000000000000000000,
-        FOUNDATION_SUPPLY: 7600000000000000000000000000,
-        CROWDSALE_SUPPLY: 2400000000000000000000000000
+        FOUNDATION_SUPPLY: 10e27,
       };
 
       let crowdsale = await QiibeeCrowdsale.new(
@@ -189,6 +187,7 @@ contract('QiibeeCrowdsale property-based test', function(accounts) {
   });
 
   describe('limit tests', function () {
+
     it('should NOT buy tokens if amount exceeds the cap', async function() {
       await runGeneratedCrowdsaleAndCommands({
         commands: [
@@ -293,6 +292,7 @@ contract('QiibeeCrowdsale property-based test', function(accounts) {
   });
 
   describe('crowdsale tests', function () {
+
     it('does not fail on some specific examples', async function() {
 
       await runGeneratedCrowdsaleAndCommands({

@@ -551,7 +551,7 @@ async function runFinalizeCrowdsaleCommand(command, state) {
       assert.notEqual(tokenOwnerBeforeFinalize, tokenOwnerAfterFinalize);
       assert.equal(gen.getAccount(state.wallet), tokenOwnerAfterFinalize);
 
-      let totalSupply = new BigNumber(state.crowdsaleData.TOTAL_SUPPLY);
+      let totalSupply = new BigNumber(state.crowdsaleData.FOUNDATION_SUPPLY).plus(state.tokensSold);
 
       totalSupply.should.be.bignumber.equal(
         await state.token.totalSupply()
@@ -599,7 +599,7 @@ async function runFinalizePresaleCommand(command, state) {
       assert.notEqual(tokenOwnerBeforeFinalize, tokenOwnerAfterFinalize);
       assert.equal(gen.getAccount(state.wallet), tokenOwnerAfterFinalize);
 
-      let totalSupply = new BigNumber(state.presaleData.TOTAL_SUPPLY);
+      let totalSupply = new BigNumber(state.presaleData.FOUNDATION_SUPPLY);
 
       totalSupply.should.be.bignumber.equal(
         await state.token.totalSupply()
@@ -662,9 +662,6 @@ async function runBurnTokensCommand(command, state) {
     command.tokens == 0 ||
     hasZeroAddress;
 
-  console.log('shouldThrow', shouldThrow);
-  console.log('balance', balance);
-  console.log('tokens', tokens);
   try {
     const tx = await state.token.burn(tokens, {from: account});
     assert.equal(false, shouldThrow, 'burn should have thrown but it did not');

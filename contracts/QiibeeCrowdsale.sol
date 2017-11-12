@@ -5,13 +5,18 @@ import "./Crowdsale.sol";
 /**
    @title Crowdsale for the QBX Token Generation Event
 
-   Implementation of the QBX Token Generation Event (TGE): A 4-week, fixed token supply with a
-   fixed rate until the goal (soft cap) is reached and then a dynamic rate linked to the amount of
-   tokens sold is applied.
+   Implementation of the QBX Token Generation Event (TGE): A X-week capped presale with a soft cap
+   and a hard cap, both of them expressed in wei. The crowdsale is NOT whitelisted.
 
-   In case of the goal not being reached by purchases made during the 4-week period the token will
-   not start operating and all funds sent during that period will be made available to be claimed
-   by the originating addresses.
+   Tokens have a fixed rate until the goal (soft cap) is reached and then a dynamic rate linked to
+   the amount of tokens sold is applied.
+
+   In case of the goal not being reached by purchases made during the event the token will not start
+   operating and all funds sent during this period will be made available to be claimed by the
+   originating addresses.
+
+   In the finalize() function, the FOUNDATION_SUPPLY tokens are minted and distributed to the
+   foundation wallet. Token is unpaused and minting is disabled.
  */
 
 contract QiibeeCrowdsale is Crowdsale {
@@ -133,6 +138,13 @@ contract QiibeeCrowdsale is Crowdsale {
         token.finishMinting();
         token.unpause();
         token.transferOwnership(wallet);
+    }
+
+    /**
+      @dev changes the token owner
+    */
+    function setToken(address tokenAddress) onlyOwner {
+      token = QiibeeToken(tokenAddress);
     }
 
 }
