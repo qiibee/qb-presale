@@ -29,7 +29,7 @@ npm install
 
 * To run all tests: `npm test`
 
-* To run a specific test: `npm test -- test/Crowdsale.js`
+* To run a specific test: `npm test -- test/QiibeeCrowdsale.js`
 
 There are also two environment variables (`GEN_TESTS_QTY` and `GEN_TESTS_TIMEOUT`) that regulate the duration/depth of the property-based tests, so for example:
 

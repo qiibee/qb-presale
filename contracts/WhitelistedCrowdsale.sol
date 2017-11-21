@@ -14,9 +14,26 @@ contract WhitelistedCrowdsale is Crowdsale, Ownable {
   // list of addresses that can purchase before crowdsale opens
   mapping (address => bool) public whitelist;
 
+  /*
+   * @dev Constructor.
+   * @param _startTime see `startTimestamp`
+   * @param _endTime see `endTimestamp`
+   * @param _rate see `rate` on Crowdsale.sol
+   * @param _wallet see `wallet`
+   */
+  function WhitelistedCrowdsale (
+      uint256 _startTime,
+      uint256 _endTime,
+      uint256 _rate,
+      address _wallet
+  )
+    Crowdsale(_startTime, _endTime, _rate, _wallet)
+  {
+  }
+
   function addToWhitelist(address investor) public onlyOwner {
-   require(investor != address(0));
-   whitelist[investor] = true;
+    require(investor != address(0));
+    whitelist[investor] = true;
   }
 
   // @return true if investor is whitelisted

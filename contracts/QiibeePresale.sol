@@ -1,34 +1,51 @@
 pragma solidity ^0.4.11;
 
-import "./Crowdsale.sol";
+import "zeppelin-solidity/contracts/crowdsale/FinalizableCrowdsale.sol";
+import "zeppelin-solidity/contracts/crowdsale/CappedCrowdsale.sol";
+import "zeppelin-solidity/contracts/lifecycle/Pausable.sol";
+
+contract QiibeeTokenInterface {
+  function mintVestedTokens(address _to,
+    uint256 _value,
+    uint64 _start,
+    uint64 _cliff,
+    uint64 _vesting,
+    bool _revokable,
+    bool _burnsOnRevoke,
+    address _wallet
+  ) returns (bool);
+  function mint(address _to, uint256 _amount) returns (bool);
+  function transferOwnership(address _wallet);
+  function pause();
+  function unpause();
+  function finishMinting() returns (bool);
+}
 
 /**
    @title Presale event
 
-   Implementation of the QBX Presale Token Generation Event (PTGE): A X-week capped presale with a
-   soft cap (goal) and a hard cap, both of them expressed in wei.
+   Implementation of the QBX Presale Token Generation Event (PTGE): A X-week presale with a hard cap
+   expressed in wei.
 
    This presale is only for accredited investors, who will have to be whitelisted by the owner
-   using the addAccreditedInvestor() function. Each accredited investor has its own token rate, a
-   minimum amount of wei for each one of his transactions, a maximum cumulative investment and
-   vesting settings (cliff and vesting period).
+   using the `addAccreditedInvestor()` function. Each accredited investor has a minimum amount of wei
+   for each one of his transactions, a maximum cumulative investment and vesting settings (cliff
+   and vesting period).
 
-   On each purchase, the corresponding amount of tokens (given by the investor’s rate) will be
-   minted and vested (if the investor has vesting settings).
+   On each purchase, the corresponding amount of tokens will be minted and vested (if the investor
+   has vesting settings).
 
-   In case of the goal not being reached by purchases made during the event, all funds sent during
-   this period will be made available to be claimed by the originating addresses.
+   After fundraising is done (now > endTime or weiRaised >= cap) and before the presale is finished,
+   the owner of the contract will distribute the tokens for the different pools by calling the
+   `distributeTokens()` function.
 
-   The token begins paused and remains like that at the end of the presale. The unpause of the token
-   will be done at the end of the qiibee crowdsale.
  */
 
-contract QiibeePresale is Crowdsale {
+contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
 
     using SafeMath for uint256;
 
     struct AccreditedInvestor {
-      uint256 rate;
       uint64 cliff;
       uint64 vesting;
       bool revokable;
@@ -37,18 +54,39 @@ contract QiibeePresale is Crowdsale {
       uint256 maxCumulativeInvest; // maximum cumulative invest in wei for a given investor
     }
 
+    QiibeeTokenInterface public token; // token being sold
+
+    uint256 public distributionCap; // cap in tokens that can be distributed to the pools
+    uint256 public tokensDistributed; // tokens distributed to pools
+    uint256 public tokensSold; // qbx minted (and sold)
+
+    uint64 public vestFromTime = 1530316800; // start time for vested tokens (equiv. to 30/06/2018)
+
+    mapping (address => uint256) public balances; // balance of wei invested per investor
     mapping (address => AccreditedInvestor) public accredited; // whitelist of investors
+
+    // spam prevention
+    mapping (address => uint256) public lastCallTime; // last call times by address
+    uint256 public maxGasPrice; // max gas price per transaction
+    uint256 public minBuyingRequestInterval; // min request interval for purchases from a single source (in seconds)
 
     bool public isFinalized = false;
 
     event NewAccreditedInvestor(address indexed from, address indexed buyer);
+    event TokenDistributed(address indexed beneficiary, uint256 tokens);
+
+    modifier afterFundraising {
+        require(now > endTime || weiRaised >= cap);
+        _;
+    }
 
     /*
      * @dev Constructor.
      * @param _startTime see `startTimestamp`
      * @param _endTime see `endTimestamp`
-     * @param _goal see `see goal`
+     * @param _rate see `see rate`
      * @param _cap see `see cap`
+     * @param _distributionCap see `see distributionCap`
      * @param _maxGasPrice see `see maxGasPrice`
      * @param _minBuyingRequestInterval see `see minBuyingRequestInterval`
      * @param _wallet see `wallet`
@@ -56,68 +94,108 @@ contract QiibeePresale is Crowdsale {
     function QiibeePresale(
         uint256 _startTime,
         uint256 _endTime,
-        uint256 _goal,
+        uint256 _rate,
         uint256 _cap,
+        uint256 _distributionCap,
         uint256 _maxGasPrice,
         uint256 _minBuyingRequestInterval,
         address _wallet
     )
-      Crowdsale(_startTime, _endTime, _goal, _cap, _maxGasPrice, _minBuyingRequestInterval, _wallet)
+      Crowdsale(_startTime, _endTime, _rate, _wallet)
+      CappedCrowdsale(_cap)
     {
+      require(_distributionCap > 0);
+      require(_maxGasPrice > 0);
+      require(_minBuyingRequestInterval > 0);
+
+      distributionCap = _distributionCap;
+      maxGasPrice = _maxGasPrice;
+      minBuyingRequestInterval = _minBuyingRequestInterval;
     }
 
     /*
-     * @param beneficiary beneficiary address where tokens are sent to
+     * @param beneficiary address where tokens are sent to
      */
-    function buyTokens(address beneficiary) public payable whenNotPaused{
-        require(beneficiary != address(0));
-        require(validPurchase());
+    function buyTokens(address beneficiary) public payable whenNotPaused {
+      require(beneficiary != address(0));
+      require(validPurchase());
 
-        AccreditedInvestor storage data = accredited[msg.sender];
+      AccreditedInvestor storage data = accredited[msg.sender];
 
-        // investor's data
-        uint256 rate = data.rate;
-        uint256 minInvest = data.minInvest;
-        uint256 maxCumulativeInvest = data.maxCumulativeInvest;
-        uint64 from = uint64(endTime);
-        uint64 cliff = from + data.cliff;
-        uint64 vesting = cliff + data.vesting;
-        bool revokable = data.revokable;
-        bool burnsOnRevoke = data.burnsOnRevoke;
+      // investor's data
+      uint256 minInvest = data.minInvest;
+      uint256 maxCumulativeInvest = data.maxCumulativeInvest;
+      uint64 from = vestFromTime;
+      uint64 cliff = from + data.cliff;
+      uint64 vesting = cliff + data.vesting;
+      bool revokable = data.revokable;
+      bool burnsOnRevoke = data.burnsOnRevoke;
 
-        uint256 tokens = msg.value.mul(rate);
+      uint256 tokens = msg.value.mul(rate);
 
-        // check investor's limits
-        uint256 newBalance = balances[beneficiary].add(msg.value);
-        require(newBalance <= maxCumulativeInvest && msg.value >= minInvest);
+      // check investor's limits
+      uint256 newBalance = balances[beneficiary].add(msg.value);
+      require(newBalance <= maxCumulativeInvest && msg.value >= minInvest);
 
-        if (data.cliff > 0 && data.vesting > 0) {
-          require(token.mintVestedTokens(beneficiary, tokens, from, cliff, vesting, revokable, burnsOnRevoke, wallet));
-        } else {
-          require(token.mint(beneficiary, tokens));
-        }
+      if (data.cliff > 0 && data.vesting > 0) {
+        require(QiibeeTokenInterface(token).mintVestedTokens(beneficiary, tokens, from, cliff, vesting, revokable, burnsOnRevoke, wallet));
+      } else {
+        require(QiibeeTokenInterface(token).mint(beneficiary, tokens));
+      }
 
-        // update state
-        balances[beneficiary] = newBalance;
-        weiRaised = weiRaised.add(msg.value);
-        tokensSold = tokensSold.add(tokens);
+      // update state
+      balances[beneficiary] = newBalance;
+      weiRaised = weiRaised.add(msg.value);
+      tokensSold = tokensSold.add(tokens);
 
-        TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
+      TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
+    }
 
-        forwardFunds();
+    /*
+     * @dev This functions is used to manually distribute tokens. It works after the fundraising, can
+     * only be called by the owner and when the presale is not paused. It has a cap on the amount
+     * of tokens that can be manually distributed.
+     *
+     * @param _beneficiary address where tokens are sent to
+     * @param _tokens amount of tokens (in atto) to distribute
+     * @param _cliff duration in seconds of the cliff in which tokens will begin to vest.
+     * @param _vesting duration in seconds of the vesting in which tokens will vest.
+     */
+    function distributeTokens(address _beneficiary, uint256 _tokens, uint64 _cliff, uint64 _vesting, bool _revokable, bool _burnsOnRevoke) public onlyOwner whenNotPaused afterFundraising {
+      require(_beneficiary != address(0));
+      require(_tokens > 0);
+      require(_vesting >= _cliff);
+      require(!isFinalized);
+
+      // check distribution cap limit
+      uint256 totalDistributed = tokensDistributed.add(_tokens);
+      assert(totalDistributed <= distributionCap);
+
+      if (_cliff > 0 && _vesting > 0) {
+        uint64 from = vestFromTime;
+        uint64 cliff = from + _cliff;
+        uint64 vesting = cliff + _vesting;
+        assert(QiibeeTokenInterface(token).mintVestedTokens(_beneficiary, _tokens, from, cliff, vesting, _revokable, _burnsOnRevoke, wallet));
+      } else {
+        assert(QiibeeTokenInterface(token).mint(_beneficiary, _tokens));
+      }
+
+      // update state
+      tokensDistributed = tokensDistributed.add(_tokens);
+
+      TokenDistributed(_beneficiary, _tokens);
     }
 
     /*
      * @dev Add an address to the accredited list.
      */
-    function addAccreditedInvestor(address investor, uint256 rate, uint64 cliff, uint64 vesting, bool revokable, bool burnsOnRevoke, uint256 minInvest, uint256 maxCumulativeInvest) public onlyOwner {
+    function addAccreditedInvestor(address investor, uint64 cliff, uint64 vesting, bool revokable, bool burnsOnRevoke, uint256 minInvest, uint256 maxCumulativeInvest) public onlyOwner {
         require(investor != address(0));
-        require(rate > 0);
         require(vesting >= cliff);
         require(minInvest > 0);
         require(maxCumulativeInvest > 0);
 
-        accredited[investor] = AccreditedInvestor(rate, cliff, vesting, revokable, burnsOnRevoke, minInvest, maxCumulativeInvest);
+        accredited[investor] = AccreditedInvestor(cliff, vesting, revokable, burnsOnRevoke, minInvest, maxCumulativeInvest);
 
         NewAccreditedInvestor(msg.sender, investor);
     }
@@ -128,7 +206,7 @@ contract QiibeePresale is Crowdsale {
      */
     function isAccredited(address investor) public constant returns (bool) {
         AccreditedInvestor storage data = accredited[investor];
-        return data.rate > 0; //TODO: is there any way to properly check this?
+        return data.minInvest > 0; //TODO: is there any way to properly check this?
     }
 
     /*
@@ -140,17 +218,21 @@ contract QiibeePresale is Crowdsale {
     }
 
 
-    // @return true if investors can buy at the moment
+    /*
+     * @return true if investors can buy at the moment
+     */
     function validPurchase() internal constant returns (bool) {
       require(isAccredited(msg.sender));
-      return super.validPurchase();
+      bool withinFrequency = now.sub(lastCallTime[msg.sender]) >= minBuyingRequestInterval;
+      bool withinGasPrice = tx.gasprice <= maxGasPrice;
+      return super.validPurchase() && withinFrequency && withinGasPrice;
     }
 
-    /**
+    /*
      * @dev Must be called after crowdsale ends, to do some extra finalization
-     * work. Calls the contract's finalization function.
+     * work. Calls the contract's finalization function. Only owner can call it.
      */
-    function finalize() public {
+    function finalize() public onlyOwner {
       require(!isFinalized);
       require(hasEnded());
 
@@ -160,7 +242,16 @@ contract QiibeePresale is Crowdsale {
       isFinalized = true;
 
       // transfer the ownership of the token to the foundation
-      token.transferOwnership(wallet);
+      QiibeeTokenInterface(token).transferOwnership(wallet);
+    }
+
+    /*
+     * @dev sets the token that the presale will use. Call only be called by the owner and
+     * before the presale starts.
+     */
+    function setToken(address tokenAddress) onlyOwner {
+      require(now < startTime);
+      token = QiibeeTokenInterface(tokenAddress);
     }
 
 }

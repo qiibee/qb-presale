@@ -3,9 +3,8 @@
 set -e
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
-  yarn run coveralls
+  npm run test && cat coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js
 else
+  yarn test test/QiibeeToken.js test/QiibeeCrowdsale.js test/QiibeePresale.js test/WhitelistedCrowdsale.js
   GEN_TESTS_TIMEOUT=400 GEN_TESTS_QTY=40 yarn test test/QiibeePresaleGenTest.js test/QiibeeCrowdsaleGenTest.js
-  yarn test test/Crowdsale.js
-  yarn test test/QiibeeToken.js test/QiibeeCrowdsale.js test/WhitelistedCrowdsale.js
 fi

@@ -3,10 +3,11 @@
  * and adapted to the Crowdsale.
  */
 
-const QiibeeCrowdsale = artifacts.require('QiibeeCrowdsale.sol');
+const QiibeePresale = artifacts.require('QiibeePresale.sol');
+const QiibeeToken = artifacts.require('QiibeeToken.sol');
 
 const latestTime = require('./helpers/latestTime');
-const { duration } = require('./helpers/increaseTime');
+const { increaseTimeTestRPCTo, duration } = require('./helpers/increaseTime');
 const help = require('./helpers.js');
 const BigNumber = web3.BigNumber;
 
@@ -21,82 +22,75 @@ function assertExpectedException(e) {
   }
 }
 
-contract('QiibeeCrowdsale', function ([owner, wallet]) {
+contract('QiibeePresale', function ([owner, wallet, migrationMaster]) {
 
   const defaultTimeDelta = duration.days(1); // time delta used in time calculations (for start, end1 & end2)
   const defaults = {
     rate: 6000,
     goal: new BigNumber(help.toWei(800)),
     cap: new BigNumber(help.toWei(1800)),
-    minInvest: new BigNumber(help.toWei(100)),
-    maxCumulativeInvest: new BigNumber(help.toWei(500)),
+    distributionCap: new BigNumber(help.toAtto(100)),
     maxGasPrice: new BigNumber(5000000000000000000),
     minBuyingRequestInterval: 600,
     wallet: wallet
   };
 
-  async function createCrowdsale(params) {
+  async function createPresale(params) {
     const startTime = params.start === undefined ? (latestTime() + defaultTimeDelta) : params.start,
       endTime = params.endTime === undefined ? (startTime + duration.weeks(1)) : params.endTime,
       rate = params.rate === undefined ? defaults.rate : params.rate,
-      goal = params.goal === undefined ? defaults.goal : params.goal,
       cap = params.cap === undefined ? defaults.cap : params.cap,
-      minInvest = params.minInvest === undefined ? defaults.minInvest : params.minInvest,
-      maxCumulativeInvest = params.maxCumulativeInvest === undefined ? defaults.maxCumulativeInvest : params.maxCumulativeInvest,
+      distributionCap = params.distributionCap === undefined ? defaults.distributionCap : params.distributionCap,
       maxGasPrice = params.maxGasPrice === undefined ? defaults.maxGasPrice : params.maxGasPrice,
       minBuyingRequestInterval = params.minBuyingRequestInterval === undefined ? defaults.minBuyingRequestInterval : params.minBuyingRequestInterval,
       wallet = params.wallet === undefined ? defaults.wallet : params.foundationWallet;
 
-    return await QiibeeCrowdsale.new(startTime, endTime, rate, goal, cap, minInvest, maxCumulativeInvest, maxGasPrice, minBuyingRequestInterval, wallet, {from: owner});
+    return await QiibeePresale.new(startTime, endTime, rate, cap, distributionCap, maxGasPrice, minBuyingRequestInterval, wallet, {from: owner});
   }
 
-  it('can create a qiibee crowdsale', async function () {
-    await createCrowdsale({});
+  it('can create a qiibee presale', async function () {
+    await createPresale({});
   });
 
-  it('should fail creating qiibee crowdsale with zero rate', async function () {
+  it('should fail creating qiibee presale with zero rate', async function () {
     try {
-      await createCrowdsale({rate: 0});
+      await createPresale({rate: 0});
     } catch (e) {
       assertExpectedException(e);
     }
   });
 
-  it('should fail creating qiibee crowdsale with zero minInvest', async function () {
+  it('should fail creating qiibee presale with zero distributionCap', async function () {
     try {
-      await createCrowdsale({minInvest: 0});
+      await createPresale({distributionCap: 0});
     } catch (e) {
       assertExpectedException(e);
     }
   });
 
-  it('should fail creating qiibee crowdsale with zero maxCumulativeInvest', async function () {
+  it('should fail creating qiibee presale with zero maxGasPrice', async function () {
     try {
-      await createCrowdsale({maxCumulativeInvest: 0});
+      await createPresale({maxGasPrice: 0});
     } catch (e) {
       assertExpectedException(e);
     }
   });
 
-  it('should fail creating qiibee crowdsale with minInvest bigger than maxCumulativeInvest', async function () {
+  it('should fail creating qiibee presale with zero minBuyingRequestInterval', async function () {
     try {
-      await createCrowdsale({minInvest: defaults.maxCumulativeInvest.plus(100)});
+      await createPresale({minBuyingRequestInterval: 0});
     } catch (e) {
       assertExpectedException(e);
     }
   });
 
-  it('should fail creating qiibee crowdsale with zero maxGasPrice', async function () {
-    try {
-      await createCrowdsale({maxGasPrice: 0});
-    } catch (e) {
-      assertExpectedException(e);
-    }
-  });
+  it('should fail setting token after startTime', async function () {
+    let presale = await createPresale({});
+    let token = await QiibeeToken.new(migrationMaster);
 
-  it('should fail creating qiibee crowdsale with zero minBuyingRequestInterval', async function () {
+    await increaseTimeTestRPCTo(await presale.startTime());
     try {
-      await createCrowdsale({minBuyingRequestInterval: 0});
+      await presale.setToken(token.address);
     } catch (e) {
       assertExpectedException(e);
     }

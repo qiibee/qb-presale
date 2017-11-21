@@ -26,8 +26,9 @@ module.exports = {
   presaleGen: jsc.record({
     maxGasPrice: jsc.integer(0, 1000000000),
     minBuyingRequestInterval: jsc.integer(0, 10000),
-    goal: jsc.integer(0, 100000),
+    rate: jsc.integer(0, 2000),
     cap: jsc.integer(0, 100000),
+    distributionCap: jsc.integer(0, 10000000),
     foundationWallet: accountGen,
     owner: accountGen
   }),
@@ -92,6 +93,17 @@ module.exports = {
     account: accountGen,
     beneficiary: accountGen,
     eth: jsc.integer(0, 1000000000)
+  }),
+
+  distributeTokensCommandGen: jsc.record({
+    type: jsc.constant('distributeTokens'),
+    fromAccount: accountGen,
+    beneficiary: accountGen,
+    amount: jsc.integer(0, 10000000),
+    cliff: jsc.integer(0, 20000),
+    vesting: jsc.integer(0, 20000),
+    revokable: jsc.bool,
+    burnsOnRevoke: jsc.bool,
   }),
 
   pauseCrowdsaleCommandGen: jsc.record({

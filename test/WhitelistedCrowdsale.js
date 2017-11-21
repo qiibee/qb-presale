@@ -1,4 +1,4 @@
-const WhitelistedCrowdsale = artifacts.require('../contracts/WhitelistedCrowdsaleImpl.sol');
+const WhitelistedCrowdsale = artifacts.require('../contracts/WhitelistedCrowdsale.sol');
 const MintableToken = artifacts.require('MintableToken.sol');
 
 const latestTime = require('./helpers/latestTime');

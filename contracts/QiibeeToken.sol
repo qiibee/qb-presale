@@ -5,14 +5,17 @@ import "zeppelin-solidity/contracts/token/MintableToken.sol";
 import "zeppelin-solidity/contracts/token/BurnableToken.sol";
 import "zeppelin-solidity/contracts/token/VestedToken.sol";
 
+// @dev Migration Agent interface
+contract MigrationAgentInterface {
+  function migrateFrom(address _from, uint256 _value);
+  function setSourceToken(address _qbxSourceToken);
+}
+
 /**
    @title QBX, the qiibee token
 
-   Implementation of QBX, an ERC20 token for the qiibee ecosystem.
-   It uses OpenZeppelin MintableToken and PausableToken. In addition,
-   it has a BurnableToken responsible for burning tokens.
-
-   The smallest unit of a qbx is the atto.
+   Implementation of QBX, an ERC20 token for the qiibee ecosystem. The smallest unit of a qbx is
+   the atto. The token call be migrated to a new token by calling the `migrate()` function.
  */
 contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken {
 
@@ -22,12 +25,24 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
 
     uint8 public constant DECIMALS = 18;
 
-    /**
-      @dev Burns a specific amount of tokens.
-      @param _value The amount of tokens to be burnt.
-    */
-    function burn(uint256 _value) whenNotPaused public {
-        super.burn(_value);
+    // migration vars
+    uint256 public totalMigrated;
+    address public migrationAgent;
+    address public migrationMaster;
+
+    event Migrate(address indexed _from, address indexed _to, uint256 _value);
+
+    modifier onlyMigrationMaster {
+        require(msg.sender == migrationMaster);
+        _;
+    }
+
+    /*
+     * Constructor.
+     */
+    function QiibeeToken(address _migrationMaster) {
+      require(_migrationMaster != address(0));
+      migrationMaster = _migrationMaster;
     }
 
     /**
@@ -61,7 +76,7 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
                 );
 
       return mint(_to, _value); //mint tokens
-  }
+    }
 
     /**
       @dev Overrides VestedToken#grantVestedTokens(). Only owner can call it.
@@ -76,5 +91,47 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
       bool _burnsOnRevoke
     ) onlyOwner public {
       super.grantVestedTokens(_to, _value, _start, _cliff, _vesting, _revokable, _burnsOnRevoke);
+    }
+
+    /**
+      @dev Set address of migration agent contract and enable migration process.
+      @param _agent The address of the MigrationAgent contract
+     */
+    function setMigrationAgent(address _agent) public onlyMigrationMaster {
+      require(migrationAgent == address(0));
+      migrationAgent = _agent;
+    }
+
+    /**
+      @dev Migrates the tokens to the target token through the MigrationAgent.
+      @param _value The amount of tokens (in atto) to be migrated.
+     */
+    function migrate(uint256 _value) public whenNotPaused {
+      require(migrationAgent != address(0));
+      require(_value != 0);
+      require(_value <= balances[msg.sender]);
+
+      balances[msg.sender] -= _value;
+      totalSupply -= _value;
+      totalMigrated += _value;
+      MigrationAgentInterface(migrationAgent).migrateFrom(msg.sender, _value);
+      Migrate(msg.sender, migrationAgent, _value);
+    }
+
+    /*
+     * @dev Changes the migration master.
+     * @param _master The address of the migration master.
+     */
+    function setMigrationMaster(address _master) public onlyMigrationMaster {
+      require(_master != address(0));
+      migrationMaster = _master;
+    }
+
+    /*
+     * @dev Burns a specific amount of tokens.
+     * @param _value The amount of tokens to be burnt.
+     */
+    function burn(uint256 _value) whenNotPaused public {
+        super.burn(_value);
     }
 }

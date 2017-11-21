@@ -1,6 +1,27 @@
 pragma solidity ^0.4.11;
 
-import "./Crowdsale.sol";
+import "zeppelin-solidity/contracts/crowdsale/FinalizableCrowdsale.sol";
+import "zeppelin-solidity/contracts/crowdsale/RefundableCrowdsale.sol";
+import "zeppelin-solidity/contracts/crowdsale/CappedCrowdsale.sol";
+import "zeppelin-solidity/contracts/crowdsale/Crowdsale.sol";
+import "zeppelin-solidity/contracts/lifecycle/Pausable.sol";
+
+contract QiibeeToken {
+  function mintVestedTokens(address _to,
+    uint256 _value,
+    uint64 _start,
+    uint64 _cliff,
+    uint64 _vesting,
+    bool _revokable,
+    bool _burnsOnRevoke,
+    address _wallet
+  ) returns (bool);
+  function mint(address _to, uint256 _amount) returns (bool);
+  function transferOwnership(address _wallet);
+  function pause();
+  function unpause();
+  function finishMinting() returns (bool);
+}
 
 /**
    @title Crowdsale for the QBX Token Generation Event
@@ -19,16 +40,32 @@ import "./Crowdsale.sol";
    foundation wallet. Token is unpaused and minting is disabled.
  */
 
-contract QiibeeCrowdsale is Crowdsale {
+contract QiibeeCrowdsale is CappedCrowdsale, FinalizableCrowdsale, RefundableCrowdsale, Pausable {
 
     using SafeMath for uint256;
 
+    QiibeeToken public token; // token being sold
+
     uint256 public constant FOUNDATION_SUPPLY = 10e27; // total amount of tokens in atto for the pools
 
-    uint256 public rate; // how many token units a buyer gets per wei
+    uint256 public tokensSold; // qbx minted (and sold)
 
+    mapping (address => uint256) public balances; // balance of wei invested per investor
+
+    // spam prevention
+    mapping (address => uint256) public lastCallTime; // last call times by address
+    uint256 public maxGasPrice; // max gas price per transaction
+    uint256 public minBuyingRequestInterval; // min request interval for purchases from a single source (in seconds)
+
+    // limits
     uint256 public minInvest; // minimum invest in wei an address can do
     uint256 public maxCumulativeInvest; // maximum cumulative invest an address can do
+
+    /*
+     * @dev event for change wallet logging
+     * @param wallet new wallet address
+     */
+    event WalletChange(address wallet);
 
     /*
      * @dev Constructor. Creates the token in a paused state
@@ -55,28 +92,20 @@ contract QiibeeCrowdsale is Crowdsale {
         uint256 _minBuyingRequestInterval,
         address _wallet
     )
-      Crowdsale(_startTime, _endTime, _goal, _cap, _maxGasPrice, _minBuyingRequestInterval, _wallet)
+      Crowdsale(_startTime, _endTime, _rate, _wallet)
+      CappedCrowdsale(_cap)
+      RefundableCrowdsale(_goal)
     {
-        require(_rate > 0);
         require(_minInvest > 0);
         require(_maxCumulativeInvest > 0);
         require(_minInvest <= _maxCumulativeInvest);
+        require(_maxGasPrice > 0);
+        require(_minBuyingRequestInterval > 0);
 
-        rate = _rate;
         minInvest = _minInvest;
         maxCumulativeInvest = _maxCumulativeInvest;
-    }
-
-    /*
-     * @dev Returns the rate accordingly: before goal is reached, there is a fixed rate given by
-     * `rate`. After that, the formula applies.
-     * @return rate accordingly
-     */
-    function getRate() public constant returns(uint256) {
-        if (goalReached()) {
-            return rate.mul(1000).div(tokensSold.mul(1000).div(goal));
-        }
-        return rate;
+        maxGasPrice = _maxGasPrice;
+        minBuyingRequestInterval = _minBuyingRequestInterval;
     }
 
     /*
@@ -85,31 +114,34 @@ contract QiibeeCrowdsale is Crowdsale {
      */
     function buyTokens(address beneficiary) public payable whenNotPaused{
         require(beneficiary != address(0));
-        require(validPurchase(beneficiary));
+        require(validPurchase(beneficiary, msg.value));
 
-        uint256 rate = getRate();
-        uint256 tokens = msg.value.mul(rate);
+        uint256 weiAmount = msg.value;
+
+        uint256 tokens = weiAmount.mul(rate);
 
         // update state
-        assert(token.mint(beneficiary, tokens));
+        assert(QiibeeToken(token).mint(beneficiary, tokens));
 
-        weiRaised = weiRaised.add(msg.value);
+        weiRaised = weiRaised.add(weiAmount);
         tokensSold = tokensSold.add(tokens);
         lastCallTime[msg.sender] = now;
 
-        TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
+        TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
 
         forwardFunds();
     }
 
+
     /*
      * Checks if the investment made is within the allowed limits
      */
-    function validPurchase(address beneficiary) internal constant returns (bool) {
-        // check limits
-        uint256 newBalance = balances[beneficiary].add(msg.value);
-        bool withinLimits = newBalance <= maxCumulativeInvest && msg.value >= minInvest;
-        return withinLimits && super.validPurchase();
+    function validPurchase(address beneficiary, uint256 weiAmount) internal constant returns (bool) {
+        uint256 newBalance = balances[beneficiary].add(weiAmount);
+        bool withinLimits = newBalance <= maxCumulativeInvest && weiAmount >= minInvest;
+        bool withinFrequency = now.sub(lastCallTime[msg.sender]) >= minBuyingRequestInterval;
+        bool withinGasPrice = tx.gasprice <= maxGasPrice;
+        return super.validPurchase() && withinLimits && withinFrequency && withinGasPrice;
     }
 
     /*
@@ -117,7 +149,7 @@ contract QiibeeCrowdsale is Crowdsale {
      * and send them to the foundation wallet.
      */
     function finalization() internal {
-        token.mint(wallet, FOUNDATION_SUPPLY);
+        QiibeeToken(token).mint(wallet, FOUNDATION_SUPPLY);
         super.finalization();
     }
 
@@ -126,7 +158,7 @@ contract QiibeeCrowdsale is Crowdsale {
       unpauses the token and transfers the token ownership to the foundation.
       This function can only be called when the crowdsale has ended.
     */
-    function finalize() public {
+    function finalize() onlyOwner public {
         require(!isFinalized);
         require(hasEnded());
 
@@ -135,9 +167,9 @@ contract QiibeeCrowdsale is Crowdsale {
 
         isFinalized = true;
 
-        token.finishMinting();
-        token.unpause();
-        token.transferOwnership(wallet);
+        QiibeeToken(token).finishMinting();
+        QiibeeToken(token).unpause();
+        QiibeeToken(token).transferOwnership(wallet);
     }
 
     /**
@@ -145,6 +177,16 @@ contract QiibeeCrowdsale is Crowdsale {
     */
     function setToken(address tokenAddress) onlyOwner {
       token = QiibeeToken(tokenAddress);
+    }
+
+    /*
+     * @dev Changes the current wallet for a new one. Only the owner can call this function.
+     * @param _wallet new wallet
+     */
+    function setWallet(address _wallet) onlyOwner public {
+        require(_wallet != address(0));
+        wallet = _wallet;
+        WalletChange(_wallet);
     }
 
 }
