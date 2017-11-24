@@ -149,6 +149,8 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
       tokensSold = tokensSold.add(tokens);
 
       TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
+
+      forwardFunds();
     }
 
     /*
