@@ -252,7 +252,7 @@ async function runPresaleBuyTokensCommand(command, state) {
     rate = state.presaleData.rate,
     tokens = accredited ? new BigNumber(command.eth).mul(rate) : null,
     hasZeroAddress = _.some([account, beneficiaryAccount], isZeroAddress),
-    newBalance = getBalance(state, command.beneficiary).plus(weiCost);
+    newBalance = getBalance(state, command.account).plus(weiCost);
 
   let inTGE = nextTime >= startTime && nextTime <= endTime,
     capExceeded = state.weiRaised.plus(new BigNumber(help.toAtto(command.eth))).gt(presale.cap),
@@ -285,7 +285,7 @@ async function runPresaleBuyTokensCommand(command, state) {
       {tokens: tokens, rate: rate, wei: weiCost, beneficiary: command.beneficiary, account: command.account}
     );
     state.lastCallTime[command.account] = nextTime;
-    state.balances[command.beneficiary] = getBalance(state, command.beneficiary).plus(weiCost);
+    state.balances[command.account] = getBalance(state, command.account).plus(weiCost);
     state.tokenBalances[command.beneficiary] = getTokenBalance(state, command.beneficiary).plus(tokens);
     state.weiRaised = state.weiRaised.plus(weiCost);
     state.tokensSold = state.tokensSold.plus(new BigNumber(help.toAtto(tokens)));

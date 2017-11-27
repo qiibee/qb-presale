@@ -134,7 +134,7 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
       uint256 tokens = msg.value.mul(rate);
 
       // check investor's limits
-      uint256 newBalance = balances[beneficiary].add(msg.value);
+      uint256 newBalance = balances[msg.sender].add(msg.value);
       require(newBalance <= maxCumulativeInvest && msg.value >= minInvest);
 
       if (data.cliff > 0 && data.vesting > 0) {
@@ -144,7 +144,7 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
       }
 
       // update state
-      balances[beneficiary] = newBalance;
+      balances[msg.sender] = newBalance;
       weiRaised = weiRaised.add(msg.value);
       tokensSold = tokensSold.add(tokens);
 

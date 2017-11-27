@@ -407,6 +407,23 @@ contract('QiibeePresale property-based test', function(accounts) {
       });
     });
 
+    it('should NOT allow accredited investors to invest more than maxCumulativeInvest', async function () {
+      await runGeneratedPresaleAndCommands({
+        commands: [
+          { type: 'waitTime','seconds':duration.days(1)},
+          { type: 'addAccredited', investor: 4, cliff: 600, vesting: 600, revokable: false, burnsOnTokens: false, minInvest: 1, maxCumulativeInvest: 20, fromAccount: 0 },
+          { type: 'presaleBuyTokens', beneficiary: 5, account: 4, eth: 10 },
+          { type: 'waitTime','seconds':duration.seconds(3)},
+          { type: 'presaleBuyTokens', beneficiary: 6, account: 4, eth: 10 },
+          { type: 'waitTime','seconds':duration.seconds(3)},
+          { type: 'presaleBuyTokens', beneficiary: 7, account: 4, eth: 10 },
+        ],
+        presale: {
+          rate: 6000, maxGasPrice: 50000000000, minBuyingRequestInterval: 1, cap: 240000, distributionCap: 75000000, foundationWallet: 10, owner: 0
+        }
+      });
+    });
+
     it('should NOT allow accredited investors to invest less than minInvest', async function () {
       await runGeneratedPresaleAndCommands({
         commands: [
