@@ -55,8 +55,8 @@ module.exports = function(deployer) {
     console.log('MULTISIG WALLET IS: ', multisig.address);
     foundationWallet = multisig.address;
     deployer.deploy(QiibeePresale, startTimePresale, endTimePresale, rate, presalecap, distributionCap, maxGasPrice, minBuyingRequestInterval, foundationWallet);
+    deployer.deploy(QiibeeToken, migrationMaster);
   });
-  deployer.deploy(QiibeeToken, migrationMaster);
 
-  deployer.deploy(QiibeeCrowdsale, startTimeCrowdsale, endTimeCrowdsale, rate, goal, cap, minInvest, maxCumulativeInvest, maxGasPrice, minBuyingRequestInterval, wallet);
+  // deployer.deploy(QiibeeCrowdsale, startTimeCrowdsale, endTimeCrowdsale, rate, goal, cap, minInvest, maxCumulativeInvest, maxGasPrice, minBuyingRequestInterval, wallet);
 };

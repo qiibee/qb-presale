@@ -60,7 +60,7 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
     uint256 public tokensDistributed; // tokens distributed to pools
     uint256 public tokensSold; // qbx minted (and sold)
 
-    uint64 public vestFromTime = 1530316800; // start time for vested tokens (equiv. to 30/06/2018)
+    uint64 public vestFromTime = 1530316800; // start time for vested tokens (equiv. to 30/06/2018 12:00:00 AM GMT)
 
     mapping (address => uint256) public balances; // balance of wei invested per investor
     mapping (address => AccreditedInvestor) public accredited; // whitelist of investors
@@ -74,11 +74,6 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
 
     event NewAccreditedInvestor(address indexed from, address indexed buyer);
     event TokenDistributed(address indexed beneficiary, uint256 tokens);
-
-    modifier afterFundraising {
-        require(now > endTime || weiRaised >= cap);
-        _;
-    }
 
     /*
      * @dev Constructor.
@@ -94,6 +89,7 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
     function QiibeePresale(
         uint256 _startTime,
         uint256 _endTime,
+        address _token,
         uint256 _rate,
         uint256 _cap,
         uint256 _distributionCap,
@@ -107,10 +103,12 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
       require(_distributionCap > 0);
       require(_maxGasPrice > 0);
       require(_minBuyingRequestInterval > 0);
+      require(_token != address(0));
 
       distributionCap = _distributionCap;
       maxGasPrice = _maxGasPrice;
       minBuyingRequestInterval = _minBuyingRequestInterval;
+      token = QiibeeTokenInterface(_token);
     }
 
     /*
@@ -163,11 +161,12 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
      * @param _cliff duration in seconds of the cliff in which tokens will begin to vest.
      * @param _vesting duration in seconds of the vesting in which tokens will vest.
      */
-    function distributeTokens(address _beneficiary, uint256 _tokens, uint64 _cliff, uint64 _vesting, bool _revokable, bool _burnsOnRevoke) public onlyOwner whenNotPaused afterFundraising {
+    function distributeTokens(address _beneficiary, uint256 _tokens, uint64 _cliff, uint64 _vesting, bool _revokable, bool _burnsOnRevoke) public onlyOwner whenNotPaused {
       require(_beneficiary != address(0));
       require(_tokens > 0);
       require(_vesting >= _cliff);
       require(!isFinalized);
+      require(hasEnded());
 
       // check distribution cap limit
       uint256 totalDistributed = tokensDistributed.add(_tokens);
@@ -196,6 +195,7 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
         require(vesting >= cliff);
         require(minInvest > 0);
         require(maxCumulativeInvest > 0);
+        require(minInvest <= maxCumulativeInvest);
 
         accredited[investor] = AccreditedInvestor(cliff, vesting, revokable, burnsOnRevoke, minInvest, maxCumulativeInvest);
 
@@ -208,7 +208,7 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
      */
     function isAccredited(address investor) public constant returns (bool) {
         AccreditedInvestor storage data = accredited[investor];
-        return data.minInvest > 0; //TODO: is there any way to properly check this?
+        return data.minInvest > 0;
     }
 
     /*
@@ -248,7 +248,7 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
     }
 
     /*
-     * @dev sets the token that the presale will use. Call only be called by the owner and
+     * @dev sets the token that the presale will use. Can only be called by the owner and
      * before the presale starts.
      */
     function setToken(address tokenAddress) onlyOwner {

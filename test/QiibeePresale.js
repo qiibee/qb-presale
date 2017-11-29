@@ -22,7 +22,7 @@ function assertExpectedException(e) {
   }
 }
 
-contract('QiibeePresale', function ([owner, wallet, migrationMaster]) {
+contract('QiibeePresale', function ([owner, tokenOwner, wallet, migrationMaster]) {
 
   const defaultTimeDelta = duration.days(1); // time delta used in time calculations (for start, end1 & end2)
   const defaults = {
@@ -45,7 +45,8 @@ contract('QiibeePresale', function ([owner, wallet, migrationMaster]) {
       minBuyingRequestInterval = params.minBuyingRequestInterval === undefined ? defaults.minBuyingRequestInterval : params.minBuyingRequestInterval,
       wallet = params.wallet === undefined ? defaults.wallet : params.foundationWallet;
 
-    return await QiibeePresale.new(startTime, endTime, rate, cap, distributionCap, maxGasPrice, minBuyingRequestInterval, wallet, {from: owner});
+    let token = await QiibeeToken.new(migrationMaster, {from: tokenOwner});
+    return await QiibeePresale.new(startTime, endTime, token.address, rate, cap, distributionCap, maxGasPrice, minBuyingRequestInterval, wallet, {from: owner});
   }
 
   it('can create a qiibee presale', async function () {

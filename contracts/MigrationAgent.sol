@@ -11,10 +11,13 @@ contract QiibeeMigrationTokenInterface {
 }
 
 contract MigrationAgent is Ownable {
+  using SafeMath for uint256;
 
   address public qbxSourceToken;
   address public qbxTargetToken;
   uint256 public tokenSupply;
+
+  event SupplyUpdated(uint256 _value);
 
   function MigrationAgent(address _qbxSourceToken) {
     require(QiibeeToken(_qbxSourceToken).migrationAgent() ==  address(0));
@@ -34,7 +37,7 @@ contract MigrationAgent is Ownable {
   function migrateFrom(address _from, uint256 _value) public {
     require(msg.sender == qbxSourceToken);
     require(qbxTargetToken != address(0));
-
+    updateSupply();
     safetyInvariantCheck(_value); // qbxSourceToken has already been updated, but corresponding QBX have not been created in the qbxTargetToken contract yet
     QiibeeMigrationTokenInterface(qbxTargetToken).createToken(_from, _value);
     safetyInvariantCheck(0); // totalSupply invariant must hold
@@ -49,5 +52,14 @@ contract MigrationAgent is Ownable {
     qbxSourceToken = address(0);
     qbxTargetToken = address(0);
     tokenSupply = 0;
+  }
+
+  function updateSupply() public {
+    QiibeeToken sourceToken = QiibeeToken(qbxSourceToken);
+    tokenSupply = tokenSupply.add(sourceToken.newTokens()).sub(sourceToken.burntTokens());
+    sourceToken.resetNewTokens();
+    sourceToken.resetBurntTokens();
+    // tokenSupply = QiibeeToken(qbxSourceToken).totalSupply();
+    SupplyUpdated(tokenSupply);
   }
 }

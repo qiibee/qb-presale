@@ -9,6 +9,8 @@ import "zeppelin-solidity/contracts/token/VestedToken.sol";
 contract MigrationAgentInterface {
   function migrateFrom(address _from, uint256 _value);
   function setSourceToken(address _qbxSourceToken);
+  function updateSupply();
+  function qbxSourceToken() returns (address);
 }
 
 /**
@@ -18,19 +20,21 @@ contract MigrationAgentInterface {
    the atto. The token call be migrated to a new token by calling the `migrate()` function.
  */
 contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken {
+    using SafeMath for uint256;
 
-    string public constant SYMBOL = "QBX";
-
-    string public constant NAME = "qiibeeCoin";
-
-    uint8 public constant DECIMALS = 18;
+    string public constant symbol = "QBX";
+    string public constant name = "qiibeeCoin";
+    uint8 public constant decimals = 18;
 
     // migration vars
     uint256 public totalMigrated;
+    uint256 public newTokens; // amount of tokens minted after migrationAgent has been set
+    uint256 public burntTokens; // amount of tokens burnt after migrationAgent has been set
     address public migrationAgent;
     address public migrationMaster;
 
     event Migrate(address indexed _from, address indexed _to, uint256 _value);
+    event NewVestedToken(address indexed from, address indexed to, uint256 value, uint256 grantId);
 
     modifier onlyMigrationMaster {
         require(msg.sender == migrationMaster);
@@ -75,6 +79,7 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
                   )
                 );
 
+      NewVestedToken(msg.sender, _to, _value, count - 1);
       return mint(_to, _value); //mint tokens
     }
 
@@ -98,7 +103,9 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
       @param _agent The address of the MigrationAgent contract
      */
     function setMigrationAgent(address _agent) public onlyMigrationMaster {
+      require(MigrationAgentInterface(_agent).qbxSourceToken() == address(this));
       require(migrationAgent == address(0));
+      require(_agent != address(0));
       migrationAgent = _agent;
     }
 
@@ -110,13 +117,30 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
       require(migrationAgent != address(0));
       require(_value != 0);
       require(_value <= balances[msg.sender]);
-
-      balances[msg.sender] -= _value;
-      totalSupply -= _value;
-      totalMigrated += _value;
+      require(_value <= transferableTokens(msg.sender, uint64(now)));
+      balances[msg.sender] = balances[msg.sender].sub(_value);
+      totalSupply = totalSupply.sub(_value);
+      totalMigrated = totalMigrated.add(_value);
       MigrationAgentInterface(migrationAgent).migrateFrom(msg.sender, _value);
       Migrate(msg.sender, migrationAgent, _value);
     }
+
+    /**
+     * @dev Overrides mint() function so as to keep track of the tokens minted after the
+     * migrationAgent has been set. This is to ensure that the migration agent has always the
+     * totalTokens variable up to date. This prevents the failure of the safetyInvariantCheck().
+     * @param _to The address that will receive the minted tokens.
+     * @param _amount The amount of tokens to mint.
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function mint(address _to, uint256 _amount) onlyOwner canMint public returns (bool) {
+      bool mint = super.mint(_to, _amount);
+      if (mint && migrationAgent != address(0)) {
+        newTokens = newTokens.add(_amount);
+      }
+      return mint;
+    }
+
 
     /*
      * @dev Changes the migration master.
@@ -128,10 +152,29 @@ contract QiibeeToken is BurnableToken, PausableToken, VestedToken, MintableToken
     }
 
     /*
+     * @dev Resets newTokens to zero. Can only be called by the migrationAgent
+     */
+    function resetNewTokens() {
+      require(msg.sender == migrationAgent);
+      newTokens = 0;
+    }
+
+    /*
+     * @dev Resets burntTokens to zero. Can only be called by the migrationAgent
+     */
+    function resetBurntTokens() {
+      require(msg.sender == migrationAgent);
+      burntTokens = 0;
+    }
+
+    /*
      * @dev Burns a specific amount of tokens.
      * @param _value The amount of tokens to be burnt.
      */
-    function burn(uint256 _value) whenNotPaused public {
-        super.burn(_value);
+    function burn(uint256 _value) whenNotPaused onlyOwner public {
+      super.burn(_value);
+      if (migrationAgent != address(0)) {
+        burntTokens = burntTokens.add(_value);
+      }
     }
 }

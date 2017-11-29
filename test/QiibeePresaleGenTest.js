@@ -85,9 +85,13 @@ contract('QiibeePresale property-based test', function(accounts) {
         foundationWallet: gen.getAccount(input.presale.foundationWallet),
       };
 
+      let token = await QiibeeToken.new(migrationMaster, {from: ownerAddress});
+      await token.pause({from: ownerAddress});
+
       let presale = await QiibeePresale.new(
         presaleData.startTime,
         presaleData.endTime,
+        token.address,
         presaleData.rate,
         presaleData.cap,
         presaleData.distributionCap,
@@ -97,11 +101,8 @@ contract('QiibeePresale property-based test', function(accounts) {
         {from: ownerAddress}
       );
 
-      let token = await QiibeeToken.new(migrationMaster, {from: ownerAddress});
-      await token.pause({from: ownerAddress});
-
       //set token to presale
-      await presale.setToken(token.address, {from: ownerAddress});
+      // await presale.setToken(token.address, {from: ownerAddress});
       await token.transferOwnership(presale.address,{ from: ownerAddress});
 
       assert.equal(false, shouldThrow, 'create Presale should have thrown but it did not');
@@ -179,7 +180,8 @@ contract('QiibeePresale property-based test', function(accounts) {
         { type: 'distributeTokens', beneficiary: 4, amount: 1, cliff: 6000, vesting: 6000, revokable: false, burnsOnRevoke: false, fromAccount: 0 },
         { type: 'finalizePresale', fromAccount: 0 }
       ],
-      presale: {
+      presale:
+      {
         rate: 6000, maxGasPrice: 50000000000, minBuyingRequestInterval: 600, cap: 240000, distributionCap: 75000, foundationWallet: 10, owner: 0
       }
     });

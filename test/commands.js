@@ -459,6 +459,7 @@ async function runAddAccreditedCommand(command, state) {
       vesting < cliff ||
       minInvest == 0 ||
       maxCumulativeInvest == 0 ||
+      minInvest > maxCumulativeInvest ||
       command.fromAccount != state.owner;
 
   try {
