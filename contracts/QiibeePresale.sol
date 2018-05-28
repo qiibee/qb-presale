@@ -60,7 +60,8 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
     uint256 public tokensDistributed; // tokens distributed to pools
     uint256 public tokensSold; // qbx minted (and sold)
 
-    uint64 public vestFromTime = 1530316800; // start time for vested tokens (equiv. to 30/06/2018 12:00:00 AM GMT)
+    uint64 public vestFromTime; // start time for vested tokens (equiv. to 30/06/2018 12:00:00 AM GMT)
+    // uint64 public vestFromTime = 1530316800; // start time for vested tokens (equiv. to 30/06/2018 12:00:00 AM GMT)
 
     mapping (address => uint256) public balances; // balance of wei invested per investor
     mapping (address => AccreditedInvestor) public accredited; // whitelist of investors
@@ -84,6 +85,7 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
      * @param _distributionCap see `see distributionCap`
      * @param _maxGasPrice see `see maxGasPrice`
      * @param _minBuyingRequestInterval see `see minBuyingRequestInterval`
+     * @param _vestFromTime when does the vesting ok tokens starts
      * @param _wallet see `wallet`
      */
     function QiibeePresale(
@@ -95,6 +97,7 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
         uint256 _distributionCap,
         uint256 _maxGasPrice,
         uint256 _minBuyingRequestInterval,
+        uint256 _vestFromTime,
         address _wallet
     )
       Crowdsale(_startTime, _endTime, _rate, _wallet)
@@ -103,6 +106,7 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
       require(_distributionCap > 0);
       require(_maxGasPrice > 0);
       require(_minBuyingRequestInterval > 0);
+      require(_vestFromTime > 0);
       require(_token != address(0));
 
       distributionCap = _distributionCap;
