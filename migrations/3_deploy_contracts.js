@@ -51,12 +51,21 @@ module.exports = function(deployer) {
     console.log('Using testrpc network.');
   }
 
-  MultiSigWalletWithDailyLimit.deployed().then(function(multisig){
-    console.log('MULTISIG WALLET IS: ', multisig.address);
-    foundationWallet = multisig.address;
-    deployer.deploy(QiibeePresale, startTimePresale, endTimePresale, rate, presalecap, distributionCap, maxGasPrice, minBuyingRequestInterval, foundationWallet);
-    deployer.deploy(QiibeeToken, migrationMaster);
-  });
-
-  // deployer.deploy(QiibeeCrowdsale, startTimeCrowdsale, endTimeCrowdsale, rate, goal, cap, minInvest, maxCumulativeInvest, maxGasPrice, minBuyingRequestInterval, wallet);
+  // // MultiSigWalletWithDailyLimit.deployed().then((multisig) => {
+  //   // console.log('MULTISIG WALLET IS: ', multisig.address);
+  //   // foundationWallet = multisig.address;
+  //   deployer.deploy(QiibeeToken, migrationMaster).then(function(token){
+  //     console.log('TOKENN', token)
+  //     // console.log('QIIBEE TOKEN ADDRESS IS: ', token.address);
+  //     // deployer.deploy(QiibeePresale, startTimePresale, endTimePresale, token.address, rate, presalecap, distributionCap, maxGasPrice, minBuyingRequestInterval, foundationWallet).then((presale) => {
+  //     //   console.log('PRESALE ADDRESS IS: ', multisig.address);
+  //     // }).catch((error) => {
+  //     //   console.log('ERROR: ', error)
+  //     // });
+  //   }).catch((error) => {
+  //     console.log('ERROR: ', error)
+  //   });
+  // // }).catch((error) => {
+  // //   console.log('ERROR: ', error)
+  // // });
 };

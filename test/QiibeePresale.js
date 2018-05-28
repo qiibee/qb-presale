@@ -43,10 +43,11 @@ contract('QiibeePresale', function ([owner, tokenOwner, wallet, migrationMaster]
       distributionCap = params.distributionCap === undefined ? defaults.distributionCap : params.distributionCap,
       maxGasPrice = params.maxGasPrice === undefined ? defaults.maxGasPrice : params.maxGasPrice,
       minBuyingRequestInterval = params.minBuyingRequestInterval === undefined ? defaults.minBuyingRequestInterval : params.minBuyingRequestInterval,
+      vestFromTime = params.vestFromTime === undefined ? (endTime + duration.weeks(1)) : params.vestFromTime,
       wallet = params.wallet === undefined ? defaults.wallet : params.foundationWallet;
 
     let token = await QiibeeToken.new(migrationMaster, {from: tokenOwner});
-    return await QiibeePresale.new(startTime, endTime, token.address, rate, cap, distributionCap, maxGasPrice, minBuyingRequestInterval, wallet, {from: owner});
+    return await QiibeePresale.new(startTime, endTime, token.address, rate, cap, distributionCap, maxGasPrice, minBuyingRequestInterval, vestFromTime, wallet, {from: owner});
   }
 
   it('can create a qiibee presale', async function () {

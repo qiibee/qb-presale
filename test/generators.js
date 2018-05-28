@@ -17,6 +17,23 @@ function getAccount(account) {
   }
 }
 
+let cap = jsc.integer(0, 100000),
+  max = jsc.integer(0, 100000);
+
+while (cap/max > 10) {
+  max = jsc.integer(0, 100000);
+}
+
+let crowdsale = {
+  rate: jsc.integer(0, 2000),
+  cap: cap,
+  minInvest: jsc.integer(0, 100000),
+  maxCumulativeInvest: max,
+  maxGasPrice: jsc.integer(0, 1000000000),
+  owner: accountGen,
+  foundationWallet: accountGen
+};
+
 module.exports = {
 
   accountGen: accountGen,
@@ -26,6 +43,7 @@ module.exports = {
   presaleGen: jsc.record({
     maxGasPrice: jsc.integer(0, 1000000000),
     minBuyingRequestInterval: jsc.integer(0, 10000),
+    vestFromTime: jsc.integer(0, 1000000000000),
     rate: jsc.integer(0, 2000),
     cap: jsc.integer(0, 100000),
     distributionCap: jsc.integer(0, 10000000),
@@ -33,26 +51,18 @@ module.exports = {
     owner: accountGen
   }),
 
-  crowdsaleGen: jsc.record({
-    rate: jsc.integer(0, 2000),
-    goal: jsc.integer(0, 100000),
-    cap: jsc.integer(0, 100000),
-    minInvest: jsc.integer(0, 100000),
-    maxCumulativeInvest: jsc.integer(0, 100000),
-    maxGasPrice: jsc.integer(0, 1000000000),
-    minBuyingRequestInterval: jsc.integer(0, 10000),
-    foundationWallet: accountGen,
-    owner: accountGen
-  }),
+  crowdsaleGen: jsc.record(crowdsale),
 
   waitTimeCommandGen: jsc.record({
     type: jsc.constant('waitTime'),
     seconds: jsc.nat
   }),
 
-  checkRateCommandGen: jsc.record({
-    type: jsc.constant('checkRate'),
-    fromAccount: accountGen
+  buyTokensCommandGen: jsc.record({
+    type: jsc.constant('buyTokens'),
+    account: accountGen,
+    beneficiary: accountGen,
+    eth: jsc.nat(0, 200)
   }),
 
   setWalletCommandGen: jsc.record({
@@ -61,11 +71,11 @@ module.exports = {
     fromAccount: knownAccountGen
   }),
 
-  buyTokensCommandGen: jsc.record({
-    type: jsc.constant('buyTokens'),
+  validatePurchaseCommandGen: jsc.record({
+    type: jsc.constant('validatePurchase'),
     account: accountGen,
     beneficiary: accountGen,
-    eth: jsc.nat(0, 200)
+    acceptance: jsc.bool,
   }),
 
   burnTokensCommandGen: jsc.record({
@@ -78,7 +88,7 @@ module.exports = {
     type: jsc.constant('sendTransaction'),
     account: accountGen,
     beneficiary: accountGen,
-    eth: jsc.integer(0, 1000000000)
+    eth: jsc.integer(0, 200)
   }),
 
   presaleBuyTokensCommandGen: jsc.record({
@@ -92,7 +102,7 @@ module.exports = {
     type: jsc.constant('presaleSendTransaction'),
     account: accountGen,
     beneficiary: accountGen,
-    eth: jsc.integer(0, 1000000000)
+    eth: jsc.integer(0, 200)
   }),
 
   distributeTokensCommandGen: jsc.record({
@@ -134,14 +144,8 @@ module.exports = {
     fromAccount: accountGen
   }),
 
-  claimRefundCommandGen: jsc.record({
-    type: jsc.constant('claimRefund'),
-    investedEth: jsc.nat(0, 200),
-    fromAccount: accountGen
-  }),
-
-  fundCrowdsaleBelowCapCommandGen: jsc.record({
-    type: jsc.constant('fundCrowdsaleBelowCap'),
+  fundCrowdsaleToCapCommandGen: jsc.record({
+    type: jsc.constant('fundCrowdsaleToCap'),
     account: knownAccountGen, // we don't want this one to fail with 0x0 addresses
     finalize: jsc.bool
   }),

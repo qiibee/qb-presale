@@ -5,7 +5,6 @@ const MultiSigWalletWithDailyLimit = artifacts.require("./MultiSigWalletWithDail
 
 module.exports = function(deployer) {
   let wallet, wallet1, wallet2;
-
   if (process.argv.toString().indexOf('ropsten') !== -1) {
     wallet = '0xE4864a92f06705DEFfDDde074E9FF150C25A28EC';
     wallet1 =  '0x0082cA00741b7c76fB8cd52dAeb51B6475473827';

@@ -51,9 +51,10 @@ contract('QiibeePresale property-based test', function(accounts) {
 
   let runGeneratedPresaleAndCommands = async function(input) {
     await increaseTimeTestRPC(60);
-    let startTime = latestTime() + duration.days(1);
-    let endTime = startTime + duration.days(1);
-    help.debug('presaleTestInput data:\n', JSON.stringify(input), startTime, endTime);
+    let startTime = latestTime() + duration.days(1),
+      endTime = startTime + duration.days(1),
+      vestFromTime = startTime + duration.days(10);
+    help.debug('presaleTestInput data:\n', JSON.stringify(input), startTime, endTime, vestFromTime);
 
     let {rate, maxGasPrice, minBuyingRequestInterval, cap, distributionCap, owner} = input.presale,
       ownerAddress = gen.getAccount(input.presale.owner),
@@ -65,6 +66,7 @@ contract('QiibeePresale property-based test', function(accounts) {
       (rate == 0) ||
       (maxGasPrice == 0) ||
       (minBuyingRequestInterval < 0) ||
+      (vestFromTime <= 0) ||
       (cap == 0) ||
       (distributionCap == 0) ||
       (ownerAddress == 0) ||
@@ -76,7 +78,7 @@ contract('QiibeePresale property-based test', function(accounts) {
       let presaleData = {
         startTime: startTime,
         endTime: endTime,
-        vestFromTime: 1530316800,
+        vestFromTime: vestFromTime,
         maxGasPrice: new BigNumber(maxGasPrice),
         minBuyingRequestInterval: minBuyingRequestInterval,
         rate: rate,
@@ -97,6 +99,7 @@ contract('QiibeePresale property-based test', function(accounts) {
         presaleData.distributionCap,
         presaleData.maxGasPrice,
         presaleData.minBuyingRequestInterval,
+        presaleData.vestFromTime,
         presaleData.foundationWallet,
         {from: ownerAddress}
       );

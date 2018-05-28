@@ -3,16 +3,16 @@ sudo: required
 group: beta
 language: node_js
 node_js:
-  - "7"
+  - "9"
 cache:
   yarn: true
 env:
   -
-  - SOLIDITY_COVERAGE=true
+  # - SOLIDITY_COVERAGE=true FIXME: disabled because of versions conflicts
 matrix:
   fast_finish: true
-  allow_failures:
-    - env: SOLIDITY_COVERAGE=true
+  # allow_failures:
+  #   - env: SOLIDITY_COVERAGE=true
 before_script:
  - chmod +x ./scripts/ci.sh
 script:

@@ -25,6 +25,7 @@ testrpc_running() {
 
 start_testrpc() {
   if [ "$SOLIDITY_COVERAGE" = true ]; then
+    echo "Using Solidity Coverage testrpc instance"
     node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff --port "$testrpc_port" \
       --account="0xe8280389ca1303a2712a874707fdd5d8ae0437fab9918f845d26fd9919af5a92,10000000000000000000000000000000000000000000000000000000000000000000000000000000" \
       --account="0xed095a912033d26dc444d2675b33414f0561af170d58c33f394db8812c87a764,10000000000000000000000000000000000000000000000000000000000000000000000000000000" \
@@ -65,8 +66,7 @@ else
 fi
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
-  QB_DEBUG=true GEN_TESTS_QTY=0 GAS_PRICE=1 node_modules/.bin/solidity-coverage
-
+  GEN_TESTS_QTY=0 GAS_PRICE=1 node_modules/.bin/solidity-coverage --verbose
   if [ "$CONTINUOUS_INTEGRATION" = true ]; then
     cat coverage/lcov.info | node_modules/.bin/coveralls
   fi
@@ -74,5 +74,5 @@ else
   rm -f .node-xmlhttprequest-sync-[0-9]*
   rm -f .node-xmlhttprequest-content-[0-9]*
   node_modules/.bin/truffle compile
-  node_modules/.bin/truffle test "$@"
+  node_modules/.bin/truffle test "$@" --v
 fi

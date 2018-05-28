@@ -11,7 +11,10 @@ abiDecoder.addABI(QiibeeCrowdsale._json.abi);
 var latestTime = require('./helpers/latestTime');
 var {increaseTimeTestRPC, increaseTimeTestRPCTo} = require('./helpers/increaseTime');
 
-const DEBUG_MODE = (process.env.QB_DEBUG == 'true' || process.env.npm_config_qb_debug == 'true') || false;
+const DEBUG_MODE = (process.argv.indexOf('--verbose') > -1 ||
+  process.argv.indexOf('--v') > -1 ||
+  process.env.npm_config_qb_debug == 'true') ||
+  process.env.QB_DEBUG == 'true';
 
 let gasPriceFromEnv = parseInt(process.env.GAS_PRICE);
 let gasPrice;
@@ -77,6 +80,10 @@ module.exports = {
 
   isInvalidOpcodeEx: function(e) {
     return e.message.search('invalid opcode') >= 0;
+  },
+
+  hasWrongArguments: function(e) {
+    return e.message.search('contract constructor expected') >= 0;
   },
 
   waitBlocks: function(toWait, accounts){

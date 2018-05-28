@@ -11,7 +11,7 @@ QBX is the token (ERC20 based) of the qiibee protocol.
 
 ## Requirements
 
-Node v7.6 or higher (versions before 7.6 do not support async/await that is used in the QiibeeToken tests)
+Node v8 or higher
 
 ## Install
 
@@ -23,11 +23,14 @@ npm install
 
 - [QiibeeToken](contracts/QiibeeToken.sol)
 - [QiibeeCrowdsale](contracts/QiibeeCrowdsale.sol)
+- [Vault](contracts/Vault.sol)
 - [QiibeePresale](contracts/QiibeePresale.sol)
 
 ## Test
 
 * To run all tests: `npm test`
+
+* To enable verbose mode: `npm test --v` OR `npm test --verbose`
 
 * To run a specific test: `npm test -- test/QiibeeCrowdsale.js`
 
@@ -38,6 +41,10 @@ GEN_TESTS_QTY=50 GEN_TESTS_TIMEOUT=300 npm test
 ```
 
 will make the property-based tests in `test/QiibeeCrowdsaleGenTest.js` `test/QiibeePresaleGenTest.js` to run 50 examples in a maximum of 5 minutes
+
+
+## Coverage
+Coverage has been disable because of conflicts with the different solidity versions of the contracts.
 
 ## License
 

@@ -34,6 +34,17 @@ contract('qiibeeToken', function(accounts) {
       await QiibeeToken.new();
       assert(false, 'should have thrown but it didnt');
     } catch (error) {
+      if (!help.hasWrongArguments(error)) throw error;
+    }
+  });
+
+  it('force safetyInvariantCheck to fail', async () => {
+    await token.mint(accounts[0], web3.toWei(1), {from: await token.owner()});
+    try {
+      await token.migrate(web3.toWei(1), {from: accounts[1]});
+      assert(false, 'should have thrown but it didnt');
+    } catch(error) {
+      (await token.totalMigrated()).should.be.bignumber.equal(0);
       if (!help.isInvalidOpcodeEx(error)) throw error;
     }
   });
@@ -362,17 +373,6 @@ contract('qiibeeToken', function(accounts) {
         if (!help.isInvalidOpcodeEx(error)) throw error;
       }
     });
-
-    // it('force safetyInvariantCheck to fail', async () => {
-    //   await token.mint(accounts[0], web3.toWei(1), {from: await token.owner()});
-    //   try {
-    //     await token.migrate(web3.toWei(1), {from: accounts[1]});
-    //     assert(false, 'should have thrown but it didnt');
-    //   } catch(error) {
-    //     (await token.totalMigrated()).should.be.bignumber.equal(0);
-    //     if (!help.isInvalidOpcodeEx(error)) throw error;
-    //   }
-    // });
 
   });
 

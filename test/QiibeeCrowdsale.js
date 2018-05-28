@@ -26,12 +26,11 @@ contract('QiibeeCrowdsale', function ([owner, wallet]) {
   const defaultTimeDelta = duration.days(1); // time delta used in time calculations (for start, end1 & end2)
   const defaults = {
     rate: 6000,
-    goal: new BigNumber(help.toWei(800)),
     cap: new BigNumber(help.toWei(1800)),
     minInvest: new BigNumber(help.toWei(100)),
     maxCumulativeInvest: new BigNumber(help.toWei(500)),
     maxGasPrice: new BigNumber(5000000000000000000),
-    minBuyingRequestInterval: 600,
+    token: '0x1234556789',
     wallet: wallet
   };
 
@@ -39,15 +38,14 @@ contract('QiibeeCrowdsale', function ([owner, wallet]) {
     const startTime = params.start === undefined ? (latestTime() + defaultTimeDelta) : params.start,
       endTime = params.endTime === undefined ? (startTime + duration.weeks(1)) : params.endTime,
       rate = params.rate === undefined ? defaults.rate : params.rate,
-      goal = params.goal === undefined ? defaults.goal : params.goal,
       cap = params.cap === undefined ? defaults.cap : params.cap,
       minInvest = params.minInvest === undefined ? defaults.minInvest : params.minInvest,
       maxCumulativeInvest = params.maxCumulativeInvest === undefined ? defaults.maxCumulativeInvest : params.maxCumulativeInvest,
       maxGasPrice = params.maxGasPrice === undefined ? defaults.maxGasPrice : params.maxGasPrice,
-      minBuyingRequestInterval = params.minBuyingRequestInterval === undefined ? defaults.minBuyingRequestInterval : params.minBuyingRequestInterval,
+      token = params.token === undefined ? defaults.token : params.token,
       wallet = params.wallet === undefined ? defaults.wallet : params.foundationWallet;
 
-    return await QiibeeCrowdsale.new(startTime, endTime, rate, goal, cap, minInvest, maxCumulativeInvest, maxGasPrice, minBuyingRequestInterval, wallet, {from: owner});
+    return await QiibeeCrowdsale.new(startTime, endTime, rate, cap, minInvest, maxCumulativeInvest, maxGasPrice, token, wallet, {from: owner});
   }
 
   it('can create a qiibee crowdsale', async function () {
@@ -94,9 +92,9 @@ contract('QiibeeCrowdsale', function ([owner, wallet]) {
     }
   });
 
-  it('should fail creating qiibee crowdsale with zero minBuyingRequestInterval', async function () {
+  it('should fail creating qiibee crowdsale with no token', async function () {
     try {
-      await createCrowdsale({minBuyingRequestInterval: 0});
+      await createCrowdsale({token: 0});
     } catch (e) {
       assertExpectedException(e);
     }
