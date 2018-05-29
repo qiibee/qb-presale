@@ -3,13 +3,13 @@ var _ = require('lodash');
 var BigNumber = web3.BigNumber;
 
 var QiibeeToken = artifacts.require('./QiibeeToken.sol');
-var QiibeeCrowdsale = artifacts.require('./QiibeeCrowdsale.sol');
+// var QiibeeCrowdsale = artifacts.require('./QiibeeCrowdsale.sol');
 var abiDecoder = require('abi-decoder');
 abiDecoder.addABI(QiibeeToken._json.abi);
-abiDecoder.addABI(QiibeeCrowdsale._json.abi);
+// abiDecoder.addABI(QiibeeCrowdsale._json.abi);
 
-var latestTime = require('./helpers/latestTime');
-var {increaseTimeTestRPC, increaseTimeTestRPCTo} = require('./helpers/increaseTime');
+// var latestTime = require('./helpers/latestTime');
+// var {increaseTimeTestRPC, increaseTimeTestRPCTo} = require('./helpers/increaseTime');
 
 const DEBUG_MODE = (process.argv.indexOf('--verbose') > -1 ||
   process.argv.indexOf('--v') > -1 ||
@@ -90,33 +90,33 @@ module.exports = {
     return this.waitToBlock(parseInt(web3.eth.blockNumber) + toWait, accounts);
   },
 
-  simulateCrowdsale: async function(rate, goal, cap, minInvest, maxCumulativeInvest, maxGasPrice, minBuyingRequestInterval, accounts, balances, finish) {
-    await increaseTimeTestRPC(1);
-    var startTime = latestTime() + 5;
-    var endTime = startTime + 10;
-    var crowdsale = await QiibeeCrowdsale.new(
-      startTime, endTime,
-      rate,
-      goal, cap,
-      minInvest, maxCumulativeInvest,
-      maxGasPrice, minBuyingRequestInterval,
-      accounts[0]
-    );
+  // simulateCrowdsale: async function(rate, goal, cap, minInvest, maxCumulativeInvest, maxGasPrice, minBuyingRequestInterval, accounts, balances, finish) {
+  //   await increaseTimeTestRPC(1);
+  //   var startTime = latestTime() + 5;
+  //   var endTime = startTime + 10;
+  //   var crowdsale = await QiibeeCrowdsale.new(
+  //     startTime, endTime,
+  //     rate,
+  //     goal, cap,
+  //     minInvest, maxCumulativeInvest,
+  //     maxGasPrice, minBuyingRequestInterval,
+  //     accounts[0]
+  //   );
 
-    await increaseTimeTestRPCTo(latestTime() + 1);
-    await increaseTimeTestRPCTo(startTime + 3);
+  //   await increaseTimeTestRPCTo(latestTime() + 1);
+  //   await increaseTimeTestRPCTo(startTime + 3);
 
-    for(let i = 0; i < 5; i++) {
-      if (balances[i] > 0) {
-        await crowdsale.sendTransaction({ value: web3.toWei(balances[i], 'ether'), from: accounts[i + 1]});
-      }
-    }
-    if (finish) {
-      await increaseTimeTestRPCTo(endTime+1);
-      await crowdsale.finalize();
-    }
-    return crowdsale;
-  },
+  //   for(let i = 0; i < 5; i++) {
+  //     if (balances[i] > 0) {
+  //       await crowdsale.sendTransaction({ value: web3.toWei(balances[i], 'ether'), from: accounts[i + 1]});
+  //     }
+  //   }
+  //   if (finish) {
+  //     await increaseTimeTestRPCTo(endTime+1);
+  //     await crowdsale.finalize();
+  //   }
+  //   return crowdsale;
+  // },
 
   debug: DEBUG_MODE ? console.log : function() {},
 
@@ -154,16 +154,6 @@ module.exports = {
       assert.equal(this.fromAtto(tokenAccountBalances[3]), balances[3]);
       assert.equal(this.fromAtto(tokenAccountBalances[4]), balances[4]);
     }
-  },
-
-  getCrowdsaleExpectedRate: function(state) {
-    let { rate, goal } = state.crowdsaleData,
-      { tokensSold } = state;
-
-    if (state.weiRaised.gte(goal)) {
-      return parseInt(rate * 1000 / parseInt((tokensSold * 1000) / goal));
-    }
-    return rate;
   },
 
 };
