@@ -61,7 +61,6 @@ start_testrpc() {
 if testrpc_running; then
   echo "Using existing testrpc instance"
 else
-  echo "Starting our own testrpc instance"
   start_testrpc
 fi
 

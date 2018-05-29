@@ -1,12 +1,10 @@
 ![](https://avatars3.githubusercontent.com/u/31820267?v=4&s=100)
 
-QBX Token
+QBX Presale
 =======================
 
 [![Build Status](https://travis-ci.org/qiibee/qb-contracts.svg?branch=master)](https://travis-ci.org/qiibee/qb-contracts)
 [![Coverage Status](https://coveralls.io/repos/github/qiibee/qb-contracts/badge.svg?branch=master)](https://coveralls.io/github/qiibee/qb-contracts?branch=master)
-
-QBX is the token (ERC20 based) of the qiibee protocol.
 
 
 ## Requirements
@@ -21,9 +19,6 @@ npm install
 
 ## Main Contracts
 
-- [QiibeeToken](contracts/QiibeeToken.sol)
-- [QiibeeCrowdsale](contracts/QiibeeCrowdsale.sol)
-- [Vault](contracts/Vault.sol)
 - [QiibeePresale](contracts/QiibeePresale.sol)
 
 ## Test
@@ -32,7 +27,7 @@ npm install
 
 * To enable verbose mode: `npm test --v` OR `npm test --verbose`
 
-* To run a specific test: `npm test -- test/QiibeeCrowdsale.js`
+* To run a specific test: `npm test -- test/QiibeePresale.js`
 
 There are also two environment variables (`GEN_TESTS_QTY` and `GEN_TESTS_TIMEOUT`) that regulate the duration/depth of the property-based tests, so for example:
 
@@ -40,7 +35,7 @@ There are also two environment variables (`GEN_TESTS_QTY` and `GEN_TESTS_TIMEOUT
 GEN_TESTS_QTY=50 GEN_TESTS_TIMEOUT=300 npm test
 ```
 
-will make the property-based tests in `test/QiibeeCrowdsaleGenTest.js` `test/QiibeePresaleGenTest.js` to run 50 examples in a maximum of 5 minutes
+will make the property-based tests in `test/QiibeePresaleGenTest.js` to run 50 examples in a maximum of 5 minutes
 
 
 ## Coverage
