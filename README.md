@@ -3,7 +3,7 @@
 QBX Presale
 =======================
 
-[![Build Status](https://travis-ci.org/qiibee/qb-contracts.svg?branch=master)](https://travis-ci.org/qiibee/qb-contracts)
+[![Build Status](https://travis-ci.org/qiibee/qb-contracts.svg?branch=master)](https://travis-ci.org/qiibee/qb-presale)
 [![Coverage Status](https://coveralls.io/repos/github/qiibee/qb-contracts/badge.svg?branch=master)](https://coveralls.io/github/qiibee/qb-contracts?branch=master)
 
 
