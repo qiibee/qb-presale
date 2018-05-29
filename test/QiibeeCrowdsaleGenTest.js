@@ -218,12 +218,12 @@ contract('QiibeeCrowdsale property-based test', function(accounts) {
     return true;
   };
 
-  afterEach(function(done) {
-    if (eventsWatcher) {
-      eventsWatcher.stopWatching();
-    }
-    done();
-  });
+  // afterEach(function(done) {
+  //   if (eventsWatcher) {
+  //     eventsWatcher.stopWatching();
+  //   }
+  //   done();
+  // });
 
   describe('limit tests', function () {
 
