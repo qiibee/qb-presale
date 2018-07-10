@@ -85,7 +85,7 @@ contract QiibeePresale is CappedCrowdsale, FinalizableCrowdsale, Pausable {
      * @param _distributionCap see `see distributionCap`
      * @param _maxGasPrice see `see maxGasPrice`
      * @param _minBuyingRequestInterval see `see minBuyingRequestInterval`
-     * @param _vestFromTime when does the vesting ok tokens starts
+     * @param _vestFromTime when does the vesting of tokens starts
      * @param _wallet see `wallet`
      */
     function QiibeePresale(
